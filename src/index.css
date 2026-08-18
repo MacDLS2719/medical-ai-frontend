@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
+                    radial-gradient(circle at 85% 30%, rgba(147, 51, 234, 0.08), transparent 25%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+.glass-card {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-xl;
+}
