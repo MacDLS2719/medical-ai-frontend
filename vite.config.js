@@ -7,4 +7,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  preview: {
+    allowedHosts: [
+      'medical-ai-frontend-ve8j.onrender.com',
+      '.onrender.com',
+    ],
+  },
 })
