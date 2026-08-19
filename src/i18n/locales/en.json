@@ -1,0 +1,46 @@
+{
+  "common": {
+    "language": "Language",
+    "spanish": "Spanish",
+    "english": "English",
+    "loading": "Loading...",
+    "search": "Search",
+    "viewMore": "View more"
+  },
+
+  "home": {
+    "title": "Medical Research",
+    "subtitle": "Explore scientific information about diseases, treatments and clinical trials"
+  },
+
+  "patient": {
+    "title": "Patient Information",
+    "latestResearch": "Latest Research",
+    "yourPathologies": "Your Conditions",
+    "scientificUpdates": "Scientific Updates"
+  },
+
+  "doctor": {
+    "title": "Medical Research",
+    "search": "Search Research",
+    "specialty": "Specialty",
+    "pathology": "Condition",
+    "results": "Research Results"
+  },
+
+  "searchPage": {
+    "patientTitle": "Your Medical Notifications",
+    "doctorTitle": "Medical Search",
+    "patientSubtitle": "Below are the latest published studies and research related to your condition.",
+    "doctorSubtitle": "Search without restrictions in PubMed, Cochrane, and ClinicalTrials.",
+    "searchPlaceholder": "Type your medical query...",
+    "searchButton": "Search",
+    "errorTitle": "Search could not be completed",
+    "resultsFound": "Results Found",
+    "authorsNotSpecified": "Authors not specified",
+    "viewOriginal": "View original",
+    "noPatientResults": "No recent studies were found for your conditions.",
+    "noDoctorResults": "No results found for your search.",
+    "searching": "Searching the latest research for you..."
+  }
+}

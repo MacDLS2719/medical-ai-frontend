@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, ExternalLink, BookOpen, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function MedicalSearch() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,7 @@ export default function MedicalSearch() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept-Language': i18n.language,
         },
         body: JSON.stringify({
           query: searchQuery,
@@ -36,7 +39,7 @@ export default function MedicalSearch() {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.detail || 'Ocurrió un error al buscar');
+        throw new Error(errData.detail || t('searchPage.errorTitle'));
       }
 
       const data = await response.json();
@@ -66,12 +69,12 @@ export default function MedicalSearch() {
     <div className="flex-1 flex flex-col p-6 max-w-5xl mx-auto w-full animate-in fade-in slide-in-from-bottom-8 duration-500">
       <div className="mb-10 text-center mt-6">
         <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
-          {user.role === 'patient' ? 'Tus Notificaciones Médicas' : 'Búsqueda Médica'}
+          {user.role === 'patient' ? t('searchPage.patientTitle') : t('searchPage.doctorTitle')}
         </h1>
         <p className="text-slate-500">
           {user.role === 'patient' 
-            ? 'A continuación te mostramos los últimos estudios e investigaciones publicadas relacionadas con tu patología.' 
-            : 'Busca sin restricciones en PubMed, Cochrane y ClinicalTrials.'}
+            ? t('searchPage.patientSubtitle') 
+            : t('searchPage.doctorSubtitle')}
         </p>
       </div>
 
@@ -83,7 +86,7 @@ export default function MedicalSearch() {
           <input
             type="text"
             className="block w-full pl-12 pr-32 py-4 bg-white/60 backdrop-blur-sm border-2 border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm text-lg"
-            placeholder="Escribe tu consulta médica..."
+            placeholder={t('searchPage.searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -92,7 +95,7 @@ export default function MedicalSearch() {
             disabled={loading || !query.trim()}
             className="absolute inset-y-2 right-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-medium rounded-xl px-6 transition-colors shadow-md flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Buscar'}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : t('searchPage.searchButton')}
           </button>
         </form>
       )}
@@ -101,7 +104,7 @@ export default function MedicalSearch() {
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm mb-8 flex items-start gap-3 max-w-3xl mx-auto w-full">
           <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={20} />
           <div>
-            <h3 className="text-red-800 font-semibold">No se pudo completar la búsqueda</h3>
+            <h3 className="text-red-800 font-semibold">{t('searchPage.errorTitle')}</h3>
             <p className="text-red-600 text-sm mt-1">{error}</p>
           </div>
         </div>
@@ -111,7 +114,7 @@ export default function MedicalSearch() {
         <div className="space-y-6 max-w-4xl mx-auto w-full">
           <h2 className="text-xl font-bold text-slate-700 flex items-center gap-2 mb-4">
             <BookOpen size={20} className="text-blue-500" />
-            Resultados Encontrados ({results.length})
+            {t('searchPage.resultsFound')} ({results.length})
           </h2>
           
           <div className="grid gap-6">
@@ -129,7 +132,7 @@ export default function MedicalSearch() {
                 <p className="text-slate-600 text-sm mb-4 line-clamp-3">{doc.abstract}</p>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                   <p className="text-xs text-slate-500 truncate max-w-[60%]">
-                    {doc.authors && doc.authors.length > 0 ? doc.authors.join(', ') : 'Autores no especificados'}
+                    {doc.authors && doc.authors.length > 0 ? doc.authors.join(', ') : t('searchPage.authorsNotSpecified')}
                   </p>
                   <a 
                     href={doc.url} 
@@ -137,7 +140,7 @@ export default function MedicalSearch() {
                     rel="noreferrer"
                     className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm font-semibold transition-colors"
                   >
-                    Ver original <ExternalLink size={14} />
+                    {t('searchPage.viewOriginal')} <ExternalLink size={14} />
                   </a>
                 </div>
               </div>
@@ -149,15 +152,15 @@ export default function MedicalSearch() {
       {!loading && !error && results.length === 0 && (user.role === 'patient' || query) && (
         <div className="text-center text-slate-500 py-12">
           {user.role === 'patient' 
-            ? 'No se encontraron estudios recientes para tus patologías.' 
-            : 'No se encontraron resultados para tu búsqueda.'}
+            ? t('searchPage.noPatientResults') 
+            : t('searchPage.noDoctorResults')}
         </div>
       )}
       
       {loading && user.role === 'patient' && (
         <div className="text-center text-slate-500 py-12 flex flex-col items-center gap-3">
           <Loader2 className="animate-spin text-blue-500 mx-auto" size={32} />
-          <p>Buscando las últimas investigaciones para ti...</p>
+          <p>{t('searchPage.searching')}</p>
         </div>
       )}
     </div>

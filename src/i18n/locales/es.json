@@ -1,0 +1,46 @@
+{
+  "common": {
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "Inglés",
+    "loading": "Cargando...",
+    "search": "Buscar",
+    "viewMore": "Ver más"
+  },
+
+  "home": {
+    "title": "Investigación médica",
+    "subtitle": "Consulta información científica sobre patologías, tratamientos y ensayos clínicos"
+  },
+
+  "patient": {
+    "title": "Información para pacientes",
+    "latestResearch": "Últimas investigaciones",
+    "yourPathologies": "Tus patologías",
+    "scientificUpdates": "Actualizaciones científicas"
+  },
+
+  "doctor": {
+    "title": "Investigación médica",
+    "search": "Buscar investigación",
+    "specialty": "Especialidad",
+    "pathology": "Patología",
+    "results": "Resultados de investigación"
+  },
+
+  "searchPage": {
+    "patientTitle": "Tus Notificaciones Médicas",
+    "doctorTitle": "Búsqueda Médica",
+    "patientSubtitle": "A continuación te mostramos los últimos estudios e investigaciones publicadas relacionadas con tu patología.",
+    "doctorSubtitle": "Busca sin restricciones en PubMed, Cochrane y ClinicalTrials.",
+    "searchPlaceholder": "Escribe tu consulta médica...",
+    "searchButton": "Buscar",
+    "errorTitle": "No se pudo completar la búsqueda",
+    "resultsFound": "Resultados Encontrados",
+    "authorsNotSpecified": "Autores no especificados",
+    "viewOriginal": "Ver original",
+    "noPatientResults": "No se encontraron estudios recientes para tus patologías.",
+    "noDoctorResults": "No se encontraron resultados para tu búsqueda.",
+    "searching": "Buscando las últimas investigaciones para ti..."
+  }
+}
