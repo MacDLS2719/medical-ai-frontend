@@ -9,7 +9,11 @@ export default function RoleSelector() {
 
   useEffect(() => {
     if (user) {
-      navigate('/search');
+      if (user.role === 'patient') {
+        navigate('/patient/notifications');
+      } else {
+        navigate('/search');
+      }
     }
   }, [user, navigate]);
 
