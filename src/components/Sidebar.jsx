@@ -17,31 +17,6 @@ export default function Sidebar() {
           {user.role === 'patient' && (
             <li>
               <NavLink
-                to="/patient/notifications"
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
-                    isActive
-                      ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-200'
-                      : 'text-slate-600 hover:bg-white hover:text-blue-600 hover:shadow-sm border border-transparent'
-                  }`
-                }
-              >
-                <div className={`p-1.5 rounded-lg transition-colors ${
-                    /* We can simplify logic inside since isActive is handled by string interpolation above, 
-                       but React Router NavLink className can be a function. 
-                       Since we can't easily pass isActive to inner children, we can use group-hover for the inactive state */
-                    'bg-transparent'
-                  }`}>
-                  <Bell size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-                </div>
-                <span>Notificaciones</span>
-              </NavLink>
-            </li>
-          )}
-
-          {user.role === 'patient' && (
-            <li>
-              <NavLink
                 to="/chat"
                 className={({ isActive }) =>
                   `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${

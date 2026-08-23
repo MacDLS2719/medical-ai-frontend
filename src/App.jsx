@@ -6,8 +6,8 @@ import Sidebar from './components/Sidebar'
 
 import RoleSelector from './pages/RoleSelector'
 import MedicalSearch from './pages/MedicalSearch'
-import PatientNotifications from './pages/patient/PatientNotifications'
 import ChatAssistant from './pages/ChatAssistant'
+import Profile from './pages/Profile'
 
 function App() {
   const { user } = useAuth();
@@ -34,13 +34,13 @@ function App() {
             />
 
             <Route
-              path="/patient/notifications"
-              element={<PatientNotifications />}
+              path="/chat"
+              element={<ChatAssistant />}
             />
 
             <Route
-              path="/chat"
-              element={<ChatAssistant />}
+              path="/profile"
+              element={<Profile />}
             />
 
           </Routes>
