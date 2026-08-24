@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { UserCircle, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,13 +82,13 @@ export default function Profile() {
       if (response.ok) {
         const data = await response.json();
         setProfile(data);
-        setMessage({ type: 'success', text: 'Perfil actualizado correctamente' });
+        setMessage({ type: 'success', text: t('profile.successMessage') });
       } else {
-        setMessage({ type: 'error', text: 'No se pudo actualizar el perfil' });
+        setMessage({ type: 'error', text: t('profile.errorMessage') });
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      setMessage({ type: 'error', text: 'Ocurrió un error al guardar' });
+      setMessage({ type: 'error', text: t('profile.saveError') });
     } finally {
       setSaving(false);
     }
@@ -103,7 +105,7 @@ export default function Profile() {
   if (!profile) {
     return (
       <div className="flex-1 p-8 text-center text-slate-500">
-        No se pudo cargar la información del perfil.
+        {t('profile.loadError')}
       </div>
     );
   }
@@ -116,8 +118,8 @@ export default function Profile() {
             <UserCircle size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Mi Perfil</h1>
-            <p className="text-slate-500 mt-1">Gestiona tu información personal</p>
+            <h1 className="text-3xl font-bold text-slate-800">{t('profile.title')}</h1>
+            <p className="text-slate-500 mt-1">{t('profile.subtitle')}</p>
           </div>
         </div>
 
@@ -134,7 +136,7 @@ export default function Profile() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.firstName')}</label>
                 <input
                   type="text"
                   name="first_name"
@@ -145,7 +147,7 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Apellidos</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.lastName')}</label>
                 <input
                   type="text"
                   name="last_name"
@@ -159,7 +161,7 @@ export default function Profile() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Correo Electrónico (Solo Lectura)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.email')}</label>
                 <input
                   type="email"
                   value={profile.email}
@@ -170,10 +172,10 @@ export default function Profile() {
               
               {user.role === 'patient' && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Documento (Solo Lectura)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.document')}</label>
                   <input
                     type="text"
-                    value={profile.document_number || 'No registrado'}
+                    value={profile.document_number || t('profile.notRegistered')}
                     disabled
                     className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
                   />
@@ -182,10 +184,10 @@ export default function Profile() {
 
               {user.role === 'doctor' && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Licencia Médica (Solo Lectura)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.medicalLicense')}</label>
                   <input
                     type="text"
-                    value={profile.medical_license || 'No registrada'}
+                    value={profile.medical_license || t('profile.notRegisteredF')}
                     disabled
                     className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
                   />
@@ -196,21 +198,21 @@ export default function Profile() {
             {user.role === 'patient' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Género</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.gender')}</label>
                   <select
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                   >
-                    <option value="">Seleccione...</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Otro">Otro</option>
+                    <option value="">{t('profile.selectGender')}</option>
+                    <option value="Masculino">{t('profile.male')}</option>
+                    <option value="Femenino">{t('profile.female')}</option>
+                    <option value="Otro">{t('profile.other')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha de Nacimiento</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.birthDate')}</label>
                   <input
                     type="date"
                     name="birth_date"
@@ -224,13 +226,13 @@ export default function Profile() {
 
             {user.role === 'doctor' && (
               <div className="pt-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Especialidad Principal</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.mainSpecialty')}</label>
                 <input
                   type="text"
                   name="specialty"
                   value={formData.specialty}
                   onChange={handleChange}
-                  placeholder="Ej. Cardiología, Neurología"
+                  placeholder={t('profile.specialtyPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
@@ -247,7 +249,7 @@ export default function Profile() {
                 ) : (
                   <Save size={20} />
                 )}
-                <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
+                <span>{saving ? t('profile.saving') : t('profile.saveChanges')}</span>
               </button>
             </div>
           </form>

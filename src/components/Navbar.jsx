@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, Stethoscope, Bell } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [latestPubs, setLatestPubs] = useState([]);
@@ -26,11 +28,11 @@ export default function Navbar() {
         const data = await response.json();
         setLatestPubs(data.results || data || []);
       } else {
-        setErrorPubs("No se pudieron cargar las publicaciones");
+        setErrorPubs(t('navbar.noPublications'));
       }
     } catch (error) {
       console.error(error);
-      setErrorPubs("Error al cargar publicaciones");
+      setErrorPubs(t('navbar.noPublications'));
     } finally {
       setLoadingPubs(false);
     }
@@ -93,14 +95,14 @@ export default function Navbar() {
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
                 <div className="p-4 border-b border-slate-50 bg-slate-50/50">
-                  <h3 className="font-semibold text-slate-800">Últimas Publicaciones</h3>
+                  <h3 className="font-semibold text-slate-800">{t('navbar.latestPublications')}</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {user.role === 'patient' ? 'Según tus patologías' : 'Según tu especialidad'}
+                    {user.role === 'patient' ? t('navbar.byPathologies') : t('navbar.bySpecialty')}
                   </p>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto">
                   {loadingPubs ? (
-                    <div className="p-8 text-center text-slate-500 text-sm">Buscando publicaciones...</div>
+                    <div className="p-8 text-center text-slate-500 text-sm">{t('navbar.searchingPublications')}</div>
                   ) : errorPubs ? (
                     <div className="p-8 text-center text-red-500 text-sm">{errorPubs}</div>
                   ) : latestPubs.length > 0 ? (
@@ -116,7 +118,7 @@ export default function Navbar() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-slate-500 text-sm">No se encontraron publicaciones recientes.</div>
+                    <div className="p-8 text-center text-slate-500 text-sm">{t('navbar.noPublications')}</div>
                   )}
                 </div>
               </div>
@@ -129,7 +131,7 @@ export default function Navbar() {
           <button 
             onClick={handleLogout}
             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 hover:text-red-500 cursor-pointer"
-            title="Cambiar de Rol"
+            title={t('navbar.changeRole')}
           >
             <LogOut size={20} />
           </button>

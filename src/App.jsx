@@ -7,7 +7,15 @@ import Sidebar from './components/Sidebar'
 import RoleSelector from './pages/RoleSelector'
 import MedicalSearch from './pages/MedicalSearch'
 import ChatAssistant from './pages/ChatAssistant'
+import MedicalChat from './pages/MedicalChat'
 import Profile from './pages/Profile'
+
+// Doctor pages
+import DoctorAvailability from './pages/doctor/DoctorAvailability'
+import DoctorAppointments from './pages/doctor/DoctorAppointments'
+
+// Patient pages
+import PatientAppointments from './pages/patient/PatientAppointments'
 
 function App() {
   const { user } = useAuth();
@@ -39,8 +47,30 @@ function App() {
             />
 
             <Route
+              path="/medical-chat"
+              element={<MedicalChat />}
+            />
+
+            <Route
               path="/profile"
               element={<Profile />}
+            />
+
+            {/* Doctor routes */}
+            <Route
+              path="/doctor/availability"
+              element={<DoctorAvailability />}
+            />
+
+            <Route
+              path="/doctor/appointments"
+              element={<DoctorAppointments />}
+            />
+
+            {/* Patient routes */}
+            <Route
+              path="/patient/appointments"
+              element={<PatientAppointments />}
             />
 
           </Routes>
