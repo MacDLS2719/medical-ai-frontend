@@ -1,44 +1,77 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Bell, Search, MessageSquareText, Calendar, ClipboardList, CalendarCheck } from 'lucide-react';
+import {
+  Search,
+  MessageSquareText,
+  Calendar,
+  ClipboardList,
+  CalendarCheck
+} from 'lucide-react';
 
 export default function Sidebar() {
+
   const { user } = useAuth();
   const { t } = useTranslation();
 
   if (!user) return null;
 
   return (
-    <aside className="w-64 glass-card border-r border-t-0 border-b-0 border-l-0 border-white/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 bg-white/60 flex flex-col transition-all duration-300 relative">
-      <div className="flex-1 py-6 px-4">
-        <div className="mb-6 px-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{t('sidebar.mainMenu')}</p>
-        </div>
-        <ul className="space-y-2">
-          {user.role === 'patient' && (
-            <li>
-              <NavLink
-                to="/chat"
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
-                    isActive
-                      ? 'bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200'
-                      : 'text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm border border-transparent'
-                  }`
-                }
-              >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <MessageSquareText size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-                </div>
-                <span>{t('sidebar.aiAssistant')}</span>
-              </NavLink>
-            </li>
-          )}
+    <aside className="
+      w-64
+      glass-card
+      border-r
+      border-t-0
+      border-b-0
+      border-l-0
+      border-white/40
+      shadow-[4px_0_24px_rgba(0,0,0,0.02)]
+      z-40
+      bg-white/60
+      flex
+      flex-col
+      transition-all
+      duration-300
+      relative
+    ">
 
-          {/* Patient: Mis Citas */}
+      <div className="flex-1 py-6 px-4">
+
+        {/* =====================================================
+            TITULO MENU
+        ===================================================== */}
+
+        <div className="mb-6 px-2">
+
+          <p className="
+            text-xs
+            font-bold
+            uppercase
+            tracking-wider
+            text-slate-400
+            mb-2
+          ">
+            {t('sidebar.mainMenu')}
+          </p>
+
+        </div>
+
+
+        {/* =====================================================
+            OPCIONES
+        ===================================================== */}
+
+        <ul className="space-y-2">
+
+
+          {/* ===================================================
+              PACIENTE: MIS CITAS
+          =================================================== */}
+
           {user.role === 'patient' && (
+
             <li>
+
               <NavLink
                 to="/patient/appointments"
                 className={({ isActive }) =>
@@ -49,16 +82,43 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <CalendarCheck size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
+
+                  <CalendarCheck
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
+
                 </div>
-                <span>{t('sidebar.myAppointments')}</span>
+
+                <span>
+                  {t('sidebar.myAppointments')}
+                </span>
+
               </NavLink>
+
             </li>
+
           )}
 
+
+          {/* ===================================================
+              DOCTOR: BUSCADOR MÉDICO
+          =================================================== */}
+
           {user.role === 'doctor' && (
+
             <li>
+
               <NavLink
                 to="/search"
                 className={({ isActive }) =>
@@ -69,37 +129,43 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <Search size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
+
+                  <Search
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
+
                 </div>
-                <span>{t('sidebar.searcher')}</span>
+
+                <span>
+                  {t('sidebar.searcher')}
+                </span>
+
               </NavLink>
+
             </li>
+
           )}
 
-          {user.role === 'doctor' && (
-            <li>
-              <NavLink
-                to="/chat"
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
-                    isActive
-                      ? 'bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200'
-                      : 'text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm border border-transparent'
-                  }`
-                }
-              >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <MessageSquareText size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
-                </div>
-                <span>{t('sidebar.aiAssistant')}</span>
-              </NavLink>
-            </li>
-          )}
 
-          {/* Doctor: Mi Disponibilidad */}
+          {/* ===================================================
+              DOCTOR: MI DISPONIBILIDAD
+          =================================================== */}
+
           {user.role === 'doctor' && (
+
             <li>
+
               <NavLink
                 to="/doctor/availability"
                 className={({ isActive }) =>
@@ -110,17 +176,43 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <Calendar size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
+
+                  <Calendar
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
+
                 </div>
-                <span>{t('sidebar.myAvailability')}</span>
+
+                <span>
+                  {t('sidebar.myAvailability')}
+                </span>
+
               </NavLink>
+
             </li>
+
           )}
 
-          {/* Doctor: Mis Citas */}
+
+          {/* ===================================================
+              DOCTOR: MIS CITAS
+          =================================================== */}
+
           {user.role === 'doctor' && (
+
             <li>
+
               <NavLink
                 to="/doctor/appointments"
                 className={({ isActive }) =>
@@ -131,15 +223,42 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <div className="p-1.5 rounded-lg bg-transparent">
-                  <ClipboardList size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
+
+                  <ClipboardList
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
+
                 </div>
-                <span>{t('sidebar.myAppointments')}</span>
+
+                <span>
+                  {t('sidebar.myAppointments')}
+                </span>
+
               </NavLink>
+
             </li>
+
           )}
-          
+
+
+          {/* ===================================================
+              CHAT INTERNO
+              PACIENTE + DOCTOR
+          =================================================== */}
+
           <li>
+
             <NavLink
               to="/medical-chat"
               className={({ isActive }) =>
@@ -150,14 +269,36 @@ export default function Sidebar() {
                 }`
               }
             >
-              <div className="p-1.5 rounded-lg bg-transparent">
-                <MessageSquareText size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+
+              <div className="
+                p-1.5
+                rounded-lg
+                bg-transparent
+              ">
+
+                <MessageSquareText
+                  size={20}
+                  strokeWidth={2}
+                  className="
+                    group-hover:scale-110
+                    transition-transform
+                  "
+                />
+
               </div>
-              <span>{t('sidebar.internalChat')}</span>
+
+              <span>
+                {t('sidebar.internalChat')}
+              </span>
+
             </NavLink>
+
           </li>
+
         </ul>
+
       </div>
+
     </aside>
   );
 }

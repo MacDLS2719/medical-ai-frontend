@@ -4,8 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   CalendarPlus, Clock, Loader2, AlertCircle, CheckCircle,
-  XCircle, ChevronRight, CalendarCheck, ChevronLeft, X, User
+  XCircle, ChevronRight, CalendarCheck, ChevronLeft, X, User, MapPin
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconRetinaUrl: iconRetina,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -42,24 +59,62 @@ export default function PatientAppointments() {
 
   // Booking modal
   const [showBooking, setShowBooking] = useState(false);
-  const [bookingStep, setBookingStep] = useState(1); // 1=doctor+date, 2=slots, 3=confirm
+  const [bookingStep, setBookingStep] = useState(1); // 1=select doctor, 2=select date+slots, 3=confirm
   const [bookingDoctorId, setBookingDoctorId] = useState('');
+  const [bookingDoctor, setBookingDoctor] = useState(null); // full doctor object
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [bookingDate, setBookingDate] = useState(getTodayISO());
   const [bookingSlots, setBookingSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [bookingLocation, setBookingLocation] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+
+  // Map modal
+  const [showMap, setShowMap] = useState(false);
+  const [patientProfile, setPatientProfile] = useState(null);
 
   useEffect(() => {
     if (!user || user.role !== 'patient') navigate('/');
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user) fetchMyAppointments();
+    if (user) {
+      fetchMyAppointments();
+      fetchPatientProfile();
+    }
   }, [user]);
+
+  const fetchPatientProfile = async () => {
+    try {
+      const res = await fetch(`${API_URL}/profile?user_id=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPatientProfile(data);
+      }
+    } catch (err) {
+      console.error('Error fetching patient profile', err);
+    }
+  };
+
+  const [doctorsError, setDoctorsError] = useState(null);
+
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    setDoctorsError(null);
+    try {
+      const res = await fetch(`${API_URL}/appointments/doctors`);
+      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      setDoctors(data);
+    } catch (err) {
+      setDoctorsError(err.message);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
 
   const fetchMyAppointments = async () => {
     setLoading(true);
@@ -142,7 +197,6 @@ export default function PatientAppointments() {
           doctor_id: parseInt(bookingDoctorId),
           appointment_date: bookingDate,
           appointment_time: selectedSlot.time,
-          location: bookingLocation || undefined,
         }),
       });
       if (!res.ok) {
@@ -163,12 +217,23 @@ export default function PatientAppointments() {
     setShowBooking(false);
     setBookingStep(1);
     setBookingDoctorId('');
+    setBookingDoctor(null);
     setBookingDate(getTodayISO());
     setBookingSlots([]);
     setSelectedSlot(null);
-    setBookingLocation('');
     setBookingSuccess(null);
     setSlotsError(null);
+  };
+
+  const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  const handleSelectDoctor = (doctor) => {
+    setBookingDoctor(doctor);
+    setBookingDoctorId(String(doctor.user_id));
+    setBookingStep(2);
+    setSlotsError(null);
+    setBookingSlots([]);
+    setSelectedSlot(null);
   };
 
   if (!user) return null;
@@ -211,14 +276,24 @@ export default function PatientAppointments() {
               : t('patientAppointments.noUpcoming')}
           </p>
         </div>
-        <button
-          id="btn-open-booking"
-          onClick={() => setShowBooking(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
-        >
-          <CalendarPlus size={18} />
-          {t('patientAppointments.bookAppointment')}
-        </button>
+        <div className="flex gap-2">
+          <button
+            id="btn-open-map"
+            onClick={() => { setShowMap(true); fetchDoctors(); }}
+            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-semibold px-4 py-2.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <MapPin size={18} className="text-red-500" />
+            Encontrar médicos cerca
+          </button>
+          <button
+            id="btn-open-booking"
+            onClick={() => { setShowBooking(true); fetchDoctors(); }}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-blue-500/20 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <CalendarPlus size={18} />
+            {t('patientAppointments.bookAppointment')}
+          </button>
+        </div>
       </div>
 
       {/* Alerts */}
@@ -356,8 +431,8 @@ export default function PatientAppointments() {
                 )}
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">
-                    {bookingStep === 1 && t('patientAppointments.booking.stepTitle1')}
-                    {bookingStep === 2 && t('patientAppointments.booking.stepTitle2')}
+                    {bookingStep === 1 && 'Seleccionar Médico'}
+                    {bookingStep === 2 && 'Elegir Fecha y Hora'}
                     {bookingStep === 3 && t('patientAppointments.booking.stepTitle3')}
                   </h2>
                   {bookingStep < 3 && (
@@ -377,26 +452,92 @@ export default function PatientAppointments() {
             </div>
 
             <div className="p-6">
-              {/* Step 1: Doctor ID + Date */}
+              {/* Step 1: Select Doctor */}
               {bookingStep === 1 && (
+                <div className="flex flex-col gap-4">
+                  {loadingDoctors ? (
+                    <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
+                      <Loader2 size={32} className="animate-spin text-blue-500" />
+                      <p className="text-sm">Cargando médicos disponibles...</p>
+                    </div>
+                  ) : doctorsError ? (
+                    <div className="flex flex-col items-center gap-3 py-10 text-center">
+                      <AlertCircle size={36} className="text-red-400" />
+                      <p className="text-sm font-medium text-red-600">No se pudieron cargar los médicos.</p>
+                      <p className="text-xs text-slate-400">{doctorsError}</p>
+                      <button onClick={fetchDoctors} className="text-xs text-blue-600 underline cursor-pointer">Intentar de nuevo</button>
+                    </div>
+                  ) : doctors.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 py-10 text-slate-400 text-center">
+                      <User size={36} className="text-slate-300" />
+                      <p className="text-sm font-medium">No hay médicos registrados en el sistema.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {doctors.map((doc) => (
+                        <button
+                          key={doc.user_id}
+                          onClick={() => handleSelectDoctor(doc)}
+                          className="text-left w-full border-2 border-slate-200 hover:border-blue-400 rounded-2xl p-4 transition-all group hover:shadow-md hover:shadow-blue-500/10 cursor-pointer"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-100 text-blue-600 rounded-xl p-2.5 flex-shrink-0">
+                                <User size={18} />
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-800 text-sm group-hover:text-blue-700 transition-colors">
+                                  Dr. {doc.first_name} {doc.last_name}
+                                </p>
+                                <p className="text-xs text-blue-600 font-semibold mt-0.5">{doc.specialty}</p>
+                              </div>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-500 flex-shrink-0 mt-1 transition-colors" />
+                          </div>
+
+                          {doc.availabilities.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1.5">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Horarios disponibles</p>
+                              {doc.availabilities.map((av) => (
+                                <div key={av.id} className="flex items-center gap-2 text-xs text-slate-600">
+                                  <Clock size={11} className="text-blue-400 flex-shrink-0" />
+                                  <span className="font-semibold text-slate-700">
+                                    {av.day_of_week !== null
+                                      ? DAY_NAMES[av.day_of_week]
+                                      : `${av.start_date} al ${av.end_date}`
+                                    }
+                                  </span>
+                                  <span className="text-slate-400">{av.start_time} – {av.end_time}</span>
+                                  <span className="ml-auto text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{av.slot_duration} min</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Date + Slots */}
+              {bookingStep === 2 && (
                 <div className="flex flex-col gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {t('patientAppointments.booking.doctorId')}
-                    </label>
-                    <input
-                      id="input-booking-doctor-id"
-                      type="number"
-                      value={bookingDoctorId}
-                      onChange={(e) => setBookingDoctorId(e.target.value)}
-                      placeholder="Ej: 1"
-                      min="1"
-                      className="border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                    />
-                    <p className="text-xs text-slate-400">
-                      {t('patientAppointments.booking.doctorIdHint')}
-                    </p>
-                  </div>
+                  {/* Doctor summary */}
+                  {bookingDoctor && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+                      <div className="bg-blue-100 text-blue-600 rounded-xl p-2 flex-shrink-0">
+                        <User size={16} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Médico seleccionado</p>
+                        <p className="text-slate-800 font-bold text-sm">Dr. {bookingDoctor.first_name} {bookingDoctor.last_name}</p>
+                        <p className="text-xs text-slate-500">{bookingDoctor.specialty}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Date */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       {t('patientAppointments.booking.appointmentDate')}
@@ -406,10 +547,22 @@ export default function PatientAppointments() {
                       type="date"
                       value={bookingDate}
                       min={getTodayISO()}
-                      onChange={(e) => setBookingDate(e.target.value)}
+                      onChange={(e) => { setBookingDate(e.target.value); setBookingSlots([]); setSelectedSlot(null); setSlotsError(null); }}
                       className="border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                     />
                   </div>
+
+                  <button
+                    id="btn-search-slots"
+                    onClick={handleFetchSlots}
+                    disabled={loadingSlots}
+                    className="w-full flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-200 text-white font-semibold py-2.5 rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed text-sm"
+                  >
+                    {loadingSlots
+                      ? <><Loader2 size={14} className="animate-spin" /> Buscando horarios...</>
+                      : <><Clock size={14} /> Ver horarios disponibles</>
+                    }
+                  </button>
 
                   {slotsError && (
                     <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
@@ -418,70 +571,37 @@ export default function PatientAppointments() {
                     </div>
                   )}
 
-                  <button
-                    id="btn-search-slots"
-                    onClick={handleFetchSlots}
-                    disabled={loadingSlots || !bookingDoctorId}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-semibold py-3 rounded-xl shadow-md transition-all cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {loadingSlots
-                      ? <><Loader2 size={16} className="animate-spin" /> {t('patientAppointments.booking.searchingSlots')}</>
-                      : <><ChevronRight size={16} /> {t('patientAppointments.booking.searchSlots')}</>
-                    }
-                  </button>
-                </div>
-              )}
-
-              {/* Step 2: Slots */}
-              {bookingStep === 2 && (
-                <div className="flex flex-col gap-5">
-                  <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
-                    <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">{t('patientAppointments.booking.selectedDate')}</p>
-                    <p className="text-slate-800 font-bold">{formatDate(bookingDate)}</p>
-                    <p className="text-slate-500 text-sm">{t('patientAppointments.doctor')} #{bookingDoctorId}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-                      {t('patientAppointments.booking.availableSlots')} ({bookingSlots.length})
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
+                  {bookingSlots.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        {t('patientAppointments.booking.availableSlots')} ({bookingSlots.length})
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
                       {bookingSlots.map((slot, idx) => (
                         <button
                           key={idx}
                           id={`slot-${slot.time?.replace(':', '-')}`}
                           onClick={() => setSelectedSlot(slot)}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer ${
+                          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer ${
                             selectedSlot?.time === slot.time
                               ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20 scale-105'
                               : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400 hover:text-blue-600'
                           }`}
                         >
-                          <Clock size={12} />
-                          {slot.time?.slice(0, 5)}
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} />
+                            {slot.time?.slice(0, 5)}
+                          </div>
+                          {slot.location && (
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full truncate max-w-[90%] ${
+                              selectedSlot?.time === slot.time ? 'bg-blue-500/30' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              📍 {slot.location}
+                            </span>
+                          )}
                         </button>
                       ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      {t('patientAppointments.booking.locationLabel')}
-                    </label>
-                    <input
-                      id="input-booking-location"
-                      type="text"
-                      value={bookingLocation}
-                      onChange={(e) => setBookingLocation(e.target.value)}
-                      placeholder={t('patientAppointments.booking.locationPlaceholder')}
-                      className="border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                    />
-                  </div>
-
-                  {slotsError && (
-                    <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
-                      <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-                      {slotsError}
+                      </div>
                     </div>
                   )}
 
@@ -522,6 +642,133 @@ export default function PatientAppointments() {
                   >
                     {t('patientAppointments.booking.done')}
                   </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          MAP MODAL
+      ============================================================ */}
+      {showMap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-red-100 text-red-600 rounded-xl p-2.5">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Médicos Cercanos</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Encuentra y agenda con médicos cerca de tu ubicación</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMap(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 w-full p-4 relative min-h-0">
+              {!patientProfile?.latitude || !patientProfile?.longitude ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                  <div className="bg-amber-100 p-4 rounded-full mb-4">
+                    <AlertCircle size={40} className="text-amber-500" />
+                  </div>
+                  <p className="font-bold text-slate-700 text-lg">Ubicación no configurada</p>
+                  <p className="text-sm mt-1 mb-5">Para buscar médicos cercanos, necesitas guardar tu ubicación en tu perfil.</p>
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all"
+                  >
+                    Ir a mi perfil
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner">
+                  {loadingDoctors ? (
+                    <div className="flex flex-col items-center justify-center h-full bg-slate-50 gap-3">
+                      <Loader2 size={32} className="animate-spin text-blue-500" />
+                      <p className="text-sm font-medium text-slate-500">Buscando médicos...</p>
+                    </div>
+                  ) : (
+                    <MapContainer
+                      center={[patientProfile.latitude, patientProfile.longitude]}
+                      zoom={12}
+                      style={{ height: '100%', width: '100%', zIndex: 10 }}
+                    >
+                      <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                      />
+                      
+                      {/* Patient Marker */}
+                      <Marker position={[patientProfile.latitude, patientProfile.longitude]}>
+                        <Popup>
+                          <div className="text-center">
+                            <span className="font-bold text-slate-700">Tu Ubicación</span>
+                          </div>
+                        </Popup>
+                      </Marker>
+
+                      {/* Doctor Markers */}
+                      {doctors.filter(d => d.latitude && d.longitude).map(doc => (
+                        <Marker key={doc.user_id} position={[doc.latitude, doc.longitude]}>
+                          <Popup className="doctor-popup">
+                            <div className="flex flex-col gap-2 min-w-[200px]">
+                              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                                  <User size={16} />
+                                </div>
+                                <div>
+                                  <strong className="block text-slate-800 text-sm leading-tight">Dr. {doc.first_name} {doc.last_name}</strong>
+                                  <span className="text-[11px] text-blue-600 font-bold uppercase">{doc.specialty}</span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-600 flex items-start gap-1">
+                                <MapPin size={12} className="mt-0.5 flex-shrink-0 text-slate-400" />
+                                {doc.address || 'Sin dirección específica'}
+                              </p>
+                              
+                              {doc.availabilities.length > 0 ? (
+                                <div className="mt-1">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Próximos horarios</p>
+                                  <div className="max-h-[60px] overflow-y-auto flex flex-col gap-1 pr-1 custom-scrollbar">
+                                    {doc.availabilities.slice(0, 3).map(av => (
+                                      <div key={av.id} className="text-[11px] bg-slate-50 px-2 py-1 rounded text-slate-600 flex justify-between">
+                                        <span className="font-semibold">{av.day_of_week !== null ? DAY_NAMES[av.day_of_week] : `${av.start_date}`}</span>
+                                        <span>{av.start_time?.slice(0,5)}</span>
+                                      </div>
+                                    ))}
+                                    {doc.availabilities.length > 3 && <span className="text-[10px] text-center text-slate-400 mt-1">+{doc.availabilities.length - 3} más</span>}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-red-500 font-medium my-1">Sin horarios disponibles</p>
+                              )}
+
+                              <button
+                                onClick={() => {
+                                  setShowMap(false);
+                                  setShowBooking(true);
+                                  handleSelectDoctor(doc);
+                                }}
+                                disabled={doc.availabilities.length === 0}
+                                className="mt-2 w-full bg-blue-600 disabled:bg-slate-300 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                              >
+                                {doc.availabilities.length === 0 ? 'No disponible' : 'Agendar aquí'}
+                              </button>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      ))}
+                    </MapContainer>
+                  )}
                 </div>
               )}
             </div>

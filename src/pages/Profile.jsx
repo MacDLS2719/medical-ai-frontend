@@ -16,7 +16,10 @@ export default function Profile() {
     last_name: '',
     gender: '',
     birth_date: '',
-    specialty: ''
+    specialty: '',
+    address: '',
+    latitude: '',
+    longitude: ''
   });
 
   useEffect(() => {
@@ -37,7 +40,10 @@ export default function Profile() {
           last_name: data.last_name || '',
           gender: data.gender || '',
           birth_date: data.birth_date ? data.birth_date.split('T')[0] : '',
-          specialty: data.specialty || ''
+          specialty: data.specialty || '',
+          address: data.address || '',
+          latitude: data.latitude || '',
+          longitude: data.longitude || ''
         });
       }
     } catch (error) {
@@ -63,6 +69,9 @@ export default function Profile() {
     const updateData = {};
     if (formData.first_name) updateData.first_name = formData.first_name;
     if (formData.last_name) updateData.last_name = formData.last_name;
+    if (formData.address !== '') updateData.address = formData.address;
+    if (formData.latitude !== '') updateData.latitude = parseFloat(formData.latitude);
+    if (formData.longitude !== '') updateData.longitude = parseFloat(formData.longitude);
     
     if (user.role === 'patient') {
       if (formData.gender) updateData.gender = formData.gender;
@@ -237,6 +246,50 @@ export default function Profile() {
                 />
               </div>
             )}
+
+            {/* Location Fields (Common for both) */}
+            <div className="pt-2 border-t border-slate-100 mt-6">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('profile.locationInfo', 'Ubicación')}</h3>
+              <div className="grid grid-cols-1 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.address', 'Dirección')}</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder={t('profile.addressPlaceholder', 'Ej: Calle Principal 123, Ciudad')}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.latitude', 'Latitud')}</label>
+                  <input
+                    type="number"
+                    step="any"
+                    name="latitude"
+                    value={formData.latitude}
+                    onChange={handleChange}
+                    placeholder="Ej: -12.04318"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.longitude', 'Longitud')}</label>
+                  <input
+                    type="number"
+                    step="any"
+                    name="longitude"
+                    value={formData.longitude}
+                    onChange={handleChange}
+                    placeholder="Ej: -77.02824"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="pt-6 border-t border-slate-100 flex justify-end">
               <button

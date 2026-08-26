@@ -43,12 +43,18 @@ export default function DoctorAvailability() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [doctorProfile, setDoctorProfile] = useState(null);
 
   const [form, setForm] = useState({
+    mode: 'weekly',
     day_of_week: 0,
+    start_date: '',
+    end_date: '',
     start_time: '08:00',
     end_time: '17:00',
     slot_duration: 30,
+    location_source: 'profile',
+    custom_location: '',
   });
 
   useEffect(() => {
@@ -58,8 +64,23 @@ export default function DoctorAvailability() {
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user) fetchAvailability();
+    if (user) {
+      fetchAvailability();
+      fetchProfile();
+    }
   }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`${API_URL}/profile?user_id=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDoctorProfile(data);
+      }
+    } catch (err) {
+      console.error('Failed to load profile for address', err);
+    }
+  };
 
   const fetchAvailability = async () => {
     setLoading(true);
@@ -82,16 +103,30 @@ export default function DoctorAvailability() {
     setError(null);
     setSuccess(null);
     try {
+      const payload = {
+        doctor_id: user.id,
+        start_time: form.start_time + ':00',
+        end_time: form.end_time + ':00',
+        slot_duration: parseInt(form.slot_duration),
+      };
+
+      if (form.location_source === 'profile' && doctorProfile?.address) {
+        payload.location = doctorProfile.address;
+      } else if (form.location_source === 'custom' && form.custom_location) {
+        payload.location = form.custom_location;
+      }
+
+      if (form.mode === 'weekly') {
+        payload.day_of_week = parseInt(form.day_of_week);
+      } else {
+        payload.start_date = form.start_date;
+        payload.end_date = form.end_date;
+      }
+
       const res = await fetch(`${API_URL}/appointments/availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          doctor_id: user.id,
-          day_of_week: parseInt(form.day_of_week),
-          start_time: form.start_time + ':00',
-          end_time: form.end_time + ':00',
-          slot_duration: parseInt(form.slot_duration),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -99,7 +134,7 @@ export default function DoctorAvailability() {
       }
       setSuccess(t('availability.successAdd'));
       setShowForm(false);
-      setForm({ day_of_week: 0, start_time: '08:00', end_time: '17:00', slot_duration: 30 });
+      setForm({ mode: 'weekly', day_of_week: 0, start_date: '', end_date: '', start_time: '08:00', end_time: '17:00', slot_duration: 30, location_source: 'profile', custom_location: '' });
       await fetchAvailability();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -132,9 +167,12 @@ export default function DoctorAvailability() {
   if (!user) return null;
 
   // Group availabilities by day
+  const weeklyAvailabilities = availabilities.filter((a) => a.day_of_week !== null);
+  const exactAvailabilities = availabilities.filter((a) => a.start_date && a.end_date);
+
   const grouped = DAYS.map((day) => ({
     ...day,
-    slots: availabilities.filter((a) => a.day_of_week === day.value),
+    slots: weeklyAvailabilities.filter((a) => a.day_of_week === day.value),
   })).filter((d) => d.slots.length > 0);
 
   return (
@@ -188,23 +226,126 @@ export default function DoctorAvailability() {
             {t('availability.newBlock')}
           </h2>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Day of week */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('availability.dayOfWeek')}</label>
-              <div className="relative">
-                <select
-                  id="select-day"
-                  value={form.day_of_week}
-                  onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
-                  className="w-full appearance-none border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all cursor-pointer pr-10"
-                >
-                  {DAYS.map((d) => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              </div>
+            {/* Mode selection */}
+            <div className="md:col-span-2 flex gap-4 mb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="weekly"
+                  checked={form.mode === 'weekly'}
+                  onChange={(e) => setForm({ ...form, mode: e.target.value })}
+                  className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Por día de la semana (Recurrente)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="exact"
+                  checked={form.mode === 'exact'}
+                  onChange={(e) => setForm({ ...form, mode: e.target.value })}
+                  className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Por rango de fechas exactas</span>
+              </label>
             </div>
+
+            {/* Location selection */}
+            <div className="md:col-span-2 flex flex-col gap-3 mb-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ubicación de Atención</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="location_source"
+                    value="profile"
+                    checked={form.location_source === 'profile'}
+                    onChange={(e) => setForm({ ...form, location_source: e.target.value })}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Usar dirección del perfil</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="location_source"
+                    value="custom"
+                    checked={form.location_source === 'custom'}
+                    onChange={(e) => setForm({ ...form, location_source: e.target.value })}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Ingresar otra dirección</span>
+                </label>
+              </div>
+
+              {form.location_source === 'profile' && (
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-sm text-slate-600">
+                  {doctorProfile?.address ? (
+                    <><span className="font-semibold">Dirección actual:</span> {doctorProfile.address}</>
+                  ) : (
+                    <span className="text-amber-600 flex items-center gap-2">
+                      <AlertCircle size={14} /> No tienes una dirección configurada en tu perfil.
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {form.location_source === 'custom' && (
+                <input
+                  type="text"
+                  placeholder="Ej: Consultorio 204, Clinica del Sol"
+                  value={form.custom_location}
+                  onChange={(e) => setForm({ ...form, custom_location: e.target.value })}
+                  className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-purple-500 transition-all mt-1"
+                />
+              )}
+            </div>
+
+            {form.mode === 'weekly' ? (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('availability.dayOfWeek')}</label>
+                <div className="relative">
+                  <select
+                    id="select-day"
+                    value={form.day_of_week}
+                    onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
+                    className="w-full appearance-none border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all cursor-pointer pr-10"
+                  >
+                    {DAYS.map((d) => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Start Date */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Inicio</label>
+                  <input
+                    type="date"
+                    value={form.start_date}
+                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                    required
+                    className="border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
+                  />
+                </div>
+                {/* End Date */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fecha Fin</label>
+                  <input
+                    type="date"
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                    required
+                    className="border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium bg-white focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Slot duration */}
             <div className="flex flex-col gap-1.5">
@@ -279,7 +420,7 @@ export default function DoctorAvailability() {
           <Loader2 size={40} className="animate-spin text-purple-500" />
           <p className="text-sm font-medium">{t('availability.loadingAvailability')}</p>
         </div>
-      ) : grouped.length === 0 ? (
+      ) : grouped.length === 0 && exactAvailabilities.length === 0 ? (
         <div className="flex flex-col items-center gap-5 py-20 text-center">
           <div className="bg-slate-100 p-6 rounded-full">
             <Calendar size={40} className="text-slate-400" />
@@ -292,46 +433,96 @@ export default function DoctorAvailability() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {grouped.map((day) => (
-            <div key={day.value} className="glass-card rounded-2xl p-5 flex flex-col gap-3">
-              <div className="flex items-center gap-3 mb-1">
-                <span className={`text-sm font-bold px-3 py-1 rounded-full border ${getDayColor(day.value)}`}>
-                  {getDayLabel(day.value)}
-                </span>
+        <div className="flex flex-col gap-8">
+          {grouped.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 mb-4">Disponibilidad Semanal (Recurrente)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {grouped.map((day) => (
+                  <div key={day.value} className="glass-card rounded-2xl p-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className={`text-sm font-bold px-3 py-1 rounded-full border ${getDayColor(day.value)}`}>
+                        {getDayLabel(day.value)}
+                      </span>
+                    </div>
+                    {day.slots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className="flex items-center justify-between bg-white/80 border border-slate-100 rounded-xl px-4 py-3 shadow-sm group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Clock size={16} className="text-purple-500 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">
+                              {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {slot.slot_duration} {t('availability.slotMinutes')} {slot.location && <span className="ml-2 font-medium">📍 {slot.location}</span>}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          id={`btn-delete-availability-${slot.id}`}
+                          onClick={() => handleDelete(slot.id)}
+                          disabled={deletingId === slot.id}
+                          title={t('availability.deleteTitle')}
+                          className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 cursor-pointer disabled:cursor-not-allowed"
+                        >
+                          {deletingId === slot.id
+                            ? <Loader2 size={16} className="animate-spin" />
+                            : <Trash2 size={16} />
+                          }
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
-              {day.slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="flex items-center justify-between bg-white/80 border border-slate-100 rounded-xl px-4 py-3 shadow-sm group"
-                >
-                  <div className="flex items-center gap-3">
-                    <Clock size={16} className="text-purple-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">
-                        {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {slot.slot_duration} {t('availability.slotMinutes')}
-                      </p>
+            </div>
+          )}
+
+          {exactAvailabilities.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 mb-4">Disponibilidad por Fechas Exactas</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {exactAvailabilities.map((slot) => (
+                  <div key={slot.id} className="glass-card rounded-2xl p-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-sm font-bold px-3 py-1 rounded-full border bg-indigo-100 text-indigo-700 border-indigo-200">
+                        {slot.start_date} al {slot.end_date}
+                      </span>
+                    </div>
+                    <div
+                      className="flex items-center justify-between bg-white/80 border border-slate-100 rounded-xl px-4 py-3 shadow-sm group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock size={16} className="text-indigo-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">
+                            {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {slot.slot_duration} {t('availability.slotMinutes')} {slot.location && <span className="ml-2 font-medium">📍 {slot.location}</span>}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(slot.id)}
+                        disabled={deletingId === slot.id}
+                        title={t('availability.deleteTitle')}
+                        className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {deletingId === slot.id
+                          ? <Loader2 size={16} className="animate-spin" />
+                          : <Trash2 size={16} />
+                        }
+                      </button>
                     </div>
                   </div>
-                  <button
-                    id={`btn-delete-availability-${slot.id}`}
-                    onClick={() => handleDelete(slot.id)}
-                    disabled={deletingId === slot.id}
-                    title={t('availability.deleteTitle')}
-                    className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {deletingId === slot.id
-                      ? <Loader2 size={16} className="animate-spin" />
-                      : <Trash2 size={16} />
-                    }
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
