@@ -7,7 +7,12 @@ import {
   Loader2,
   RefreshCw,
   Search,
-  Trash2
+  Trash2,
+  Mic,
+  Square,
+  Play,
+  Pause,
+  X
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -25,8 +30,23 @@ export default function MedicalChat() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const isCancelledRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -341,6 +361,133 @@ export default function MedicalChat() {
 
     }
 
+  };
+
+
+  // ==========================================================
+  // GRABACIÓN DE AUDIO
+  // ==========================================================
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach((track) => track.stop());
+
+        if (audioBlob.size > 0 && !isCancelledRef.current) {
+          await uploadAudioMessage(audioBlob, recordingDuration);
+        }
+      };
+
+      isCancelledRef.current = false;
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Error al acceder al micrófono:', err);
+      alert('No se pudo acceder al micrófono. Por favor, verifica los permisos del navegador.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      setIsRecording(false);
+      mediaRecorderRef.current.stop();
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      isCancelledRef.current = true;
+      setIsRecording(false);
+      mediaRecorderRef.current.stop();
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      setRecordingDuration(0);
+    }
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const uploadAudioMessage = async (audioBlob, duration) => {
+    if (!conversation || !user?.id) return;
+
+    setIsUploadingAudio(true);
+
+    const tempMsgId = `temp-${Date.now()}`;
+    const tempMsg = {
+      id: tempMsgId,
+      sender_id: user.id,
+      receiver_id:
+        user.role === 'patient'
+          ? conversation.doctor_id
+          : conversation.patient_id,
+      message: '[Mensaje de Voz]',
+      created_at: new Date().toISOString(),
+      is_read: false,
+      attachments: [
+        {
+          id: `temp-att-${Date.now()}`,
+          attachment_type: 'audio',
+          mime_type: 'audio/webm',
+          file_name: 'audio.webm',
+          file_path: '',
+          file_url: URL.createObjectURL(audioBlob),
+          duration: duration
+        }
+      ]
+    };
+
+    setMessages((prev) => [...prev, tempMsg]);
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.webm');
+      formData.append('duration', duration.toString());
+
+      const url = `${API_URL}/conversations/${conversation.id}/messages/audio?sender_id=${user.id}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir el mensaje de audio');
+      }
+
+      await fetchMessages(conversation.id);
+      await fetchConversations();
+    } catch (err) {
+      console.error('Error subiendo audio:', err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempMsgId));
+      alert('Error al enviar el mensaje de voz.');
+    } finally {
+      setIsUploadingAudio(false);
+    }
   };
 
 
@@ -974,9 +1121,15 @@ export default function MedicalChat() {
                           >
 
                             <div className="whitespace-pre-wrap">
-
-                              {msg.message}
-
+                              {msg.attachments && msg.attachments.length > 0 && msg.attachments[0].attachment_type === 'audio' ? (
+                                <AudioMessage 
+                                  fileUrl={msg.attachments[0].file_url || `${API_URL.replace('/api', '')}/archivos/${msg.attachments[0].file_path}`} 
+                                  duration={msg.attachments[0].duration} 
+                                  isMe={isMe} 
+                                />
+                              ) : (
+                                msg.message
+                              )}
                             </div>
 
 
@@ -1021,7 +1174,7 @@ export default function MedicalChat() {
 
               {/* INPUT */}
 
-              <div className="p-4 bg-white/80 border-t border-slate-100 backdrop-blur-md">
+              <div className="p-4 bg-white/80 border-t border-slate-100 backdrop-blur-md font-sans">
 
                 <form
                   onSubmit={
@@ -1030,36 +1183,86 @@ export default function MedicalChat() {
                   className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-2xl focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-400 transition-all shadow-inner"
                 >
 
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) =>
-                      setInput(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Escribe un mensaje..."
-                    className="flex-1 bg-transparent border-none outline-none px-4 text-slate-700 placeholder-slate-400 h-12"
-                    disabled={
-                      isLoading
-                    }
-                  />
+                  {isRecording ? (
+                    <div className="flex-1 flex items-center justify-between px-4 h-12">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-3 w-3 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        <span className="text-sm font-semibold text-slate-600 animate-pulse">
+                          Grabando: {formatDuration(recordingDuration)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {/* CANCEL BUTTON */}
+                        <button
+                          type="button"
+                          onClick={cancelRecording}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Cancelar grabación"
+                        >
+                          <X size={20} />
+                        </button>
+                        
+                        {/* STOP/SEND BUTTON */}
+                        <button
+                          type="button"
+                          onClick={stopRecording}
+                          className="bg-red-500 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all flex items-center justify-center shadow-md cursor-pointer animate-pulse"
+                          title="Enviar audio"
+                        >
+                          <Square size={16} fill="currentColor" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) =>
+                          setInput(
+                            e.target.value
+                          )
+                        }
+                        placeholder="Escribe un mensaje..."
+                        className="flex-1 bg-transparent border-none outline-none px-4 text-slate-700 placeholder-slate-400 h-12"
+                        disabled={
+                          isLoading || isUploadingAudio
+                        }
+                      />
 
+                      {/* MICROPHONE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        disabled={isLoading || isUploadingAudio}
+                        className="p-3 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                        title="Grabar mensaje de voz"
+                      >
+                        <Mic size={20} />
+                      </button>
 
-                  <button
-                    type="submit"
-                    disabled={
-                      !input.trim() ||
-                      isLoading
-                    }
-                    className="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center shadow-md cursor-pointer"
-                  >
-
-                    <Send
-                      size={20}
-                    />
-
-                  </button>
+                      {/* SEND BUTTON */}
+                      <button
+                        type="submit"
+                        disabled={
+                          !input.trim() ||
+                          isLoading ||
+                          isUploadingAudio
+                        }
+                        className="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center shadow-md cursor-pointer"
+                      >
+                        {isUploadingAudio ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : (
+                          <Send size={20} />
+                        )}
+                      </button>
+                    </>
+                  )}
 
                 </form>
 
@@ -1077,4 +1280,127 @@ export default function MedicalChat() {
 
   );
 
+}
+
+
+// ==========================================================
+// COMPONENTE AUDIO MESSAGE (REPRODUCTOR PERSONALIZADO)
+// ==========================================================
+
+function AudioMessage({ fileUrl, duration, isMe }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(duration || 0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !duration) {
+        setAudioDuration(audio.duration);
+      }
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    // Reset state if fileUrl changes
+    setIsPlaying(false);
+    setCurrentTime(0);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [fileUrl, duration]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch((err) => {
+        console.error("Error al reproducir audio:", err);
+      });
+    }
+  };
+
+  const handleProgressChange = (e) => {
+    if (!audioRef.current) return;
+    const newTime = parseFloat(e.target.value);
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  return (
+    <div className="flex items-center gap-3 py-1 min-w-[200px] md:min-w-[260px] font-sans">
+      <audio ref={audioRef} src={fileUrl} preload="metadata" />
+
+      <button
+        type="button"
+        onClick={togglePlay}
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm flex-shrink-0 cursor-pointer ${
+          isMe
+            ? 'bg-white text-blue-600 hover:scale-105 hover:bg-slate-50'
+            : 'bg-teal-600 text-white hover:scale-105 hover:bg-teal-700'
+        }`}
+      >
+        {isPlaying ? (
+          <Pause size={18} fill="currentColor" />
+        ) : (
+          <Play size={18} fill="currentColor" className="ml-0.5" />
+        )}
+      </button>
+
+      <div className="flex-1 flex flex-col gap-1 min-w-0">
+        <input
+          type="range"
+          min="0"
+          max={audioDuration || 100}
+          value={currentTime}
+          onChange={handleProgressChange}
+          className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer ${
+            isMe
+              ? 'bg-blue-400/50 accent-white'
+              : 'bg-slate-200 accent-teal-600'
+          }`}
+          style={{
+            background: isMe 
+              ? `linear-gradient(to right, #ffffff 0%, #ffffff ${(currentTime / (audioDuration || 1)) * 100}%, rgba(255, 255, 255, 0.3) ${(currentTime / (audioDuration || 1)) * 100}%, rgba(255, 255, 255, 0.3) 100%)`
+              : `linear-gradient(to right, #0d9488 0%, #0d9488 ${(currentTime / (audioDuration || 1)) * 100}%, #cbd5e1 ${(currentTime / (audioDuration || 1)) * 100}%, #cbd5e1 100%)`
+          }}
+        />
+        <div
+          className={`flex justify-between text-[10px] font-medium ${
+            isMe ? 'text-blue-200' : 'text-slate-400'
+          }`}
+        >
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(audioDuration)}</span>
+        </div>
+      </div>
+    </div>
+  );
 }

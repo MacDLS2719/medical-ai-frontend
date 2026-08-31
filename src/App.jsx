@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 import Navbar from './components/Navbar'
@@ -13,24 +13,39 @@ import Profile from './pages/Profile'
 // Doctor pages
 import DoctorAvailability from './pages/doctor/DoctorAvailability'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
+import DoctorProfile from './pages/doctor/DoctorProfile'
+import DoctorCreate from './pages/doctor/DoctorCreate'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
 
 function App() {
-  const { user } = useAuth();
+  const { user } = useAuth()
+  const location = useLocation()
+
+  /*
+   * Rutas donde NO queremos mostrar el Navbar ni el Sidebar
+   */
+  const isDoctorCreatePage =
+    location.pathname === '/doctor/create' ||
+    location.pathname === '/doctor/register'
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
 
-      <Navbar />
+      {/* Navbar solamente fuera de creación de médico */}
+      {!isDoctorCreatePage && <Navbar />}
 
       <div className="flex-1 flex overflow-hidden">
-        {user && <Sidebar />}
+
+        {/* Sidebar tampoco aparece en creación de médico */}
+        {!isDoctorCreatePage && user && <Sidebar />}
 
         <main className="flex-1 flex flex-col overflow-y-auto">
+
           <Routes>
 
+            {/* General */}
             <Route
               path="/"
               element={<RoleSelector />}
@@ -56,7 +71,17 @@ function App() {
               element={<Profile />}
             />
 
-            {/* Doctor routes */}
+            {/* Doctor */}
+            <Route
+              path="/doctor/create"
+              element={<DoctorCreate />}
+            />
+
+            <Route
+              path="/doctor/register"
+              element={<DoctorCreate />}
+            />
+
             <Route
               path="/doctor/availability"
               element={<DoctorAvailability />}
@@ -67,13 +92,19 @@ function App() {
               element={<DoctorAppointments />}
             />
 
-            {/* Patient routes */}
+            <Route
+              path="/doctor/profile"
+              element={<DoctorProfile />}
+            />
+
+            {/* Patient */}
             <Route
               path="/patient/appointments"
               element={<PatientAppointments />}
             />
 
           </Routes>
+
         </main>
       </div>
 

@@ -73,12 +73,8 @@ export default function Profile() {
     if (formData.latitude !== '') updateData.latitude = parseFloat(formData.latitude);
     if (formData.longitude !== '') updateData.longitude = parseFloat(formData.longitude);
     
-    if (user.role === 'patient') {
-      if (formData.gender) updateData.gender = formData.gender;
-      if (formData.birth_date) updateData.birth_date = formData.birth_date;
-    } else if (user.role === 'doctor') {
-      if (formData.specialty) updateData.specialty = formData.specialty;
-    }
+    if (formData.gender) updateData.gender = formData.gender;
+    if (formData.birth_date) updateData.birth_date = formData.birth_date;
 
     try {
       const url = import.meta.env.VITE_API_URL + `/profile?user_id=${user.id}`;
@@ -179,7 +175,6 @@ export default function Profile() {
                 />
               </div>
               
-              {user.role === 'patient' && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.document')}</label>
                   <input
@@ -189,22 +184,8 @@ export default function Profile() {
                     className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
                   />
                 </div>
-              )}
-
-              {user.role === 'doctor' && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.medicalLicense')}</label>
-                  <input
-                    type="text"
-                    value={profile.medical_license || t('profile.notRegisteredF')}
-                    disabled
-                    className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 cursor-not-allowed"
-                  />
-                </div>
-              )}
             </div>
 
-            {user.role === 'patient' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.gender')}</label>
@@ -231,21 +212,6 @@ export default function Profile() {
                   />
                 </div>
               </div>
-            )}
-
-            {user.role === 'doctor' && (
-              <div className="pt-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('profile.mainSpecialty')}</label>
-                <input
-                  type="text"
-                  name="specialty"
-                  value={formData.specialty}
-                  onChange={handleChange}
-                  placeholder={t('profile.specialtyPlaceholder')}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-            )}
 
             {/* Location Fields (Common for both) */}
             <div className="pt-2 border-t border-slate-100 mt-6">

@@ -20,6 +20,7 @@ export default function MedicalSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchCategory, setSearchCategory] = useState('literature'); // 'literature' or 'drugs'
 
 
   // ==========================================================
@@ -46,8 +47,16 @@ export default function MedicalSearch() {
 
     try {
 
-      const url =
-        import.meta.env.VITE_API_URL + '/medical/search';
+      // Limpiar resultados anteriores
+      setResults([]);
+
+      // Seleccionar endpoint basado en la categoría
+      let endpoint = '/medical/search';
+      if (searchCategory === 'drugs') {
+        endpoint = '/medical/search/drugs';
+      }
+
+      const url = import.meta.env.VITE_API_URL + endpoint;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -59,7 +68,7 @@ export default function MedicalSearch() {
 
         body: JSON.stringify({
           query: searchQuery,
-          max_results: 10,
+          max_results: 100,
           user_id: user.id
         }),
       });
@@ -76,14 +85,47 @@ export default function MedicalSearch() {
 
       }
 
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/x-ndjson')) {
+        // Manejar Streaming (NDJSON)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
 
-      const data = await response.json();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      console.log('RESULTADOS MÉDICOS:', data);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          // El último elemento puede estar incompleto, lo devolvemos al buffer
+          buffer = lines.pop(); 
 
-      setResults(
-      sortByDate(data.results || [])
-    );
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(line);
+              
+              if (data.type === 'results' && data.data && data.data.length > 0) {
+                // Agregar los nuevos resultados a la lista y re-ordenar
+                setResults(prevResults => sortByDate([...prevResults, ...data.data]));
+              } else if (data.type === 'error') {
+                console.warn(`Error en fuente ${data.source}: ${data.message}`);
+              } else if (data.type === 'done') {
+                console.log('Streaming finalizado.');
+              }
+            } catch (e) {
+              console.error('Error parseando JSON de streaming:', line, e);
+            }
+          }
+        }
+      } else {
+        // Manejar Respuesta Normal (JSON)
+        const data = await response.json();
+        console.log('RESULTADOS MÉDICOS:', data);
+        setResults(sortByDate(data.results || []));
+      }
 
     } catch (err) {
 
@@ -342,106 +384,136 @@ export default function MedicalSearch() {
               max-w-4xl
             "
           >
-
-            {/* ICONO */}
-
-            <div className="
-              pointer-events-none
-              absolute
-              inset-y-0
-              left-0
-              flex
-              items-center
-              pl-4
-            ">
-
-              <Search
-                className="
-                  h-5
-                  w-5
-                  text-slate-400
-                  transition-colors
-                  group-focus-within:text-blue-500
-                "
-              />
-
+            
+            {/* TABS DE CATEGORÍA */}
+            <div className="mb-4 flex justify-center gap-2 sm:gap-4">
+              <button
+                type="button"
+                onClick={() => setSearchCategory('literature')}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                  searchCategory === 'literature'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-900 shadow-sm'
+                }`}
+              >
+                <BookOpen size={18} />
+                Evidencia y Ensayos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchCategory('drugs')}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                  searchCategory === 'drugs'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30'
+                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-900 shadow-sm'
+                }`}
+              >
+                <span className="text-lg">💊</span>
+                Medicamentos
+              </button>
             </div>
 
 
-            {/* INPUT */}
-
-            <input
-              type="text"
-              className="
-                block
-                w-full
-                rounded-2xl
-                border-2
-                border-slate-200
-                bg-white/70
-                py-4
-                pl-12
-                pr-32
-                text-base
-                text-slate-900
-                shadow-sm
-                backdrop-blur-sm
-                outline-none
-                transition-all
-                placeholder:text-slate-400
-                focus:border-blue-500
-                focus:ring-4
-                focus:ring-blue-500/10
-                sm:text-lg
-              "
-              placeholder={t(
-                'searchPage.searchPlaceholder'
-              )}
-              value={query}
-              onChange={(e) =>
-                setQuery(e.target.value)
-              }
-            />
-
-
-            {/* BOTON */}
-
-            <button
-              type="submit"
-              disabled={loading || !query.trim()}
-              className="
+            <div className="relative">
+              {/* ICONO */}
+              <div className="
+                pointer-events-none
                 absolute
-                inset-y-2
-                right-2
+                inset-y-0
+                left-0
                 flex
                 items-center
-                gap-2
-                rounded-xl
-                bg-blue-600
-                px-4
-                font-medium
-                text-white
-                shadow-md
-                transition-colors
-                hover:bg-blue-700
-                disabled:cursor-not-allowed
-                disabled:bg-slate-300
-                sm:px-6
-              "
-            >
+                pl-4
+              ">
 
-              {loading && (
-                <Loader2
-                  className="animate-spin"
-                  size={18}
+                <Search
+                  className={`
+                    h-5
+                    w-5
+                    transition-colors
+                    ${searchCategory === 'drugs' ? 'text-emerald-400 group-focus-within:text-emerald-500' : 'text-slate-400 group-focus-within:text-blue-500'}
+                  `}
                 />
-              )}
 
-              <span>
-                {t('searchPage.searchButton')}
-              </span>
+              </div>
 
-            </button>
+
+              {/* INPUT */}
+
+              <input
+                type="text"
+                className={`
+                  block
+                  w-full
+                  rounded-2xl
+                  border-2
+                  border-slate-200
+                  bg-white/70
+                  py-4
+                  pl-12
+                  pr-32
+                  text-base
+                  text-slate-900
+                  shadow-sm
+                  backdrop-blur-sm
+                  outline-none
+                  transition-all
+                  placeholder:text-slate-400
+                  focus:ring-4
+                  sm:text-lg
+                  ${searchCategory === 'drugs' 
+                    ? 'focus:border-emerald-500 focus:ring-emerald-500/10' 
+                    : 'focus:border-blue-500 focus:ring-blue-500/10'}
+                `}
+                placeholder={searchCategory === 'drugs' ? 'Ej: Ibuprofeno, Metformina, Amoxicilina...' : t('searchPage.searchPlaceholder')}
+                value={query}
+                onChange={(e) =>
+                  setQuery(e.target.value)
+                }
+              />
+
+
+              {/* BOTON */}
+
+              <button
+                type="submit"
+                disabled={loading || !query.trim()}
+                className={`
+                  absolute
+                  inset-y-2
+                  right-2
+                  flex
+                  items-center
+                  gap-2
+                  rounded-xl
+                  px-4
+                  font-medium
+                  text-white
+                  shadow-md
+                  transition-colors
+                  disabled:cursor-not-allowed
+                  disabled:bg-slate-300
+                  sm:px-6
+                  ${searchCategory === 'drugs'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                  }
+                `}
+              >
+
+                {loading && (
+                  <Loader2
+                    className="animate-spin"
+                    size={18}
+                  />
+                )}
+
+                <span>
+                  {t('searchPage.searchButton')}
+                </span>
+
+              </button>
+            </div>
 
           </form>
 

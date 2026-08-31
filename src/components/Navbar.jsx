@@ -124,7 +124,7 @@ export default function Navbar() {
               </div>
             )}
           </div>
-          <Link to="/profile" className="flex flex-col items-end hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-100">
+          <Link to={user.role === 'doctor' ? "/doctor/profile" : "/profile"} className="flex flex-col items-end hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-100">
             <span className="text-sm font-medium text-slate-800">{user.name}</span>
             <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{user.role}</span>
           </Link>
