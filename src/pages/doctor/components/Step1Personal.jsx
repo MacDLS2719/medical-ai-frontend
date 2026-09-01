@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ALL_COUNTRIES } from '../../../data/countries'; // Adjust path if needed
 import { 
   BrainCircuit, 
   Users, 
@@ -23,9 +24,24 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // País seleccionado por defecto (Colombia como fallback)
+  const selectedCountryObj = ALL_COUNTRIES.find((c) => c.name === formData.country) || 
+                             ALL_COUNTRIES.find((c) => c.name === 'Colombia') || 
+                             ALL_COUNTRIES[0];
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     updateFormData({ [name]: type === 'checkbox' ? checked : value });
+  };
+
+  const handleCountryChange = (e) => {
+    const selected = ALL_COUNTRIES.find((c) => c.name === e.target.value);
+    if (selected) {
+      updateFormData({
+        country: selected.name,
+        phoneCode: selected.dialCode,
+      });
+    }
   };
 
   const handleFileChange = (e, field) => {
@@ -45,17 +61,24 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
 
   return (
     <div className="flex-1 flex gap-8">
-      {/* Sidebar Izquierda - Paso 1 */}
+      {/* Sidebar Izquierda */}
       <aside className="w-72 shrink-0 flex flex-col justify-between py-2">
         <div className="space-y-8">
           <div>
-            <h2 className="text-2xl font-extrabold text-blue-950 leading-tight">Únete a<br /><span className="text-blue-600">Vital IA</span></h2>
-            <p className="text-sm text-slate-500 mt-2 leading-relaxed">La plataforma de IA médica hecha para profesionales como tú.</p>
+            <h2 className="text-2xl font-extrabold text-blue-950 leading-tight">
+              Únete a<br />
+              <span className="text-blue-600">Vital IA</span>
+            </h2>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              La plataforma de IA médica hecha para profesionales como tú.
+            </p>
           </div>
 
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 shrink-0"><BrainCircuit size={20} /></div>
+              <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 shrink-0">
+                <BrainCircuit size={20} />
+              </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800">IA clínica avanzada</h4>
                 <p className="text-xs text-slate-500 mt-0.5">Resúmenes inteligentes, análisis y apoyo en decisiones.</p>
@@ -63,7 +86,9 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
             </div>
 
             <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Users size={20} /></div>
+              <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                <Users size={20} />
+              </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800">Gestiona tus pacientes</h4>
                 <p className="text-xs text-slate-500 mt-0.5">Historiales completos, pruebas y consultas en un lugar.</p>
@@ -71,7 +96,9 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
             </div>
 
             <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shrink-0"><ShieldCheck size={20} /></div>
+              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+                <ShieldCheck size={20} />
+              </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800">Seguro y confidencial</h4>
                 <p className="text-xs text-slate-500 mt-0.5">Cumplimos los más altos estándares de privacidad.</p>
@@ -89,7 +116,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
         </div>
       </aside>
 
-      {/* Formulario Central - Paso 1 */}
+      {/* Formulario Central */}
       <main className="flex-1 max-w-2xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Crea tu cuenta profesional</h1>
@@ -109,7 +136,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                   name="firstName"
                   required
                   placeholder="Ingresa tu nombre"
-                  value={formData.firstName}
+                  value={formData.firstName || ''}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                 />
@@ -122,24 +149,28 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                   name="lastName"
                   required
                   placeholder="Ingresa tus apellidos"
-                  value={formData.lastName}
+                  value={formData.lastName || ''}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Fecha de nacimiento</label>
-                <div className="relative">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Fecha de nacimiento
+                </label>
+                <div className="relative flex items-center">
                   <input
-                    type="text"
-                    name="birthDate"
-                    placeholder="DD / MM / AAAA"
-                    value={formData.birthDate}
+                    type="date"
+                    name="birth_date"
+                    value={formData.birth_date || ''}
                     onChange={handleChange}
-                    className="w-full pl-3.5 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
+                    className="w-full pl-3.5 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all cursor-pointer relative z-10 opacity-100 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
-                  <Calendar size={16} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
+                  <Calendar
+                    size={16}
+                    className="absolute right-3 text-slate-400 pointer-events-none z-0"
+                  />
                 </div>
               </div>
             </div>
@@ -150,14 +181,15 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                 <div className="relative">
                   <select
                     name="country"
-                    value={formData.country}
-                    onChange={handleChange}
+                    value={formData.country || selectedCountryObj.name}
+                    onChange={handleCountryChange}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white appearance-none transition-all cursor-pointer"
                   >
-                    <option value="Colombia">Colombia</option>
-                    <option value="España">España</option>
-                    <option value="México">México</option>
-                    <option value="Argentina">Argentina</option>
+                    {ALL_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.name}>
+                        {c.flag} {c.name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown size={16} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
                 </div>
@@ -172,7 +204,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                     name="email"
                     required
                     placeholder="tu@email.com"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={handleChange}
                     className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                   />
@@ -184,15 +216,29 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Teléfono</label>
                 <div className="flex gap-2">
-                  <div className="flex items-center gap-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs shrink-0">
-                    <span>🇪🇸</span>
-                    <span className="text-slate-500 font-medium">+34</span>
+                  {/* Selector independiente de código de área */}
+                  <div className="relative shrink-0">
+                    <select
+                      name="phoneCode"
+                      value={formData.phoneCode || selectedCountryObj.dialCode}
+                      onChange={handleChange}
+                      className="h-full pl-3 pr-7 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 font-medium appearance-none cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none hover:bg-white transition-all"
+                    >
+                      {ALL_COUNTRIES.map((c) => (
+                        <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
+                          {c.flag} {c.dialCode} ({c.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-2 top-3.5 text-slate-400 pointer-events-none" />
                   </div>
+
+                  {/* Campo totalmente editable para el usuario */}
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="600 123 456"
-                    value={formData.phone}
+                    placeholder="300 123 4567"
+                    value={formData.phone || ''}
                     onChange={handleChange}
                     className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                   />
@@ -204,7 +250,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                 <div className="relative">
                   <select
                     name="language"
-                    value={formData.language}
+                    value={formData.language || 'Español'}
                     onChange={handleChange}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white appearance-none transition-all cursor-pointer"
                   >
@@ -231,7 +277,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                     name="password"
                     required
                     placeholder="Crea una contraseña segura"
-                    value={formData.password}
+                    value={formData.password || ''}
                     onChange={handleChange}
                     className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                   />
@@ -254,7 +300,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                     name="confirmPassword"
                     required
                     placeholder="Repite tu contraseña"
-                    value={formData.confirmPassword}
+                    value={formData.confirmPassword || ''}
                     onChange={handleChange}
                     className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-slate-50/50 hover:bg-white transition-all"
                   />
@@ -336,7 +382,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
               <input
                 type="checkbox"
                 name="termsAccepted"
-                checked={formData.termsAccepted}
+                checked={!!formData.termsAccepted}
                 onChange={handleChange}
                 className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
@@ -358,7 +404,7 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
         </form>
       </main>
 
-      {/* Sidebar Derecha - Banner Exclusivo del Paso 1 */}
+      {/* Sidebar Derecha */}
       <aside className="w-80 shrink-0 bg-gradient-to-b from-blue-50/50 to-indigo-50/30 border border-slate-200/60 rounded-3xl p-6 flex flex-col justify-between overflow-hidden">
         <div className="relative">
           <div className="aspect-[3/4] rounded-2xl overflow-hidden mb-6 shadow-sm border border-white">

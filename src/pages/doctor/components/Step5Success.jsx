@@ -16,7 +16,7 @@ export default function Step5Success({ formData }) {
         email: formData?.email || ''
       });
     }
-    navigate('/doctor/availability');
+    navigate('/doctor/profile');
   };
 
   return (

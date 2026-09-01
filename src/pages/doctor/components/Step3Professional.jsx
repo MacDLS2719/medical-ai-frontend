@@ -22,6 +22,7 @@ import {
   HelpCircle 
 } from 'lucide-react';
 import iaHeaderImg from '../../../assets/Imges_Paciente.png';
+import DoctorLocationMap from '../../../components/common/DoctorLocationMap';
 
 export default function Step3Professional({ formData, onNext, onPrev, goToStep }) {
   const handleSubmit = (e) => {
@@ -181,6 +182,31 @@ export default function Step3Professional({ formData, onNext, onPrev, goToStep }
                 <span className="font-medium text-slate-700 leading-relaxed">
                   {formData.bio || 'Especialista en cardiología intervencionista con experiencia en hemodinámica, angioplastia y manejo de enfermedades coronarias.'}
                 </span>
+              </div>
+
+              {/* Dirección y Ubicación en Mapa */}
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center">
+                  <span className="w-48 text-slate-500 flex items-center gap-2">
+                    <Building2 size={14} /> Dirección de consulta
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {formData.address ? `${formData.address}${formData.city ? `, ${formData.city}` : ''}` : 'Sin dirección especificada'}
+                  </span>
+                </div>
+
+                <div className="pt-1">
+                  <DoctorLocationMap
+                    latitude={formData.latitude}
+                    longitude={formData.longitude}
+                    address={formData.address}
+                    city={formData.city}
+                    country={formData.country || 'Colombia'}
+                    readOnly={true}
+                    height="200px"
+                    title="Ubicación geográfica confirmada"
+                  />
+                </div>
               </div>
             </div>
           </div>

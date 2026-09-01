@@ -57,6 +57,8 @@ export default function DoctorCreate() {
     address: '',
     city: '',
     zipCode: '',
+    latitude: null,
+    longitude: null,
     consultationPhone: '',
     website: '',
 
@@ -95,6 +97,8 @@ export default function DoctorCreate() {
       city: formData.city?.trim() || null,
       address: formData.address?.trim() || null,
       postal_code: formData.zipCode?.trim() || null,
+      latitude: formData.latitude !== null && formData.latitude !== undefined && formData.latitude !== '' ? parseFloat(formData.latitude) : null,
+      longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? parseFloat(formData.longitude) : null,
       consultation_phone: formData.consultationPhone?.trim() || null,
       website: formData.website?.trim() || null,
       professional_registration_number: formData.colegiatedNumber?.trim() || null,

@@ -5,6 +5,7 @@ import {
   Mail, Phone, Clock, Stethoscope, Award, Building2, Globe, 
   Plus, Trash2, UploadCloud, FileText, Camera, Loader2, Check, AlertCircle, Info 
 } from 'lucide-react';
+import DoctorLocationMap from '../../components/common/DoctorLocationMap';
 
 export default function DoctorProfile() {
   const { user } = useAuth();
@@ -34,6 +35,8 @@ export default function DoctorProfile() {
     address: '',
     city: '',
     postal_code: '',
+    latitude: '',
+    longitude: '',
     website: '',
     specialty: '',
     colegiated_number: '',
@@ -75,6 +78,8 @@ export default function DoctorProfile() {
           address: data.address || '',
           city: data.city || '',
           postal_code: data.postal_code || '',
+          latitude: data.latitude !== null && data.latitude !== undefined ? data.latitude : '',
+          longitude: data.longitude !== null && data.longitude !== undefined ? data.longitude : '',
           website: data.website || '',
           specialty: data.specialty || '',
           colegiated_number: data.colegiated_number || data.medical_license || '',
@@ -145,10 +150,23 @@ export default function DoctorProfile() {
     setSaving(true);
     try {
       const url = import.meta.env.VITE_API_URL + `/doctor-profile?user_id=${user.id}`;
+      const payload = {
+        ...formData,
+        latitude: formData.latitude !== '' && formData.latitude !== null && formData.latitude !== undefined 
+          ? parseFloat(formData.latitude) 
+          : null,
+        longitude: formData.longitude !== '' && formData.longitude !== null && formData.longitude !== undefined 
+          ? parseFloat(formData.longitude) 
+          : null,
+        years_of_experience: formData.years_experience 
+          ? parseInt(formData.years_experience.toString().replace(/\D/g, '')) || null 
+          : null
+      };
+
       const response = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       if (response.ok) {
         const data = await response.json();
@@ -436,6 +454,24 @@ export default function DoctorProfile() {
                         <p className="text-xs font-bold text-indigo-600 truncate">{formData.website || 'Sin especificar'}</p>
                       )}
                     </div>
+                  </div>
+
+                  {/* Sección de Mapa y Coordenadas Geográficas */}
+                  <div className="pt-2">
+                    <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-2">
+                      Ubicación geográfica del consultorio / clínica (Latitud y Longitud)
+                    </label>
+                    <DoctorLocationMap
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      address={formData.address}
+                      city={formData.city}
+                      country={formData.country || 'Colombia'}
+                      onChange={({ latitude, longitude }) => setFormData(prev => ({ ...prev, latitude, longitude }))}
+                      readOnly={!isEditing}
+                      height="280px"
+                      title={isEditing ? 'Ajustar punto de atención médica en el mapa' : 'Ubicación registrada en mapa'}
+                    />
                   </div>
 
                   <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 flex items-center justify-between gap-4">

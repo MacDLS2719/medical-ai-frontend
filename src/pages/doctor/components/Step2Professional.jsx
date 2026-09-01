@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ALL_COUNTRIES } from '../../../data/countries'; // Asegúrate de ajustar la ruta a tu archivo de países
 import { 
   BrainCircuit, 
   Users, 
@@ -9,9 +10,15 @@ import {
   ChevronDown 
 } from 'lucide-react';
 import iaHeaderImg from '../../../assets/Imges_Paciente.png';
+import DoctorLocationMap from '../../../components/common/DoctorLocationMap';
 
 export default function Step2Professional({ formData, updateFormData, onNext, onPrev }) {
   const [bio, setBio] = useState(formData.bio || '');
+
+  // Determinar país seleccionado por defecto para el teléfono de consulta (fallback a Colombia si no existe)
+  const selectedCountryObj = ALL_COUNTRIES.find((c) => c.name === formData.country) || 
+                             ALL_COUNTRIES.find((c) => c.name === 'Colombia') || 
+                             ALL_COUNTRIES[0];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,6 +30,10 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
     } else {
       updateFormData({ [name]: value });
     }
+  };
+
+  const handleLocationChange = ({ latitude, longitude }) => {
+    updateFormData({ latitude, longitude });
   };
 
   const handleSubmit = (e) => {
@@ -146,15 +157,22 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">País del colegio</label>
-                <input
-                  type="text"
-                  name="collegeCountry"
-                  required
-                  placeholder="Escribe el país"
-                  value={formData.collegeCountry || ''}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
-                />
+                <div className="relative">
+                  <select
+                    name="collegeCountry"
+                    required
+                    value={formData.collegeCountry || formData.country || 'Colombia'}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white appearance-none transition-all cursor-pointer"
+                  >
+                    {ALL_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.name}>
+                        {c.flag} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
+                </div>
               </div>
 
               <div>
@@ -205,15 +223,20 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
 
           {/* Sección 3: Dirección profesional */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold text-slate-900">Dirección profesional</h3>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Dirección profesional y Ubicación</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Ingresa los datos de tu consultorio. El mapa ubicará automáticamente el punto según la ciudad y dirección que escribas.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nombre de la clínica / centro</label>
                 <input
                   type="text"
                   name="clinicName"
-                  placeholder="Ingresa el nombre de tu centro"
+                  placeholder="Ej: Centro Médico San Rafael"
                   value={formData.clinicName || ''}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
@@ -221,31 +244,50 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Dirección</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Dirección del consultorio</label>
                 <input
                   type="text"
                   name="address"
-                  placeholder="Ingresa la dirección"
+                  placeholder="Ej: Carrera 15 # 93-60, Consultorio 402"
                   value={formData.address || ''}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Ciudad</label>
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="Ej: Bogotá, Medellín, Cali, Madrid..."
+                  value={formData.city || ''}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Ciudad</label>
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="Ingresa la ciudad"
-                  value={formData.city || ''}
-                  onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
-                />
-              </div>
+            {/* Mapa interactivo de ubicación exacta */}
+            <div className="pt-1">
+              <label className="block text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                <span>📍 Ubicación en el mapa (Confirmación de Latitud y Longitud)</span>
+                <span className="text-[11px] font-normal text-blue-600">Puedes mover el pin para ajustar la entrada exacta</span>
+              </label>
+              <DoctorLocationMap
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                address={formData.address}
+                city={formData.city}
+                country={formData.country || 'Colombia'}
+                onChange={handleLocationChange}
+                readOnly={false}
+                height="280px"
+                title="Punto de atención médica"
+              />
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Código postal</label>
                 <input
@@ -258,18 +300,30 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
                 />
               </div>
 
+              {/* Teléfono de consulta dinámico */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Teléfono de consulta</label>
                 <div className="flex gap-2">
-                  <div className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs shrink-0">
-                    <span>🇪🇸</span>
-                    <ChevronDown size={12} className="text-slate-400" />
-                    <span className="text-slate-500 font-medium">+34</span>
+                  <div className="relative shrink-0">
+                    <select
+                      name="consultationPhoneCode"
+                      value={formData.consultationPhoneCode || formData.phoneCode || selectedCountryObj.dialCode}
+                      onChange={handleChange}
+                      className="h-full pl-3 pr-7 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 font-medium appearance-none cursor-pointer focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none hover:bg-white transition-all"
+                    >
+                      {ALL_COUNTRIES.map((c) => (
+                        <option key={`${c.code}-${c.dialCode}`} value={c.dialCode}>
+                          {c.flag} {c.dialCode} ({c.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-2 top-3.5 text-slate-400 pointer-events-none" />
                   </div>
+
                   <input
                     type="tel"
                     name="consultationPhone"
-                    placeholder="600 123 456"
+                    placeholder="300 123 4567"
                     value={formData.consultationPhone || ''}
                     onChange={handleChange}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"

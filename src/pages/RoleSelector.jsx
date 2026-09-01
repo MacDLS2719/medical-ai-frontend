@@ -25,7 +25,7 @@ export default function RoleSelector() {
       if (user.role === 'patient') {
         navigate('/patient/notifications');
       } else {
-        navigate('/search');
+        navigate('/doctor/profile');
       }
     }
   }, [user, navigate]);
