@@ -24,13 +24,24 @@ export function AuthProvider({ children }) {
     localStorage.setItem('medai_user', JSON.stringify(doctorUser));
   };
 
+  const loginAsVerifier = () => {
+    const verifierUser = {
+      id: 27,
+      email: 'verificador@medical-ai.com',
+      role: 'verifier',
+      name: 'Verificador Oficial'
+    };
+    setUser(verifierUser);
+    localStorage.setItem('medai_user', JSON.stringify(verifierUser));
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('medai_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginAsPatient, loginAsDoctor, logout }}>
+    <AuthContext.Provider value={{ user, loginAsPatient, loginAsDoctor, loginAsVerifier, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function RoleSelector() {
-  const { user, loginAsPatient, loginAsDoctor } = useAuth();
+  const { user, loginAsPatient, loginAsDoctor, loginAsVerifier } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -24,6 +24,8 @@ export default function RoleSelector() {
     if (user) {
       if (user.role === 'patient') {
         navigate('/patient/notifications');
+      } else if (user.role === 'verifier') {
+        navigate('/verification/detail');
       } else {
         navigate('/doctor/profile');
       }
@@ -48,9 +50,9 @@ export default function RoleSelector() {
         <p className="text-lg text-slate-600">{t('roleSelector.selectRole')}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
         
-        {/* Patient Card (Untouched behavior) */}
+        {/* Patient Card */}
         <button
           type="button"
           onClick={loginAsPatient}
@@ -65,7 +67,7 @@ export default function RoleSelector() {
           </p>
         </button>
 
-        {/* Doctor Card (Triggers Selection Modal) */}
+        {/* Doctor Card */}
         <button
           type="button"
           onClick={() => setShowDoctorModal(true)}
@@ -77,6 +79,21 @@ export default function RoleSelector() {
           <h2 className="text-2xl font-bold text-slate-800 mb-3">{t('roleSelector.iAmDoctor')}</h2>
           <p className="text-slate-500 text-sm leading-relaxed">
             {t('roleSelector.doctorDescription')}
+          </p>
+        </button>
+
+        {/* Verifier Card */}
+        <button
+          type="button"
+          onClick={loginAsVerifier}
+          className="group glass-card rounded-3xl p-8 flex flex-col items-center text-center transition-all duration-300 hover:scale-105 hover:shadow-indigo-500/20 cursor-pointer border-2 border-transparent hover:border-indigo-400/30"
+        >
+          <div className="bg-indigo-100 text-indigo-600 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
+            <ShieldCheck size={48} strokeWidth={1.5} />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">Verificador</h2>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Ingresa como verificador oficial para evaluar y validar la documentación médica.
           </p>
         </button>
 

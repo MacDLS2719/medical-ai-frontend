@@ -6,7 +6,8 @@ import {
   MessageSquareText,
   Calendar,
   ClipboardList,
-  CalendarCheck
+  CalendarCheck,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -253,47 +254,98 @@ export default function Sidebar() {
 
 
           {/* ===================================================
+              VERIFICADOR: VERIFICACIÓN DE MÉDICOS
+          =================================================== */}
+
+          {user.role === 'verifier' && (
+
+            <li>
+
+              <NavLink
+                to="/verification/detail"
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200'
+                      : 'text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm border border-transparent'
+                  }`
+                }
+              >
+
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
+
+                  <ShieldCheck
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
+
+                </div>
+
+                <span>
+                  Verificación de Médicos
+                </span>
+
+              </NavLink>
+
+            </li>
+
+          )}
+
+
+          {/* ===================================================
               CHAT INTERNO
               PACIENTE + DOCTOR
           =================================================== */}
 
-          <li>
+          {user.role !== 'verifier' && (
 
-            <NavLink
-              to="/medical-chat"
-              className={({ isActive }) =>
-                `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
-                  isActive
-                    ? 'bg-teal-100 text-teal-700 shadow-sm border border-teal-200'
-                    : 'text-slate-600 hover:bg-white hover:text-teal-600 hover:shadow-sm border border-transparent'
-                }`
-              }
-            >
+            <li>
 
-              <div className="
-                p-1.5
-                rounded-lg
-                bg-transparent
-              ">
+              <NavLink
+                to="/medical-chat"
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium ${
+                    isActive
+                      ? 'bg-teal-100 text-teal-700 shadow-sm border border-teal-200'
+                      : 'text-slate-600 hover:bg-white hover:text-teal-600 hover:shadow-sm border border-transparent'
+                  }`
+                }
+              >
 
-                <MessageSquareText
-                  size={20}
-                  strokeWidth={2}
-                  className="
-                    group-hover:scale-110
-                    transition-transform
-                  "
-                />
+                <div className="
+                  p-1.5
+                  rounded-lg
+                  bg-transparent
+                ">
 
-              </div>
+                  <MessageSquareText
+                    size={20}
+                    strokeWidth={2}
+                    className="
+                      group-hover:scale-110
+                      transition-transform
+                    "
+                  />
 
-              <span>
-                {t('sidebar.internalChat')}
-              </span>
+                </div>
 
-            </NavLink>
+                <span>
+                  {t('sidebar.internalChat')}
+                </span>
 
-          </li>
+              </NavLink>
+
+            </li>
+
+          )}
 
         </ul>
 

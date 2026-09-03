@@ -9,6 +9,7 @@ import MedicalSearch from './pages/MedicalSearch'
 import ChatAssistant from './pages/ChatAssistant'
 import MedicalChat from './pages/MedicalChat'
 import Profile from './pages/Profile'
+import MedicalAlerts from './pages/MedicalAlerts';
 
 // Doctor pages
 import DoctorAvailability from './pages/doctor/DoctorAvailability'
@@ -18,6 +19,9 @@ import DoctorCreate from './pages/doctor/DoctorCreate'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
+
+// Verification pages
+import VerificationDetail from './pages/VerificationDetail'
 
 function App() {
   const { user } = useAuth()
@@ -55,6 +59,8 @@ function App() {
               path="/search"
               element={<MedicalSearch />}
             />
+
+            <Route path="/notifications" element={<MedicalAlerts />} />
 
             <Route
               path="/chat"
@@ -101,6 +107,12 @@ function App() {
             <Route
               path="/patient/appointments"
               element={<PatientAppointments />}
+            />
+
+            {/* Verifier */}
+            <Route
+              path="/verification/detail"
+              element={<VerificationDetail />}
             />
 
           </Routes>

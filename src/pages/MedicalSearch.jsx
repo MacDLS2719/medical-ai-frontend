@@ -6,12 +6,22 @@ import {
   Loader2,
   ExternalLink,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  Mic,
+  Bell,
+  BellPlus,
+  ArrowRight,
+  ChevronRight,
+  Sparkles,
+  Info,
+  Database
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export default function MedicalSearch() {
+// IMPORTA AQUÍ TU IMAGEN DESDE LA CARPETA ASSETS
+import AIHeaderImage from '../assets/Imges_Paciente.png'; // Reemplaza por la ruta y nombre real de tu imagen
 
+export default function MedicalSearch() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -20,75 +30,60 @@ export default function MedicalSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchCategory, setSearchCategory] = useState('literature'); // 'literature' or 'drugs'
+  
+  // Estado para la biblioteca/fuente médica seleccionada
+  const [selectedLibrary, setSelectedLibrary] = useState('all');
 
-
-  // ==========================================================
-  // REDIRECCIÓN SI NO HAY USUARIO
-  // ==========================================================
+  const libraries = [
+    { id: 'all', name: 'Todas' },
+    { id: 'pubmed', name: 'PubMed' },
+    { id: 'cochrane', name: 'Cochrane' },
+    { id: 'europepmc', name: 'EuropePMC' },
+    { id: 'openfda', name: 'OpenFDA' },
+    { id: 'whoictrp', name: 'WHO ICTRP' },
+    { id: 'clinicaltrials', name: 'ClinicalTrials' },
+  ];
 
   useEffect(() => {
-
     if (!user) {
       navigate('/');
     }
-
   }, [user, navigate]);
-
 
   // ==========================================================
   // BUSCAR
   // ==========================================================
-
   const fetchResults = async (searchQuery = query) => {
-
     setLoading(true);
     setError(null);
 
     try {
-
-      // Limpiar resultados anteriores
       setResults([]);
-
-      // Seleccionar endpoint basado en la categoría
-      let endpoint = '/medical/search';
-      if (searchCategory === 'drugs') {
-        endpoint = '/medical/search/drugs';
-      }
-
+      const endpoint = '/medical/search';
       const url = import.meta.env.VITE_API_URL + endpoint;
 
       const response = await fetch(url, {
         method: 'POST',
-
         headers: {
           'Content-Type': 'application/json',
           'Accept-Language': i18n.language,
         },
-
         body: JSON.stringify({
           query: searchQuery,
           max_results: 100,
-          user_id: user.id
+          user_id: user?.id,
+          source: selectedLibrary, // Envía la biblioteca seleccionada al backend
         }),
       });
 
-
       if (!response.ok) {
-
         const errData = await response.json();
-
-        throw new Error(
-          errData.detail ||
-          t('searchPage.errorTitle')
-        );
-
+        throw new Error(errData.detail || t('searchPage.errorTitle'));
       }
 
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType && contentType.includes('application/x-ndjson')) {
-        // Manejar Streaming (NDJSON)
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
@@ -99,21 +94,16 @@ export default function MedicalSearch() {
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          // El último elemento puede estar incompleto, lo devolvemos al buffer
-          buffer = lines.pop(); 
+          buffer = lines.pop();
 
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
               const data = JSON.parse(line);
-              
               if (data.type === 'results' && data.data && data.data.length > 0) {
-                // Agregar los nuevos resultados a la lista y re-ordenar
                 setResults(prevResults => sortByDate([...prevResults, ...data.data]));
               } else if (data.type === 'error') {
                 console.warn(`Error en fuente ${data.source}: ${data.message}`);
-              } else if (data.type === 'done') {
-                console.log('Streaming finalizado.');
               }
             } catch (e) {
               console.error('Error parseando JSON de streaming:', line, e);
@@ -121,844 +111,306 @@ export default function MedicalSearch() {
           }
         }
       } else {
-        // Manejar Respuesta Normal (JSON)
         const data = await response.json();
-        console.log('RESULTADOS MÉDICOS:', data);
         setResults(sortByDate(data.results || []));
       }
-
     } catch (err) {
-
       console.error('Error en búsqueda médica:', err);
-
       setError(err.message);
-
     } finally {
-
       setLoading(false);
-
     }
   };
-
-
-  // ==========================================================
-  // CARGA AUTOMÁTICA PARA PACIENTES
-  // ==========================================================
 
   useEffect(() => {
-
     if (user && user.role === 'patient') {
-
       fetchResults("");
-
     }
-
   }, [user]);
 
-
-  // ==========================================================
-  // BUSCAR MANUALMENTE
-  // ==========================================================
-
   const handleSearch = async (e) => {
-
-    e.preventDefault();
-
-    if (!query.trim()) {
-      return;
-    }
-
+    e?.preventDefault();
+    if (!query.trim()) return;
     await fetchResults(query);
-
   };
-
-
-  // ==========================================================
-  // FORMATEAR FECHA
-  // ==========================================================
 
   const formatDate = (value) => {
-
-    if (!value) {
-      return null;
-    }
-
+    if (!value) return null;
     try {
-
       const date = new Date(value);
-
-      if (isNaN(date.getTime())) {
-        return value;
-      }
-
-      return date.toLocaleDateString(
-        i18n.language || 'es-CO',
-        {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        }
-      );
-
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleDateString(i18n.language || 'es-CO', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
     } catch {
-
       return value;
-
     }
   };
 
-
-  // ==========================================================
-  // FUENTE
-  // ==========================================================
-
-  const getSource = (doc) => {
-
-    if (!doc.source_type) {
-      return 'SOURCE';
-    }
-
-    return String(doc.source_type).toUpperCase();
-
-  };
-
-
-    // ==========================================================
-  // AUTORES
-  // ==========================================================
+  const getSource = (doc) => doc.source_type ? String(doc.source_type).toUpperCase() : 'SOURCE';
 
   const getAuthors = (doc) => {
-
-    if (!doc.authors) {
-
-      return t(
-        'searchPage.authorsNotSpecified'
-      );
-
-    }
-
+    if (!doc.authors) return t('searchPage.authorsNotSpecified');
     if (Array.isArray(doc.authors)) {
-
-      if (doc.authors.length === 0) {
-
-        return t(
-          'searchPage.authorsNotSpecified'
-        );
-
-      }
-
-      const authors = doc.authors
-        .slice(0, 3)
-        .join(', ');
-
-      return doc.authors.length > 3
-        ? `${authors}, et al.`
-        : authors;
-
+      if (doc.authors.length === 0) return t('searchPage.authorsNotSpecified');
+      const authors = doc.authors.slice(0, 3).join(', ');
+      return doc.authors.length > 3 ? `${authors}, et al.` : authors;
     }
-
     return String(doc.authors);
-
   };
-
 
   const sortByDate = (documents) => {
-
     return [...documents].sort((a, b) => {
-      const dateA = a.publication_date
-        ? new Date(a.publication_date).getTime()
-        : 0;
-      const dateB = b.publication_date
-        ? new Date(b.publication_date).getTime()
-        : 0;
-
+      const dateA = a.publication_date ? new Date(a.publication_date).getTime() : 0;
+      const dateB = b.publication_date ? new Date(b.publication_date).getTime() : 0;
       return dateB - dateA;
-
     });
-
   };
 
-  if (!user) {
-    return null;
-  }
-
-  
-
-
-  // ==========================================================
-  // SI NO HAY USUARIO
-  // ==========================================================
-
-  if (!user) {
-    return null;
-  }
-
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
+  if (!user) return null;
 
   return (
+    <div className="flex min-h-screen w-full flex-col overflow-x-hidden p-4 sm:p-8 bg-slate-50/50">
+      <div className="mx-auto flex w-full max-w-6xl flex-col animate-in fade-in duration-500">
 
-    <div className="
-      flex
-      min-h-screen
-      w-full
-      flex-col
-      overflow-x-hidden
-      p-4
-      sm:p-6
-    ">
+        {/* ENCABEZADO SUPERIOR CON IMAGEN */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight md:text-4xl">
+              Evidencia médica
+            </h1>
+            <p className="mt-2 text-sm text-slate-500 sm:text-base">
+              Pregunta sobre lo que necesitas saber y obtén evidencia científica confiable.
+            </p>
+          </div>
 
-      <div className="
-        mx-auto
-        flex
-        w-full
-        max-w-7xl
-        flex-col
-        animate-in
-        fade-in
-        slide-in-from-bottom-8
-        duration-500
-      ">
+          {/* IMAGEN A LA DERECHA DEL ENCABEZADO */}
+          <div className="hidden sm:block shrink-0">
+            <img
+              src={AIHeaderImage}
+              alt="Evidencia Médica IA"
+              className="h-28 w-auto object-contain md:h-36"
+            />
+          </div>
+        </div>
 
+        {/* GRID PRINCIPAL DE 2 COLUMNAS */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
 
-        {/* =====================================================
-            TITULO
-        ===================================================== */}
+          {/* COLUMNA IZQUIERDA: TARJETA DE BÚSQUEDA */}
+          <div className="flex flex-col gap-4 lg:col-span-7">
+            <div className="relative rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 shadow-sm transition-all hover:shadow-md">
+              
+              {/* BADGE PRINCIPAL */}
+              <div className="mb-6">
+                <span className="inline-block rounded-md bg-violet-100 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-violet-700">
+                  PRINCIPAL
+                </span>
+              </div>
 
-        <div className="
-          mb-8
-          mt-4
-          text-center
-          sm:mb-10
-          sm:mt-6
-        ">
+              {/* TÍTULO Y DESCRIPCIÓN CON ICONO */}
+              <div className="mb-6 flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-indigo-600">
+                  <Search size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Consultar avances médicos
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-500">
+                    Pregúntame sobre enfermedades, tratamientos, fármacos, estudios o cualquier tema de tu interés.
+                  </p>
+                </div>
+              </div>
 
-          <h1 className="
-            text-3xl
-            font-bold
-            text-slate-800
-            md:text-4xl
-          ">
+              {/* ÁREA DE TEXTO Y BÚSQUEDA */}
+              <form onSubmit={handleSearch} className="space-y-4">
+                <div className="relative rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition-within focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-600/10">
+                  <textarea
+                    rows={3}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    maxLength={1000}
+                    placeholder="Escribe aquí qué quieres conocer..."
+                    className="w-full resize-none bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+                  />
+                  <div className="flex justify-end text-[11px] font-medium text-slate-400">
+                    {query.length}/1000
+                  </div>
+                </div>
 
-            {user.role === 'patient'
-              ? t('searchPage.patientTitle')
-              : t('searchPage.doctorTitle')
-            }
+                {/* BOTONES DE ACCIÓN DEBAJO DE LA CAJA DE TEXTO */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  
+                  {/* SELECTOR DE BIBLIOTECAS MÉDICAS */}
+                  <div className="flex items-center gap-2">
+                    <Database size={16} className="text-indigo-600 shrink-0" />
+                    <select
+                      value={selectedLibrary}
+                      onChange={(e) => setSelectedLibrary(e.target.value)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition-all hover:border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 cursor-pointer"
+                    >
+                      {libraries.map((lib) => (
+                        <option key={lib.id} value={lib.id}>
+                          {lib.id === 'all' ? 'Todas las bibliotecas' : lib.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-          </h1>
+                  {/* BOTÓN BUSCAR */}
+                  <button
+                    type="submit"
+                    disabled={loading || !query.trim()}
+                    className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition-all hover:bg-indigo-700 active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <Search size={14} />
+                    )}
+                    <span>Buscar</span>
+                  </button>
 
+                </div>
 
-          <p className="
-            mt-2
-            text-sm
-            text-slate-500
-            sm:text-base
-          ">
+                {/* BOTÓN DE MICRÓFONO */}
+                <div className="flex flex-col items-center justify-center pt-4">
+                  <button
+                    type="button"
+                    onClick={handleSearch}
+                    disabled={loading || !query.trim()}
+                    className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={24} />
+                    ) : (
+                      <Mic size={24} />
+                    )}
+                  </button>
+                  <p className="mt-3 text-xs font-bold text-slate-900">
+                    Pulsa el micrófono para hablar
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Puedes explicarle a Vital IA lo que buscas.
+                  </p>
+                </div>
+              </form>
+            </div>
 
-            {user.role === 'patient'
-              ? t('searchPage.patientSubtitle')
-              : t('searchPage.doctorSubtitle')
-            }
+            {/* BANNER INFORMATIVO INFERIOR */}
+            <div className="flex items-center justify-between rounded-2xl border border-violet-100 bg-violet-50/50 p-4 text-xs text-violet-900">
+              <div className="flex items-center gap-3">
+                <Info size={18} className="shrink-0 text-indigo-600" />
+                <span>
+                  Vital IA busca en fuentes científicas de confianza para ofrecerte información actualizada y de calidad.
+                </span>
+              </div>
+              <Sparkles size={16} className="shrink-0 text-indigo-500" />
+            </div>
+          </div>
 
-          </p>
+          {/* COLUMNA DERECHA: TARJETAS DE CREAR ALERTA */}
+          <div className="flex flex-col justify-between gap-4 lg:col-span-5">
+            <div className="flex flex-col justify-between rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 shadow-sm transition-all hover:shadow-md">
+              <div>
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-indigo-600">
+                  <Bell size={22} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Crear alerta médica
+                </h2>
+                <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-500">
+                  Recibe al instante nuevos avances sobre lo que más te interesa.
+                </p>
+
+                {/* BOTÓN TARJETA SECUNDARIA */}
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="mt-8 flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-left transition-all hover:bg-violet-50/50 hover:border-violet-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <BellPlus size={20} className="text-indigo-600" />
+                    <span className="text-xs font-medium text-slate-700">
+                      Crea alertas sobre enfermedades, tratamientos o especialidades.
+                    </span>
+                  </div>
+                  <ChevronRight size={18} className="text-slate-400" />
+                </button>
+              </div>
+
+              {/* BOTÓN ACCIÓN PRINCIPAL MORADO/PÚRPURA */}
+              <button
+                onClick={() => navigate('/notifications')}
+                className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-indigo-600 px-5 py-3.5 text-xs font-bold text-indigo-600 transition-all hover:bg-indigo-600 hover:text-white"
+              >
+                <span>Crear nueva alerta</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
 
         </div>
 
-
-        {/* =====================================================
-            BUSCADOR MÉDICO
-        ===================================================== */}
-
-        {user.role !== 'patient' && (
-
-          <form
-            onSubmit={handleSearch}
-            className="
-              group
-              relative
-              mx-auto
-              mb-10
-              w-full
-              max-w-4xl
-            "
-          >
-            
-            {/* TABS DE CATEGORÍA */}
-            <div className="mb-4 flex justify-center gap-2 sm:gap-4">
-              <button
-                type="button"
-                onClick={() => setSearchCategory('literature')}
-                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
-                  searchCategory === 'literature'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-900 shadow-sm'
-                }`}
-              >
-                <BookOpen size={18} />
-                Evidencia y Ensayos
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchCategory('drugs')}
-                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
-                  searchCategory === 'drugs'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30'
-                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-900 shadow-sm'
-                }`}
-              >
-                <span className="text-lg">💊</span>
-                Medicamentos
-              </button>
-            </div>
-
-
-            <div className="relative">
-              {/* ICONO */}
-              <div className="
-                pointer-events-none
-                absolute
-                inset-y-0
-                left-0
-                flex
-                items-center
-                pl-4
-              ">
-
-                <Search
-                  className={`
-                    h-5
-                    w-5
-                    transition-colors
-                    ${searchCategory === 'drugs' ? 'text-emerald-400 group-focus-within:text-emerald-500' : 'text-slate-400 group-focus-within:text-blue-500'}
-                  `}
-                />
-
-              </div>
-
-
-              {/* INPUT */}
-
-              <input
-                type="text"
-                className={`
-                  block
-                  w-full
-                  rounded-2xl
-                  border-2
-                  border-slate-200
-                  bg-white/70
-                  py-4
-                  pl-12
-                  pr-32
-                  text-base
-                  text-slate-900
-                  shadow-sm
-                  backdrop-blur-sm
-                  outline-none
-                  transition-all
-                  placeholder:text-slate-400
-                  focus:ring-4
-                  sm:text-lg
-                  ${searchCategory === 'drugs' 
-                    ? 'focus:border-emerald-500 focus:ring-emerald-500/10' 
-                    : 'focus:border-blue-500 focus:ring-blue-500/10'}
-                `}
-                placeholder={searchCategory === 'drugs' ? 'Ej: Ibuprofeno, Metformina, Amoxicilina...' : t('searchPage.searchPlaceholder')}
-                value={query}
-                onChange={(e) =>
-                  setQuery(e.target.value)
-                }
-              />
-
-
-              {/* BOTON */}
-
-              <button
-                type="submit"
-                disabled={loading || !query.trim()}
-                className={`
-                  absolute
-                  inset-y-2
-                  right-2
-                  flex
-                  items-center
-                  gap-2
-                  rounded-xl
-                  px-4
-                  font-medium
-                  text-white
-                  shadow-md
-                  transition-colors
-                  disabled:cursor-not-allowed
-                  disabled:bg-slate-300
-                  sm:px-6
-                  ${searchCategory === 'drugs'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                  }
-                `}
-              >
-
-                {loading && (
-                  <Loader2
-                    className="animate-spin"
-                    size={18}
-                  />
-                )}
-
-                <span>
-                  {t('searchPage.searchButton')}
-                </span>
-
-              </button>
-            </div>
-
-          </form>
-
-        )}
-
-
-        {/* =====================================================
-            ERROR
-        ===================================================== */}
-
+        {/* RESULTADOS DE BÚSQUEDA */}
         {error && (
-
-          <div className="
-            mx-auto
-            mb-8
-            flex
-            w-full
-            max-w-4xl
-            items-start
-            gap-3
-            rounded-r-xl
-            border-l-4
-            border-red-500
-            bg-red-50
-            p-4
-            shadow-sm
-          ">
-
-            <AlertCircle
-              className="
-                mt-0.5
-                shrink-0
-                text-red-500
-              "
-              size={20}
-            />
-
-            <div className="min-w-0">
-
-              <h3 className="
-                font-semibold
-                text-red-800
-              ">
-                {t('searchPage.errorTitle')}
-              </h3>
-
-              <p className="
-                mt-1
-                break-words
-                text-sm
-                text-red-600
-              ">
-                {error}
-              </p>
-
-            </div>
-
+          <div className="mt-8 flex items-start gap-3 rounded-2xl border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-700">
+            <AlertCircle size={20} className="shrink-0 text-red-500" />
+            <p>{error}</p>
           </div>
-
         )}
-
-
-        {/* =====================================================
-            RESULTADOS
-        ===================================================== */}
 
         {results.length > 0 && (
-
-          <section className="
-            mx-auto
-            w-full
-          ">
-
-
-            {/* =================================================
-                CABECERA RESULTADOS
-            ================================================= */}
-
-            <div className="
-              mb-6
-              flex
-              items-center
-              gap-2
-            ">
-
-              <div className="
-                flex
-                h-9
-                w-9
-                shrink-0
-                items-center
-                justify-center
-                rounded-lg
-                bg-blue-100
-              ">
-
-                <BookOpen
-                  size={20}
-                  className="text-blue-500"
-                />
-
-              </div>
-
-
-              <h2 className="
-                text-lg
-                font-bold
-                text-slate-700
-                sm:text-xl
-              ">
-
-                {t('searchPage.resultsFound')}
-
-                {' '}
-
-                ({results.length})
-
-              </h2>
-
+          <section className="mt-10">
+            <div className="mb-4 flex items-center gap-2">
+              <BookOpen size={20} className="text-indigo-600" />
+              <h3 className="text-lg font-bold text-slate-800">
+                Resultados encontrados ({results.length})
+              </h3>
             </div>
 
-
-            {/* =================================================
-                GRID
-                3 TARJETAS POR FILA
-            ================================================= */}
-
-            <div className="
-              grid
-              w-full
-              grid-cols-1
-              gap-5
-              sm:gap-6
-              md:grid-cols-2
-              xl:grid-cols-3
-            ">
-
-
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {results.map((doc, idx) => (
-
-                <article
-                  key={idx}
-                  className="
-                    glass-card
-                    group
-                    flex
-                    min-w-0
-                    w-full
-                    flex-col
-                    overflow-hidden
-                    rounded-2xl
-                    p-5
-                    transition-all
-                    duration-300
-                    hover:-translate-y-1
-                    hover:shadow-2xl
-                    hover:shadow-blue-500/10
-                  "
-                >
-
-
-                  {/* =========================================
-                      FUENTE + FECHA
-                  ========================================= */}
-
-                  <div className="
-                    flex
-                    min-w-0
-                    items-center
-                    justify-between
-                    gap-3
-                    border-b
-                    border-slate-100
-                    pb-3
-                  ">
-
-
-                    {/* FUENTE */}
-
-                    <span className="
-                      inline-flex
-                      max-w-[55%]
-                      shrink-0
-                      truncate
-                      rounded-full
-                      bg-blue-100
-                      px-3
-                      py-1
-                      text-[10px]
-                      font-bold
-                      uppercase
-                      tracking-wider
-                      text-blue-700
-                    ">
-
+                <article key={idx} className="flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                  <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold text-violet-700">
                       {getSource(doc)}
-
                     </span>
-
-
-                    {/* FECHA */}
-
                     {doc.publication_date && (
-
-                      <span className="
-                        min-w-0
-                        truncate
-                        text-xs
-                        font-medium
-                        text-slate-400
-                      ">
-
-                        {formatDate(
-                          doc.publication_date
-                        )}
-
+                      <span className="text-[11px] text-slate-400">
+                        {formatDate(doc.publication_date)}
                       </span>
-
                     )}
-
                   </div>
-
-
-                  {/* =========================================
-                      CONTENIDO
-                  ========================================= */}
-
-                  <div className="
-                    flex
-                    min-w-0
-                    flex-1
-                    flex-col
-                    pt-4
-                  ">
-
-
-                    {/* TITULO */}
-
-                    <h3 className="
-                      mb-3
-                      line-clamp-2
-                      min-w-0
-                      break-words
-                      text-base
-                      font-bold
-                      leading-snug
-                      text-slate-800
-                      transition-colors
-                      group-hover:text-blue-600
-                      sm:text-lg
-                    ">
-
-                      {doc.title ||
-                        'Sin título'
-                      }
-
-                    </h3>
-
-
-                    {/* ABSTRACT */}
-
-                    <p className="
-                      mb-4
-                      line-clamp-4
-                      min-w-0
-                      flex-1
-                      break-words
-                      text-sm
-                      leading-relaxed
-                      text-slate-600
-                    ">
-
-                      {doc.abstract ||
-                        'Sin resumen disponible.'
-                      }
-
-                    </p>
-
-
-                    {/* =========================================
-                        PIE TARJETA
-                    ========================================= */}
-
-                    <div className="
-                      mt-auto
-                      border-t
-                      border-slate-100
-                      pt-4
-                    ">
-
-
-                      {/* AUTORES */}
-
-                      <div className="
-                        mb-4
-                        flex
-                        min-w-0
-                        items-start
-                        gap-2
-                      ">
-
-                        <span className="
-                          shrink-0
-                          text-xs
-                          font-semibold
-                          text-slate-700
-                        ">
-                          Autores:
-                        </span>
-
-                        <span className="
-                          line-clamp-1
-                          min-w-0
-                          break-words
-                          text-xs
-                          text-slate-400
-                        ">
-
-                          {getAuthors(doc)}
-
-                        </span>
-
-                      </div>
-
-
-                      {/* VER ORIGINAL */}
-
-                      <a
-                        href={doc.url || '#'}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) =>
-                          e.stopPropagation()
-                        }
-                        className="
-                          flex
-                          items-center
-                          justify-end
-                          gap-1.5
-                          text-sm
-                          font-semibold
-                          text-blue-600
-                          transition-colors
-                          hover:text-blue-800
-                        "
-                      >
-
-                        {t(
-                          'searchPage.viewOriginal'
-                        )}
-
-                        <ExternalLink
-                          size={14}
-                          className="
-                            transition-transform
-                            group-hover:translate-x-0.5
-                          "
-                        />
-
-                      </a>
-
-                    </div>
-
+                  <h4 className="mb-2 line-clamp-2 text-sm font-bold text-slate-800">
+                    {doc.title || 'Sin título'}
+                  </h4>
+                  <p className="mb-4 line-clamp-3 text-xs text-slate-500">
+                    {doc.abstract || 'Sin resumen disponible.'}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3 text-[11px]">
+                    <span className="truncate text-slate-400">
+                      {getAuthors(doc)}
+                    </span>
+                    <a
+                      href={doc.url || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 font-semibold text-indigo-600 hover:underline"
+                    >
+                      {t('searchPage.viewOriginal')}
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
-
                 </article>
-
               ))}
-
             </div>
-
           </section>
-
         )}
 
-
-        {/* =====================================================
-            SIN RESULTADOS
-        ===================================================== */}
-
-        {!loading &&
-          !error &&
-          results.length === 0 &&
-          (user.role === 'patient' || query) && (
-
-            <div className="
-              py-12
-              text-center
-              text-slate-500
-            ">
-
-              {user.role === 'patient'
-                ? t(
-                    'searchPage.noPatientResults'
-                  )
-                : t(
-                    'searchPage.noDoctorResults'
-                  )
-              }
-
-            </div>
-
-          )}
-
-
-        {/* =====================================================
-            CARGANDO PACIENTE
-        ===================================================== */}
-
-        {loading &&
-          user.role === 'patient' && (
-
-            <div className="
-              flex
-              flex-col
-              items-center
-              gap-3
-              py-12
-              text-center
-              text-slate-500
-            ">
-
-              <Loader2
-                className="
-                  mx-auto
-                  animate-spin
-                  text-blue-500
-                "
-                size={32}
-              />
-
-              <p>
-                {t(
-                  'searchPage.searching'
-                )}
-              </p>
-
-            </div>
-
-          )}
-
       </div>
-
     </div>
-
   );
-
 }

@@ -9,10 +9,14 @@ import {
   Search,
   Trash2,
   Mic,
-  Square,
   Play,
   Pause,
-  X
+  X,
+  Video,
+  Square,
+  Phone,
+  PhoneOff,
+  PhoneCall
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -34,11 +38,15 @@ export default function MedicalChat() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
 
+  const [callStatus, setCallStatus] = useState('idle'); // 'idle' | 'calling' | 'ringing' | 'in-call'
+  const [callData, setCallData] = useState(null); // { room_name, from_user, target_user, conversation_id }
+
   const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
   const isCancelledRef = useRef(false);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -48,7 +56,132 @@ export default function MedicalChat() {
     };
   }, []);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
+  // ==========================================================
+  // WEBSOCKET NATIVO
+  // ==========================================================
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const wsUrl = `${API_URL.replace(/^http/, 'ws')}/ws/${user.id}`;
+    let ws;
+
+    try {
+      ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const { action, from_user, conversation_id, room_name } = data;
+
+          if (action === 'INCOMING_CALL') {
+            setCallData({ from_user, conversation_id, room_name });
+            setCallStatus('ringing');
+          } else if (action === 'CALL_ACCEPTED') {
+            setCallStatus('in-call');
+          } else if (action === 'CALL_REJECTED') {
+            setCallStatus('idle');
+            setCallData(null);
+            alert('La llamada fue rechazada o cancelada.');
+          }
+        } catch (err) {
+          console.error('Error procesando evento de WebSocket:', err);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.warn('Conexión de WebSocket no disponible en este momento');
+      };
+    } catch (e) {
+      console.warn('No se pudo establecer WebSocket:', e);
+    }
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [user?.id, API_URL]);
+
+  const sendWsMessage = (msgObj) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(msgObj));
+    }
+  };
+
+  // ==========================================================
+  // INICIAR Y MANEJAR VIDEOLLAMADA
+  // ==========================================================
+  const handleVideoCall = async () => {
+    if (!conversation || !user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      const url = `${API_URL}/conversations/${conversation.id}/video-call?sender_id=${user.id}`;
+      const response = await fetch(url, { method: 'POST' });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear la videollamada');
+      }
+
+      const data = await response.json();
+      const targetUser = user.role === 'patient' ? conversation.doctor_id : conversation.patient_id;
+      
+      setCallData({
+        room_name: data.room_name,
+        target_user: targetUser,
+        conversation_id: conversation.id,
+      });
+      setCallStatus('calling');
+    } catch (error) {
+      console.error('Error al iniciar videollamada:', error);
+      alert('Error al iniciar la videollamada.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const acceptCall = () => {
+    if (callData?.from_user) {
+      sendWsMessage({
+        action: 'CALL_ACCEPTED',
+        target_user: callData.from_user,
+        room_name: callData.room_name
+      });
+    }
+    setCallStatus('in-call');
+  };
+
+  const rejectCall = () => {
+    if (callData?.from_user) {
+      sendWsMessage({
+        action: 'CALL_REJECTED',
+        target_user: callData.from_user,
+        room_name: callData.room_name
+      });
+    }
+    setCallStatus('idle');
+    setCallData(null);
+  };
+
+  const cancelCall = () => {
+    if (callData?.target_user) {
+      sendWsMessage({
+        action: 'CALL_REJECTED',
+        target_user: callData.target_user,
+        room_name: callData.room_name
+      });
+    }
+    setCallStatus('idle');
+    setCallData(null);
+  };
+
+  const endCall = () => {
+    setCallStatus('idle');
+    setCallData(null);
+  };
 
 
   // ==========================================================
@@ -661,7 +794,76 @@ export default function MedicalChat() {
 
   return (
 
-    <div className="flex-1 flex flex-col p-4 md:p-8 animate-in fade-in duration-500 h-full max-h-screen">
+    <div className="flex-1 flex flex-col p-4 md:p-8 animate-in fade-in duration-500 h-full max-h-screen relative">
+
+      {/* ======================================================
+          MODAL LLAMADA ENTRANTE (RINGING)
+      ====================================================== */}
+      {callStatus === 'ringing' && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6 border border-slate-100">
+            <div className="relative">
+              <div className="w-24 h-24 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center animate-bounce">
+                <PhoneCall size={48} />
+              </div>
+              <span className="absolute top-0 right-0 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-teal-500"></span>
+              </span>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Videollamada Entrante</h3>
+              <p className="text-slate-500 text-sm mt-1">
+                {user?.role === 'patient' ? 'Tu médico' : 'Tu paciente'} te está llamando...
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-4 w-full pt-2">
+              <button
+                onClick={rejectCall}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 px-4 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/30 cursor-pointer"
+              >
+                <PhoneOff size={20} />
+                Rechazar
+              </button>
+              <button
+                onClick={acceptCall}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 px-4 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 cursor-pointer animate-pulse"
+              >
+                <Phone size={20} />
+                Contestar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================
+          MODAL MARCANDO (CALLING)
+      ====================================================== */}
+      {callStatus === 'calling' && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-6 border border-slate-100">
+            <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center animate-pulse">
+              <Video size={48} />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Llamando...</h3>
+              <p className="text-slate-500 text-sm mt-1">Esperando a que la otra persona conteste</p>
+            </div>
+
+            <button
+              onClick={cancelCall}
+              className="w-full bg-red-500 hover:bg-red-600 text-white py-3.5 px-4 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/30 cursor-pointer"
+            >
+              <PhoneOff size={20} />
+              Cancelar Llamada
+            </button>
+          </div>
+        </div>
+      )}
 
 
       {/* ======================================================
@@ -969,6 +1171,24 @@ export default function MedicalChat() {
 
             </div>
 
+          ) : callStatus === 'in-call' ? (
+            <div className="flex-1 flex flex-col w-full h-full relative min-h-[500px] bg-slate-900 rounded-r-3xl overflow-hidden">
+              <div className="absolute top-4 right-4 z-20">
+                <button
+                  onClick={endCall}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <PhoneOff size={18} />
+                  Finalizar Llamada
+                </button>
+              </div>
+              <iframe
+                src={`https://meet.jit.si/${callData?.room_name || `MedicalChat-${conversation.id}`}#userInfo.displayName="${encodeURIComponent(user?.name || (user?.role === 'patient' ? 'Paciente' : 'Médico'))}"`}
+                allow="camera; microphone; display-capture; autoplay; clipboard-write"
+                className="w-full h-full border-none rounded-r-3xl min-h-[500px]"
+                title="Videollamada Médica"
+              />
+            </div>
           ) : (
 
             <>
@@ -1008,26 +1228,27 @@ export default function MedicalChat() {
                 </div>
 
 
-                <button
-                  onClick={() =>
-                    fetchMessages(
-                      conversation.id
-                    )
-                  }
-                  className="ml-auto p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                  title="Actualizar mensajes"
-                >
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={handleVideoCall}
+                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Iniciar Videollamada (Google Meet)"
+                    disabled={isLoading}
+                  >
+                    <Video size={19} />
+                  </button>
 
-                  <RefreshCw
-                    size={19}
-                    className={
-                      isLoading
-                        ? 'animate-spin'
-                        : ''
-                    }
-                  />
-
-                </button>
+                  <button
+                    onClick={() => fetchMessages(conversation.id)}
+                    className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                    title="Actualizar mensajes"
+                  >
+                    <RefreshCw
+                      size={19}
+                      className={isLoading ? 'animate-spin' : ''}
+                    />
+                  </button>
+                </div>
 
               </div>
 
