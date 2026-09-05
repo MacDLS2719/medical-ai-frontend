@@ -61,51 +61,65 @@ export default function MedicalChat() {
 
 
   // ==========================================================
-  // WEBSOCKET NATIVO
+  // WEBSOCKET NATIVO CON RECONEXIÓN AUTOMÁTICA
   // ==========================================================
   useEffect(() => {
     if (!user?.id) return;
 
-    const wsUrl = `${API_URL.replace(/^http/, 'ws')}/ws/${user.id}`;
     let ws;
+    let reconnectTimeout;
 
-    try {
-      ws = new WebSocket(wsUrl);
-      socketRef.current = ws;
+    const connectWs = () => {
+      const wsUrl = `${API_URL.replace(/^http/, 'ws')}/ws/${user.id}`;
+      try {
+        ws = new WebSocket(wsUrl);
+        socketRef.current = ws;
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const { action, from_user, conversation_id, room_name } = data;
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            const { action, from_user, conversation_id, room_name } = data;
 
-          if (action === 'INCOMING_CALL') {
-            setCallData({ from_user, conversation_id, room_name });
-            setCallStatus('ringing');
-          } else if (action === 'CALL_ACCEPTED') {
-            if (room_name) {
-              setCallData((prev) => ({ ...prev, room_name }));
+            if (action === 'INCOMING_CALL') {
+              setCallData({ from_user, conversation_id, room_name });
+              setCallStatus('ringing');
+            } else if (action === 'CALL_ACCEPTED') {
+              if (room_name) {
+                setCallData((prev) => ({ ...prev, room_name }));
+              }
+              setCallStatus('in-call');
+            } else if (action === 'CALL_REJECTED' || action === 'CALL_ENDED') {
+              setCallStatus('idle');
+              setCallData(null);
+              if (action === 'CALL_REJECTED') {
+                alert('La llamada fue rechazada o cancelada.');
+              }
             }
-            setCallStatus('in-call');
-          } else if (action === 'CALL_REJECTED') {
-            setCallStatus('idle');
-            setCallData(null);
-            alert('La llamada fue rechazada o cancelada.');
+          } catch (err) {
+            console.error('Error procesando evento de WebSocket:', err);
           }
+        };
 
-        } catch (err) {
-          console.error('Error procesando evento de WebSocket:', err);
-        }
-      };
+        ws.onclose = () => {
+          reconnectTimeout = setTimeout(() => {
+            if (user?.id) connectWs();
+          }, 3000);
+        };
 
-      ws.onerror = (err) => {
-        console.warn('Conexión de WebSocket no disponible en este momento');
-      };
-    } catch (e) {
-      console.warn('No se pudo establecer WebSocket:', e);
-    }
+        ws.onerror = (err) => {
+          console.warn('Conexión de WebSocket no disponible en este momento');
+        };
+      } catch (e) {
+        console.warn('No se pudo establecer WebSocket:', e);
+      }
+    };
+
+    connectWs();
 
     return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (ws) {
+        ws.onclose = null;
         ws.close();
       }
     };
@@ -185,9 +199,18 @@ export default function MedicalChat() {
   };
 
   const endCall = () => {
+    const targetUser = callData?.from_user || callData?.target_user;
+    if (targetUser) {
+      sendWsMessage({
+        action: 'CALL_ENDED',
+        target_user: targetUser,
+        room_name: callData?.room_name
+      });
+    }
     setCallStatus('idle');
     setCallData(null);
   };
+
 
 
   // ==========================================================
@@ -1195,31 +1218,7 @@ export default function MedicalChat() {
         <div className="flex-1 flex flex-col min-w-0">
 
 
-          {!conversation ? (
-
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-
-              <MessageCircle
-                size={56}
-                className="mb-4 text-slate-300"
-              />
-
-              <h2 className="text-lg font-semibold text-slate-500">
-
-                Selecciona una conversación
-
-              </h2>
-
-
-              <p className="text-sm mt-1">
-
-                Selecciona un chat de la lista para comenzar.
-
-              </p>
-
-            </div>
-
-          ) : callStatus === 'in-call' ? (
+          {callStatus === 'in-call' ? (
             <div className="flex-1 flex flex-col w-full h-full relative min-h-[500px] bg-slate-900 rounded-r-3xl overflow-hidden">
               <div className="absolute top-4 right-4 z-20">
                 <button
@@ -1231,14 +1230,27 @@ export default function MedicalChat() {
                 </button>
               </div>
               <iframe
-                src={`https://meet.jit.si/${callData?.room_name || `MedicalChat-${conversation.id}`}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&userInfo.displayName="${encodeURIComponent(user?.name || (user?.role === 'patient' ? 'Paciente' : 'Médico'))}"`}
+                src={`https://meet.jit.si/${callData?.room_name || (conversation ? `MedicalChat-${conversation.id}` : 'MedicalChat-call')}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&userInfo.displayName="${encodeURIComponent(user?.name || (user?.role === 'patient' ? 'Paciente' : 'Médico'))}"`}
                 allow="camera *; microphone *; display-capture *; autoplay *; clipboard-write *; fullscreen *"
                 className="w-full h-full border-none rounded-r-3xl min-h-[500px]"
                 title="Videollamada Médica"
               />
-
+            </div>
+          ) : !conversation ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <MessageCircle
+                size={56}
+                className="mb-4 text-slate-300"
+              />
+              <h2 className="text-lg font-semibold text-slate-500">
+                Selecciona una conversación
+              </h2>
+              <p className="text-sm mt-1">
+                Selecciona un chat de la lista para comenzar.
+              </p>
             </div>
           ) : (
+
 
             <>
 
