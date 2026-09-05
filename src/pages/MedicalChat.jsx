@@ -492,8 +492,17 @@ export default function MedicalChat() {
           (msg) =>
             msg.id !== tempMsg.id
         )
+      );
+
+    }
+
+  };
+
+
+  // ==========================================================
   // GRABACIÓN DE AUDIO (SOPORTE MULTINAVEGADOR: SAFARI, CHROME, FIREFOX, EDGE, MOBILE)
   // ==========================================================
+
 
   const getSupportedMimeType = () => {
     const types = [
