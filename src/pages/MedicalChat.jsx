@@ -82,12 +82,16 @@ export default function MedicalChat() {
             setCallData({ from_user, conversation_id, room_name });
             setCallStatus('ringing');
           } else if (action === 'CALL_ACCEPTED') {
+            if (room_name) {
+              setCallData((prev) => ({ ...prev, room_name }));
+            }
             setCallStatus('in-call');
           } else if (action === 'CALL_REJECTED') {
             setCallStatus('idle');
             setCallData(null);
             alert('La llamada fue rechazada o cancelada.');
           }
+
         } catch (err) {
           console.error('Error procesando evento de WebSocket:', err);
         }
@@ -1227,11 +1231,12 @@ export default function MedicalChat() {
                 </button>
               </div>
               <iframe
-                src={`https://meet.jit.si/${callData?.room_name || `MedicalChat-${conversation.id}`}#userInfo.displayName="${encodeURIComponent(user?.name || (user?.role === 'patient' ? 'Paciente' : 'Médico'))}"`}
-                allow="camera; microphone; display-capture; autoplay; clipboard-write"
+                src={`https://meet.jit.si/${callData?.room_name || `MedicalChat-${conversation.id}`}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&userInfo.displayName="${encodeURIComponent(user?.name || (user?.role === 'patient' ? 'Paciente' : 'Médico'))}"`}
+                allow="camera *; microphone *; display-capture *; autoplay *; clipboard-write *; fullscreen *"
                 className="w-full h-full border-none rounded-r-3xl min-h-[500px]"
                 title="Videollamada Médica"
               />
+
             </div>
           ) : (
 
