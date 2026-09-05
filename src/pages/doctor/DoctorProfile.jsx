@@ -101,10 +101,19 @@ export default function DoctorProfile() {
   const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
   const mediaList = profile?.media || [];
   
+  const getMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   // Obtención dinámica de foto de perfil
   const profilePics = mediaList.filter(m => m.media_type === 'profile_picture');
   const latestProfilePic = profilePics.length > 0 ? profilePics[profilePics.length - 1] : null;
-  const avatarUrl = latestProfilePic ? `${apiBase}${latestProfilePic.file_url}` : null;
+  const avatarUrl = latestProfilePic ? getMediaUrl(latestProfilePic.file_url) : null;
+
 
   // Filtrado de documentos
   const identityDoc = mediaList.find(m => m.media_type === 'identity_doc');
@@ -687,10 +696,11 @@ export default function DoctorProfile() {
                     {mediaList.filter(m => m.media_type !== 'identity_doc' && m.media_type !== 'colegiation_cert' && m.media_type !== 'profile_picture').map((media) => (
                       <div key={media.id} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group">
                         {media.media_type === 'video' || media.mime_type?.includes('video') ? (
-                          <video src={`${apiBase}${media.file_url}`} className="w-full h-full object-cover" />
+                          <video src={getMediaUrl(media.file_url)} className="w-full h-full object-cover" />
                         ) : (
-                          <img src={`${apiBase}${media.file_url}`} alt="Media" className="w-full h-full object-cover" />
+                          <img src={getMediaUrl(media.file_url)} alt="Media" className="w-full h-full object-cover" />
                         )}
+
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button onClick={() => handleDeleteMedia(media.id)} className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700">
                             <Trash2 size={14} />
