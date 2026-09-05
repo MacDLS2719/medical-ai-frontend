@@ -30,9 +30,14 @@ export default function MedicalSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Estado para la biblioteca/fuente médica seleccionada
   const [selectedLibrary, setSelectedLibrary] = useState('all');
+
+  // Estado para voz a texto
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState(null);
+  const recognitionRef = useState(null);
 
   const libraries = [
     { id: 'all', name: 'Todas' },
@@ -49,6 +54,71 @@ export default function MedicalSearch() {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // ==========================================================
+  // VOZ A TEXTO (Web Speech API — 100% nativo del navegador)
+  // ==========================================================
+  const toggleListening = () => {
+    if (isListening) {
+      // Detener grabación
+      if (recognitionRef[0]) {
+        recognitionRef[0].stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechError('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.');
+      return;
+    }
+
+    setSpeechError(null);
+    const recognition = new SpeechRecognition();
+    recognition.lang = i18n.language?.startsWith('en') ? 'en-US' : 'es-CO';
+    recognition.continuous = true;      // Graba continuamente hasta que el usuario detenga
+    recognition.interimResults = true;  // Muestra texto provisional mientras habla
+
+    let finalTranscript = '';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      // Actualizar el textarea en tiempo real
+      setQuery(finalTranscript + interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('[Speech] Error:', event.error);
+      if (event.error !== 'no-speech') {
+        setSpeechError(`Error de micrófono: ${event.error}`);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      // Si capturó algo, buscar automáticamente
+      if (finalTranscript.trim()) {
+        fetchResults(finalTranscript.trim());
+      }
+    };
+
+    recognition.start();
+    recognitionRef[0] = recognition;
+  };
 
   // ==========================================================
   // BUSCAR
@@ -280,22 +350,36 @@ export default function MedicalSearch() {
                 <div className="flex flex-col items-center justify-center pt-4">
                   <button
                     type="button"
-                    onClick={handleSearch}
-                    disabled={loading || !query.trim()}
-                    className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                    onClick={toggleListening}
+                    disabled={loading}
+                    className={`group relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                      isListening
+                        ? 'bg-red-500 shadow-red-500/40 animate-pulse'
+                        : 'bg-gradient-to-tr from-indigo-600 to-violet-600 shadow-indigo-500/30'
+                    }`}
                   >
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={24} />
+                    {isListening ? (
+                      // Animación de ondas de voz mientras graba
+                      <span className="flex items-end gap-0.5 h-5">
+                        <span className="w-1 rounded-full bg-white animate-bounce" style={{ height: '30%', animationDelay: '0ms' }} />
+                        <span className="w-1 rounded-full bg-white animate-bounce" style={{ height: '70%', animationDelay: '150ms' }} />
+                        <span className="w-1 rounded-full bg-white animate-bounce" style={{ height: '100%', animationDelay: '300ms' }} />
+                        <span className="w-1 rounded-full bg-white animate-bounce" style={{ height: '70%', animationDelay: '450ms' }} />
+                        <span className="w-1 rounded-full bg-white animate-bounce" style={{ height: '30%', animationDelay: '600ms' }} />
+                      </span>
                     ) : (
                       <Mic size={24} />
                     )}
                   </button>
                   <p className="mt-3 text-xs font-bold text-slate-900">
-                    Pulsa el micrófono para hablar
+                    {isListening ? '🔴 Escuchando... pulsa para detener' : 'Pulsa el micrófono para hablar'}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Puedes explicarle a Vital IA lo que buscas.
+                    {isListening ? 'El texto aparecerá arriba en tiempo real' : 'Puedes explicarle a Vital IA lo que buscas.'}
                   </p>
+                  {speechError && (
+                    <p className="mt-2 text-[11px] text-red-500 text-center max-w-xs">{speechError}</p>
+                  )}
                 </div>
               </form>
             </div>
