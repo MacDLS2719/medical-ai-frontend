@@ -42,6 +42,7 @@ export default function MedicalChat() {
   const [callData, setCallData] = useState(null); // { room_name, from_user, target_user, conversation_id }
 
   const messagesEndRef = useRef(null);
+  const recordingDurationRef = useRef(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -56,7 +57,8 @@ export default function MedicalChat() {
     };
   }, []);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_URL = import.meta.env.VITE_API_URL;
+
 
   // ==========================================================
   // WEBSOCKET NATIVO
@@ -490,46 +492,69 @@ export default function MedicalChat() {
           (msg) =>
             msg.id !== tempMsg.id
         )
-      );
+  // GRABACIÓN DE AUDIO (SOPORTE MULTINAVEGADOR: SAFARI, CHROME, FIREFOX, EDGE, MOBILE)
+  // ==========================================================
 
+  const getSupportedMimeType = () => {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/aac',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+      'audio/wav'
+    ];
+    for (const type of types) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
     }
-
+    return '';
   };
-
-
-  // ==========================================================
-  // GRABACIÓN DE AUDIO
-  // ==========================================================
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = getSupportedMimeType();
+      const options = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const finalMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: finalMime });
         stream.getTracks().forEach((track) => track.stop());
 
+        const finalDuration = recordingDurationRef.current;
         if (audioBlob.size > 0 && !isCancelledRef.current) {
-          await uploadAudioMessage(audioBlob, recordingDuration);
+          await uploadAudioMessage(audioBlob, finalDuration, finalMime);
         }
       };
 
       isCancelledRef.current = false;
-      mediaRecorder.start();
+      mediaRecorder.start(200); // 200ms timeslice para compatibilidad entre navegadores
       setIsRecording(true);
       setRecordingDuration(0);
+      recordingDurationRef.current = 0;
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
 
       recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
+        setRecordingDuration((prev) => {
+          const next = prev + 1;
+          recordingDurationRef.current = next;
+          return next;
+        });
       }, 1000);
 
     } catch (err) {
@@ -557,19 +582,28 @@ export default function MedicalChat() {
         clearInterval(recordingTimerRef.current);
       }
       setRecordingDuration(0);
+      recordingDurationRef.current = 0;
     }
   };
 
   const formatDuration = (seconds) => {
+    if (isNaN(seconds) || !isFinite(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const uploadAudioMessage = async (audioBlob, duration) => {
+  const uploadAudioMessage = async (audioBlob, duration, mimeType = 'audio/webm') => {
     if (!conversation || !user?.id) return;
 
     setIsUploadingAudio(true);
+
+    let ext = 'webm';
+    if (mimeType.includes('mp4') || mimeType.includes('aac')) ext = 'mp4';
+    else if (mimeType.includes('ogg')) ext = 'ogg';
+    else if (mimeType.includes('wav')) ext = 'wav';
+
+    const fileName = `audio.${ext}`;
 
     const tempMsgId = `temp-${Date.now()}`;
     const tempMsg = {
@@ -586,11 +620,11 @@ export default function MedicalChat() {
         {
           id: `temp-att-${Date.now()}`,
           attachment_type: 'audio',
-          mime_type: 'audio/webm',
-          file_name: 'audio.webm',
+          mime_type: mimeType,
+          file_name: fileName,
           file_path: '',
           file_url: URL.createObjectURL(audioBlob),
-          duration: duration
+          duration: duration || 0
         }
       ]
     };
@@ -599,8 +633,8 @@ export default function MedicalChat() {
 
     try {
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
-      formData.append('duration', duration.toString());
+      formData.append('audio', audioBlob, fileName);
+      formData.append('duration', (duration || 0).toString());
 
       const url = `${API_URL}/conversations/${conversation.id}/messages/audio?sender_id=${user.id}`;
       const response = await fetch(url, {
@@ -609,7 +643,8 @@ export default function MedicalChat() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al subir el mensaje de audio');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Error al subir el mensaje de audio');
       }
 
       await fetchMessages(conversation.id);
@@ -617,7 +652,7 @@ export default function MedicalChat() {
     } catch (err) {
       console.error('Error subiendo audio:', err);
       setMessages((prev) => prev.filter((m) => m.id !== tempMsgId));
-      alert('Error al enviar el mensaje de voz.');
+      alert(`Error al enviar el mensaje de voz: ${err.message || 'Inténtalo de nuevo.'}`);
     } finally {
       setIsUploadingAudio(false);
     }
@@ -1515,6 +1550,12 @@ function AudioMessage({ fileUrl, duration, isMe }) {
   const [audioDuration, setAudioDuration] = useState(duration || 0);
 
   useEffect(() => {
+    if (duration && isFinite(duration) && duration > 0) {
+      setAudioDuration(duration);
+    }
+  }, [duration]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -1522,7 +1563,7 @@ function AudioMessage({ fileUrl, duration, isMe }) {
     const handlePause = () => setIsPlaying(false);
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => {
-      if (audio.duration && !duration) {
+      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
         setAudioDuration(audio.duration);
       }
     };
@@ -1537,7 +1578,6 @@ function AudioMessage({ fileUrl, duration, isMe }) {
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
 
-    // Reset state if fileUrl changes
     setIsPlaying(false);
     setCurrentTime(0);
 
@@ -1548,7 +1588,7 @@ function AudioMessage({ fileUrl, duration, isMe }) {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [fileUrl, duration]);
+  }, [fileUrl]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -1569,7 +1609,7 @@ function AudioMessage({ fileUrl, duration, isMe }) {
   };
 
   const formatTime = (seconds) => {
-    if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
+    if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -1577,7 +1617,7 @@ function AudioMessage({ fileUrl, duration, isMe }) {
 
   return (
     <div className="flex items-center gap-3 py-1 min-w-[200px] md:min-w-[260px] font-sans">
-      <audio ref={audioRef} src={fileUrl} preload="metadata" />
+      <audio ref={audioRef} src={fileUrl} preload="metadata" crossOrigin="anonymous" />
 
       <button
         type="button"
