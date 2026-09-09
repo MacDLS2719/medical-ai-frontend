@@ -8,9 +8,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   preview: {
-    allowedHosts: [
-      'medical-ai-frontend-ve8j.onrender.com',
-      '.onrender.com',
-    ],
+    host: true,
+    allowedHosts: true
   },
+  server: {
+    host: true,
+    allowedHosts: true
+  }
 })
