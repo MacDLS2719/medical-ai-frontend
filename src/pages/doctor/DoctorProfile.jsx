@@ -310,9 +310,20 @@ export default function DoctorProfile() {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-slate-900">{formData.first_name || 'Doctor'} {formData.last_name || ''}</h2>
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  <CheckCircle2 size={13} /> Verificado
-                </span>
+                {/* Badge de verificación dinámico */}
+                {profile?.verification_status === 'verified' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    <CheckCircle2 size={13} /> Verificado
+                  </span>
+                ) : profile?.verification_status === 'rejected' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200/60">
+                    <AlertCircle size={13} /> Rechazado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
+                    <Clock size={13} /> Pendiente de verificación
+                  </span>
+                )}
               </div>
               <p className="text-sm text-slate-500 mt-0.5">{formData.specialty || 'Especialidad no configurada'}</p>
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-2">
@@ -823,6 +834,29 @@ export default function DoctorProfile() {
                   <div className="min-w-0">
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Idiomas</p>
                     <p className="text-xs font-bold text-slate-800 truncate">{formData.languages || 'Sin idiomas registrados'}</p>
+                  </div>
+                </div>
+
+                {/* Verificación */}
+                <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado de verificación</p>
+                    {profile?.verification_status === 'verified' ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
+                        <CheckCircle2 size={12} /> Verificado
+                      </span>
+                    ) : profile?.verification_status === 'rejected' ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600">
+                        <AlertCircle size={12} /> Rechazado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600">
+                        <Clock size={12} /> Pendiente de verificación
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
