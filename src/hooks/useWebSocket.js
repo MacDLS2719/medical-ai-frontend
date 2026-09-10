@@ -1,10 +1,33 @@
 import { useEffect, useRef } from 'react';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+const getWsUrl = () => {
+  const envWs = import.meta.env.VITE_WS_URL;
+  if (envWs && envWs.trim() && !envWs.includes('localhost')) {
+    return envWs.trim().replace(/\/+$/, '');
+  }
+
+  const envApi = import.meta.env.VITE_API_URL;
+  if (envApi && envApi.trim()) {
+    const rawApi = envApi.trim();
+    if (rawApi.startsWith('http://') || rawApi.startsWith('https://')) {
+      const wsProtocol = rawApi.startsWith('https') ? 'wss://' : 'ws://';
+      const host = rawApi.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      return `${wsProtocol}${host}`;
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    return `${wsProtocol}${window.location.host}`;
+  }
+
+  return 'ws://localhost:8000';
+};
 
 export const useWebSocket = (userId, onMessageReceived) => {
   const wsRef = useRef(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
+
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
   }, [onMessageReceived]);
@@ -12,7 +35,8 @@ export const useWebSocket = (userId, onMessageReceived) => {
   useEffect(() => {
     if (!userId) return;
 
-    const url = `${WS_URL}/api/ws/${userId}`;
+    const baseUrl = getWsUrl();
+    const url = `${baseUrl}/api/ws/${userId}`;
     console.log(`[WS] Conectando usuario ${userId} a ${url}`);
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -46,7 +70,7 @@ export const useWebSocket = (userId, onMessageReceived) => {
         ws.close();
       }
     };
-  }, [userId]); // ← Solo depende de userId, no del callback
+  }, [userId]);
 
   const sendWsMessage = (message) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -58,4 +82,4 @@ export const useWebSocket = (userId, onMessageReceived) => {
   };
 
   return { sendWsMessage };
-};
+};

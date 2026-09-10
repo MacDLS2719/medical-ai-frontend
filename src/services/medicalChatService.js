@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const getSanitizedApiUrl = () => {
+  const raw = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').trim().replace(/\/+$/, '');
+  return raw.endsWith('/api') ? raw : `${raw}/api`;
+};
+
+const API_URL = getSanitizedApiUrl();
 
 export const medicalChatService = {
   // Obtener la lista de conversaciones del usuario

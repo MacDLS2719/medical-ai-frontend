@@ -11,7 +11,12 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import VideoCallModal from '../components/VideoCallModal';
 import AudioPlayer from '../components/AudioPlayer';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const getSanitizedApiUrl = () => {
+  const raw = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').trim().replace(/\/+$/, '');
+  return raw.endsWith('/api') ? raw : `${raw}/api`;
+};
+
+const API_URL = getSanitizedApiUrl();
 
 export default function MedicalChat() {
   const { user } = useAuth();
