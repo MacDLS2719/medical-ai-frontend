@@ -11,6 +11,31 @@ export const medicalChatService = {
     return response.data;
   },
 
+  // Obtener contactos disponibles según el rol del usuario (médicos para pacientes, pacientes para médicos)
+  async getAvailableContacts(currentUserId) {
+    const response = await axios.get(`${API_URL}/conversations/contacts`, {
+      params: { current_user_id: currentUserId }
+    });
+    return response.data;
+  },
+
+  // Obtener la lista de médicos disponibles para chatear (retrocompatibilidad)
+  async getAvailableDoctors(currentUserId) {
+    const response = await axios.get(`${API_URL}/conversations/doctors`, {
+      params: currentUserId ? { current_user_id: currentUserId } : {}
+    });
+    return response.data;
+  },
+
+  // Crear o recuperar una conversación entre paciente y médico
+  async createConversation(patientId, doctorId) {
+    const response = await axios.post(`${API_URL}/conversations`, {
+      patient_id: patientId,
+      doctor_id: doctorId
+    });
+    return response.data;
+  },
+
   // Obtener los mensajes de una conversación específica
   async getMessages(conversationId, userId) {
     const response = await axios.get(`${API_URL}/conversations/${conversationId}/messages`, {
