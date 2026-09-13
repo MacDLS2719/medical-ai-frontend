@@ -173,11 +173,26 @@ export default function MedicalChat() {
 
     const textToSend = input;
     setInput('');
+    
+    // UI Optimista (se muestra inmediatamente)
+    const tempId = Date.now();
+    const tempMsg = {
+      id: tempId,
+      sender_id: user.id,
+      message: textToSend,
+      created_at: new Date().toISOString(),
+      is_optimistic: true
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+
     try {
       const newMsg = await medicalChatService.sendMessage(conversation.id, user.id, textToSend);
-      setMessages((prev) => [...prev, newMsg]);
+      // Reemplaza el mensaje temporal con el real de la BD
+      setMessages((prev) => prev.map(m => m.id === tempId ? newMsg : m));
     } catch (err) {
       console.error('Error al enviar mensaje:', err);
+      // Si falla, removemos el mensaje temporal
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
     }
   };
 
@@ -185,7 +200,18 @@ export default function MedicalChat() {
     const audioData = await stopRecording();
     if (!audioData || !conversation) return;
 
+    // UI Optimista visual (solo para indicar que se está enviando un audio)
+    const tempId = Date.now();
+    const tempMsg = {
+      id: tempId,
+      sender_id: user.id,
+      message: '[Enviando audio...]',
+      created_at: new Date().toISOString(),
+      is_optimistic: true
+    };
+    setMessages((prev) => [...prev, tempMsg]);
     setIsUploadingAudio(true);
+
     try {
       const newMsg = await medicalChatService.sendAudioMessage(
         conversation.id,
@@ -194,10 +220,12 @@ export default function MedicalChat() {
         audioData.duration,
         audioData.mimeType
       );
-      setMessages((prev) => [...prev, newMsg]);
+      // Reemplazamos el temporal por el mensaje final con el audio
+      setMessages((prev) => prev.map(m => m.id === tempId ? newMsg : m));
     } catch (err) {
       console.error('Error al subir el audio:', err);
       alert('No se pudo enviar la nota de voz.');
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
     } finally {
       setIsUploadingAudio(false);
     }

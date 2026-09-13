@@ -10,6 +10,7 @@ import ChatAssistant from './pages/ChatAssistant'
 import MedicalChat from './pages/MedicalChat'
 import Profile from './pages/Profile'
 import MedicalAlerts from './pages/MedicalAlerts';
+import Plans from './pages/Plans';
 
 // Doctor pages
 import DoctorAvailability from './pages/doctor/DoctorAvailability'
@@ -61,6 +62,8 @@ function App() {
             />
 
             <Route path="/notifications" element={<MedicalAlerts />} />
+
+            <Route path="/plans" element={<Plans />} />
 
             <Route
               path="/chat"
