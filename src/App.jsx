@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 import Navbar from './components/Navbar'
@@ -7,7 +7,8 @@ import Sidebar from './components/Sidebar'
 import RoleSelector from './pages/RoleSelector'
 import MedicalSearch from './pages/MedicalSearch'
 import ChatAssistant from './pages/ChatAssistant'
-import MedicalChat from './pages/MedicalChat'
+import DoctorMedicalChat from './pages/DoctorMedicalChat'
+import PatientMedicalChat from './pages/PatientMedicalChat'
 import Profile from './pages/Profile'
 import MedicalAlerts from './pages/MedicalAlerts';
 import Plans from './pages/Plans';
@@ -36,7 +37,7 @@ function App() {
     location.pathname === '/doctor/register'
 
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <div className="h-screen w-screen flex flex-col font-sans overflow-hidden">
 
       {/* Navbar solamente fuera de creación de médico */}
       {!isDoctorCreatePage && <Navbar />}
@@ -46,7 +47,7 @@ function App() {
         {/* Sidebar tampoco aparece en creación de médico */}
         {!isDoctorCreatePage && user && <Sidebar />}
 
-        <main className="flex-1 flex flex-col overflow-y-auto">
+        <main className="flex-1 flex flex-col overflow-hidden">
 
           <Routes>
 
@@ -72,7 +73,15 @@ function App() {
 
             <Route
               path="/medical-chat"
-              element={<MedicalChat />}
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'doctor' ? (
+                  <DoctorMedicalChat />
+                ) : (
+                  <PatientMedicalChat />
+                )
+              }
             />
 
             <Route

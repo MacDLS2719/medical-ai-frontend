@@ -80,6 +80,23 @@ export const medicalChatService = {
     return response.data;
   },
 
+  // Enviar un archivo o imagen
+  async sendFileMessage(conversationId, senderId, file, attachmentType = 'file') {
+    const formData = new FormData();
+    formData.append('sender_id', senderId);
+    formData.append('file', file);
+    formData.append('attachment_type', attachmentType);
+
+    const response = await axios.post(
+      `${API_URL}/conversations/${conversationId}/messages/file`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }
+    );
+    return response.data;
+  },
+
   // Eliminar una conversación
   async deleteConversation(conversationId, userId) {
     const response = await axios.delete(`${API_URL}/conversations/${conversationId}`, {

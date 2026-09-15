@@ -27,6 +27,7 @@ const getWsUrl = () => {
 export const useWebSocket = (userId, onMessageReceived) => {
   const wsRef = useRef(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
+  const reconnectTimerRef = useRef(null);
 
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
@@ -35,39 +36,58 @@ export const useWebSocket = (userId, onMessageReceived) => {
   useEffect(() => {
     if (!userId) return;
 
-    const baseUrl = getWsUrl();
-    const url = `${baseUrl}/api/ws/${userId}`;
-    console.log(`[WS] Conectando usuario ${userId} a ${url}`);
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    let isDisposed = false;
 
-    ws.onopen = () => {
-      console.log(`[WS] Conectado correctamente (user_id=${userId})`);
-    };
+    const connectWs = () => {
+      if (isDisposed) return;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('[WS] Mensaje recibido:', data);
-        if (onMessageReceivedRef.current) {
-          onMessageReceivedRef.current(data);
+      const baseUrl = getWsUrl();
+      const url = `${baseUrl}/api/ws/${userId}`;
+      console.log(`[WS] Conectando usuario ${userId} a ${url}`);
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log(`[WS] Conectado correctamente (user_id=${userId})`);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[WS] Mensaje recibido:', data);
+          if (onMessageReceivedRef.current) {
+            onMessageReceivedRef.current(data);
+          }
+        } catch (err) {
+          console.error('[WS] Error parseando mensaje:', err);
         }
-      } catch (err) {
-        console.error('[WS] Error parseando mensaje:', err);
-      }
+      };
+
+      ws.onerror = (error) => {
+        console.error(`[WS] Error en WebSocket (user_id=${userId}):`, error);
+      };
+
+      ws.onclose = (event) => {
+        console.warn(`[WS] Desconectado (user_id=${userId}), code=${event.code}`);
+        if (!isDisposed) {
+          // Reintentar conexión en 2.5 segundos
+          reconnectTimerRef.current = setTimeout(() => {
+            console.log(`[WS] Reintentando conexión para user_id=${userId}...`);
+            connectWs();
+          }, 2500);
+        }
+      };
     };
 
-    ws.onerror = (error) => {
-      console.error(`[WS] Error en WebSocket (user_id=${userId}):`, error);
-    };
-
-    ws.onclose = (event) => {
-      console.warn(`[WS] Desconectado (user_id=${userId}), code=${event.code}`);
-    };
+    connectWs();
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
+      isDisposed = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        wsRef.current.close();
       }
     };
   }, [userId]);

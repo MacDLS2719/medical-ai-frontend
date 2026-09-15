@@ -8,7 +8,7 @@ import { medicalChatService } from '../services/medicalChatService';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
-import VideoCallModal from '../components/VideoCallModal';
+import VideoCallModal from '../components/medical-chat/VideoCallModal';
 import AudioPlayer from '../components/AudioPlayer';
 
 const getSanitizedApiUrl = () => {
