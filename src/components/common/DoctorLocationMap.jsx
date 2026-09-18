@@ -5,7 +5,7 @@ import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
-import { MapPin, Navigation, Search, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 // Configuración de iconos de Leaflet para evitar problemas de assets en Vite
 const customMarkerIcon = L.icon({
@@ -35,7 +35,6 @@ function MapViewUpdater({ center, zoom }) {
   const map = useMap();
 
   useEffect(() => {
-    // Invalidate size para asegurar que Leaflet dibuje correctamente las tiles
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 150);
@@ -60,8 +59,7 @@ export default function DoctorLocationMap({
   country = 'Colombia',
   onChange,
   readOnly = false,
-  height = '300px',
-  title = 'Confirmación de ubicación en el mapa'
+  height = '100%'
 }) {
   const [searching, setSearching] = useState(false);
   const [geoError, setGeoError] = useState(null);
@@ -98,7 +96,6 @@ export default function DoctorLocationMap({
       return;
     }
 
-    // Debounce de 800ms para evitar demasiadas llamadas mientras escribe
     const timeoutId = setTimeout(async () => {
       lastSearchQueryRef.current = query;
       setSearching(true);
@@ -124,7 +121,6 @@ export default function DoctorLocationMap({
           setGeoSuccess(`Ubicación aproximada: ${city || address}`);
           setTimeout(() => setGeoSuccess(null), 3500);
         } else if (city?.trim()) {
-          // Fallback buscando solo por ciudad
           const cityQuery = encodeURIComponent(`${city.trim()}, ${country.trim()}`);
           const cityRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cityQuery}&limit=1`, {
             headers: { 'Accept-Language': 'es' }
@@ -178,145 +174,25 @@ export default function DoctorLocationMap({
     setTimeout(() => setGeoSuccess(null), 2500);
   };
 
-  // Obtener ubicación GPS del navegador
-  const handleUseCurrentLocation = () => {
-    if (readOnly) return;
-    setGeoError(null);
-    if (!navigator.geolocation) {
-      setGeoError('Tu navegador no soporta geolocalización.');
-      return;
-    }
-
-    setSearching(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setSearching(false);
-        const { latitude: lat, longitude: lng } = position.coords;
-        if (onChange) {
-          onChange({
-            latitude: parseFloat(lat.toFixed(6)),
-            longitude: parseFloat(lng.toFixed(6))
-          });
-        }
-        setGeoSuccess('Ubicación GPS actual detectada');
-        setTimeout(() => setGeoSuccess(null), 3000);
-      },
-      (error) => {
-        setSearching(false);
-        console.warn('Geolocation error:', error);
-        setGeoError('No se pudo obtener el GPS actual. Puedes hacer clic en el mapa para colocar el pin.');
-        setTimeout(() => setGeoError(null), 4000);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  // Búsqueda manual forzada
-  const handleManualSearch = async () => {
-    if (readOnly) return;
-    const queryParts = [address?.trim(), city?.trim(), country?.trim()].filter(Boolean);
-    if (queryParts.length === 0) {
-      setGeoError('Por favor escribe una ciudad o dirección primero.');
-      setTimeout(() => setGeoError(null), 3000);
-      return;
-    }
-
-    setSearching(true);
-    setGeoError(null);
-    try {
-      const query = encodeURIComponent(queryParts.join(', '));
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-        headers: { 'Accept-Language': 'es' }
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const found = data[0];
-        const lat = parseFloat(found.lat);
-        const lon = parseFloat(found.lon);
-        if (onChange) {
-          onChange({
-            latitude: parseFloat(lat.toFixed(6)),
-            longitude: parseFloat(lon.toFixed(6))
-          });
-        }
-        setGeoSuccess(`Ubicado en: ${city || address}`);
-        setTimeout(() => setGeoSuccess(null), 3500);
-      } else {
-        setGeoError('No se encontró la dirección exacta. Haz clic en el mapa para situar el punto.');
-        setTimeout(() => setGeoError(null), 4000);
-      }
-    } catch (err) {
-      setGeoError('Error consultando el servicio de mapa.');
-      setTimeout(() => setGeoError(null), 3000);
-    } finally {
-      setSearching(false);
-    }
-  };
-
   return (
-    <div className="w-full rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm flex flex-col my-2">
-      {/* Barra superior de controles */}
-      <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <MapPin size={16} />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 leading-tight">{title}</h4>
-            <p className="text-[11px] text-slate-500">
-              {readOnly 
-                ? (hasCoordinates ? 'Punto de atención médica confirmado' : 'Sin coordenadas registradas')
-                : (searching ? 'Buscando ubicación en el mapa...' : 'El mapa se centra automáticamente según la ciudad y dirección. Puedes arrastrar o hacer clic en el pin para ajustar.')}
-            </p>
-          </div>
-        </div>
-
-        {!readOnly && (
-          <div className="flex items-center gap-2 ml-auto">
-            {(city || address) && (
-              <button
-                type="button"
-                onClick={handleManualSearch}
-                disabled={searching}
-                title="Centrar mapa en la dirección escrita"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
-              >
-                {searching ? <Loader2 size={13} className="animate-spin text-blue-600" /> : <Search size={13} className="text-blue-600" />}
-                <span>Centrar en ciudad/dirección</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={handleUseCurrentLocation}
-              disabled={searching}
-              title="Detectar automáticamente mi ubicación actual con GPS"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-xl border border-blue-200 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Navigation size={13} className="text-blue-600" />
-              <span>Usar mi GPS</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Alertas informativas */}
+    <div className="w-full h-full rounded-xl overflow-hidden border border-slate-200 bg-white relative flex flex-col">
+      {/* Alertas informativas opcionales */}
       {geoError && (
-        <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-amber-800 text-[11px] font-medium flex items-center gap-2">
-          <AlertCircle size={14} className="text-amber-600 shrink-0" />
+        <div className="absolute top-2 left-2 right-2 z-30 px-3 py-1.5 bg-amber-50/90 backdrop-blur-xs border border-amber-200 text-amber-800 text-[10px] font-medium rounded-lg flex items-center gap-2 shadow-sm">
+          <AlertCircle size={13} className="text-amber-600 shrink-0" />
           <span>{geoError}</span>
         </div>
       )}
 
       {geoSuccess && (
-        <div className="px-4 py-2 bg-emerald-50 border-b border-emerald-100 text-emerald-800 text-[11px] font-medium flex items-center gap-2">
-          <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+        <div className="absolute top-2 left-2 right-2 z-30 px-3 py-1.5 bg-emerald-50/90 backdrop-blur-xs border border-emerald-200 text-emerald-800 text-[10px] font-medium rounded-lg flex items-center gap-2 shadow-sm">
+          <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
           <span>{geoSuccess}</span>
         </div>
       )}
 
-      {/* Contenedor del Mapa Leaflet */}
-      <div className="relative w-full" style={{ height, minHeight: '260px' }}>
+      {/* Contenedor del Mapa Leaflet puro */}
+      <div className="relative w-full h-full flex-1">
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}
@@ -356,54 +232,15 @@ export default function DoctorLocationMap({
           )}
         </MapContainer>
 
-        {/* Loading overlay cuando se busca */}
+        {/* Overlay de carga al geocodificar */}
         {searching && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-20 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl px-4 py-2 text-xs font-semibold text-blue-700 shadow-md border border-blue-100 flex items-center gap-2">
-              <Loader2 size={15} className="animate-spin text-blue-600" />
-              <span>Buscando ubicación geográfica...</span>
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-md border border-blue-100 flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin text-blue-600" />
+              <span>Buscando ubicación...</span>
             </div>
           </div>
         )}
-
-        {/* Overlay si no tiene coordenadas en modo solo lectura */}
-        {readOnly && !hasCoordinates && (
-          <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] z-20 flex items-center justify-center p-4">
-            <div className="bg-white/90 rounded-2xl px-4 py-2 text-xs font-semibold text-slate-600 shadow-md border border-slate-200">
-              Coordenadas de ubicación no registradas aún.
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Barra inferior: Indicador de Coordenadas */}
-      <div className="p-3 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-4 text-slate-600">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Latitud:</span>
-            <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
-              {hasCoordinates ? currentLat.toFixed(6) : 'Pendiente'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Longitud:</span>
-            <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
-              {hasCoordinates ? currentLng.toFixed(6) : 'Pendiente'}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {hasCoordinates ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <CheckCircle2 size={13} /> Ubicación fijada en el mapa
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-              <AlertCircle size={13} /> Escribe tu dirección/ciudad o haz clic en el mapa
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );

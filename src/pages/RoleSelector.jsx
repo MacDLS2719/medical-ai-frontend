@@ -41,6 +41,11 @@ export default function RoleSelector() {
     navigate('/doctor/create');
   };
 
+  const handleCreateFreeDoctor = () => {
+    setShowDoctorModal(false);
+    navigate('/doctor/create-free');
+  };
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in fade-in duration-700 relative">
       <div className="max-w-2xl w-full text-center mb-12">
@@ -156,7 +161,7 @@ export default function RoleSelector() {
                 <ArrowRight size={20} className="text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
               </button>
 
-              {/* Option 2: Create New Doctor */}
+              {/* Option 2: Create Doctor with Subscription */}
               <button
                 type="button"
                 onClick={handleCreateNewDoctor}
@@ -169,18 +174,45 @@ export default function RoleSelector() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-base font-bold text-slate-800">
-                        {t('roleSelector.newDoctor', 'Crear Nuevo Médico')}
+                        {t('roleSelector.newDoctorSub', 'Crear cuenta con suscripción')}
                       </h4>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
-                        {t('roleSelector.newBadge', 'Nuevo Registro')}
+                        {t('roleSelector.proBadge', 'Registro Completo')}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      {t('roleSelector.newDoctorDesc', 'Registra un nuevo médico con su especialidad, licencia y datos de consulta.')}
+                      {t('roleSelector.newDoctorSubDesc', 'Registro completo para acceder a todas las funcionalidades avanzadas.')}
                     </p>
                   </div>
                 </div>
                 <ArrowRight size={20} className="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
+              </button>
+
+              {/* Option 3: Create Free Doctor */}
+              <button
+                type="button"
+                onClick={handleCreateFreeDoctor}
+                className="w-full text-left p-5 rounded-2xl border-2 border-slate-100 hover:border-emerald-500/40 bg-slate-50/50 hover:bg-emerald-50/30 transition-all duration-200 group flex items-center justify-between cursor-pointer"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600 group-hover:scale-105 transition-transform">
+                    <User size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-bold text-slate-800">
+                        {t('roleSelector.newDoctorFree', 'Crear cuenta gratuita')}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                        {t('roleSelector.freeBadge', 'Plan Básico')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {t('roleSelector.newDoctorFreeDesc', 'Obtén el plan básico con un registro rápido y datos mínimos requeridos.')}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight size={20} className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all shrink-0 ml-2" />
               </button>
 
             </div>

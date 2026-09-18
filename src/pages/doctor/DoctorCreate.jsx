@@ -8,7 +8,8 @@ import Step1Personal from './components/Step1Personal';
 import Step2Professional from './components/Step2Professional';
 import Step3Professional from './components/Step3Professional';
 import Step4OptionalProfile from './components/Step4Professional';
-import Step5Success from './components/Step5Success';
+import Step5Subscription from '../../components/suscription/Step5Subscription';
+import Step6Success from './components/Step6Success';
 
 const parseBirthDate = (str) => {
   if (!str) return null;
@@ -62,27 +63,35 @@ export default function DoctorCreate() {
     consultationPhone: '',
     website: '',
 
-    // Paso 4 (Opcional)
+    // Paso 4 - Perfil Opcional
     profilePhoto: null,
     clinicImages: [],
-    presentationVideo: null
+    presentationVideo: null,
+
+    // Paso 5 - Suscripción
+    subscriptionPlanId: null,
+    subscriptionPlanSlug: null,
+    subscriptionPlanName: null
   });
 
   const updateFormData = (fields) => {
     setFormData((prev) => ({ ...prev, ...fields }));
   };
 
-  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 5));
+  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 6));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const goToStep = (stepNumber) => setCurrentStep(stepNumber);
 
-  const handleRegisterDoctor = async () => {
+  const handleRegisterDoctor = async (planId) => {
     setIsSubmitting(true);
     setError(null);
 
     const yearsExp = formData.experienceYears
       ? parseInt(formData.experienceYears.toString().replace(/\D/g, '')) || null
       : null;
+
+    // planId se pasa directamente para evitar el delay de setState, pero ignoramos eventos de React
+    const resolvedPlanId = typeof planId === 'number' || typeof planId === 'string' ? planId : formData.subscriptionPlanId || null;
 
     const payload = {
       first_name: formData.firstName.trim() || 'Médico',
@@ -108,7 +117,8 @@ export default function DoctorCreate() {
       professional_description: formData.bio?.trim() || null,
       experience: formData.bio?.trim() || null,
       language: formData.language === 'Inglés' ? 'en' : 'es',
-      password: formData.password || null
+      password: formData.password || null,
+      subscription_plan_id: resolvedPlanId
     };
 
     try {
@@ -161,7 +171,7 @@ export default function DoctorCreate() {
       }
 
       loginAsDoctor(doctorUser);
-      setCurrentStep(5);
+      setCurrentStep(6);
     } catch (err) {
       console.error('Error in doctor registration:', err);
       if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('fetch'))) {
@@ -172,7 +182,7 @@ export default function DoctorCreate() {
           email: formData.email
         };
         loginAsDoctor(localDoctor);
-        setCurrentStep(5);
+        setCurrentStep(6);
       } else {
         setError(err.message || 'Error al crear la cuenta.');
         alert(err.message || 'Error al crear la cuenta.');
@@ -184,33 +194,13 @@ export default function DoctorCreate() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-800">
-      {/* Top Header Fijo */}
-      <header className="h-16 border-b border-slate-200/80 bg-white px-8 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
-            <Activity size={20} />
-          </div>
-          <span className="font-extrabold text-xl text-blue-900 tracking-tight">
-            VITAL <span className="text-blue-600">IA</span>
-            <span className="block text-[10px] text-blue-500 font-semibold tracking-widest -mt-1 uppercase">MÉDICOS</span>
-          </span>
-        </div>
-        {currentStep < 5 && (
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-500">¿Ya tienes cuenta?</span>
-            <Link to="/login" className="px-4 py-2 text-blue-600 border border-blue-200 font-medium rounded-xl hover:bg-blue-50 transition-all">
-              Iniciar sesión
-            </Link>
-          </div>
-        )}
-      </header>
 
       {/* Dynamic Content Area */}
       <div className="flex-1 flex flex-col max-w-[1600px] w-full mx-auto p-6">
         {/* Stepper Header */}
-        {currentStep < 5 && <StepperHeader currentStep={currentStep} />}
+        {currentStep < 6 && <StepperHeader currentStep={currentStep} />}
 
-        {error && currentStep < 5 && (
+        {error && currentStep < 6 && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
             {error}
           </div>
@@ -245,20 +235,29 @@ export default function DoctorCreate() {
           />
         )}
 
-        {/* Paso 4 */}
+        {/* Paso 4: Perfil Opcional */}
         {currentStep === 4 && (
           <Step4OptionalProfile 
             formData={formData} 
             updateFormData={updateFormData} 
             onNext={nextStep} 
             onPrev={prevStep}
-            onSubmitRegistration={handleRegisterDoctor}
+          />
+        )}
+
+        {/* Paso 5: Suscripción */}
+        {currentStep === 5 && (
+          <Step5Subscription 
+            formData={formData} 
+            updateFormData={updateFormData} 
+            onNext={handleRegisterDoctor}
+            onPrev={prevStep}
             isSubmitting={isSubmitting}
           />
         )}
 
-        {/* Paso 5 */}
-        {currentStep === 5 && <Step5Success formData={formData} />}
+        {/* Paso 6: Éxito */}
+        {currentStep === 6 && <Step6Success formData={formData} />}
       </div>
     </div>
   );

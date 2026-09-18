@@ -2,11 +2,12 @@ import React from 'react';
 import { Check } from 'lucide-react';
 
 const STEPS = [
-  { id: 1, label: 'Datos personales' },
-  { id: 2, label: 'Información profesional' },
+  { id: 1, label: 'Personales' },
+  { id: 2, label: 'Profesional' },
   { id: 3, label: 'Verificación' },
   { id: 4, label: 'Perfil Opcional' },
-  { id: 5, label: 'Finalizar' }
+  { id: 5, label: 'Suscripción' },
+  { id: 6, label: 'Finalizar' }
 ];
 
 export default function StepperHeader({ currentStep }) {

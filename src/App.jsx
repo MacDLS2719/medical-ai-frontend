@@ -18,6 +18,7 @@ import DoctorAvailability from './pages/doctor/DoctorAvailability'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
 import DoctorProfile from './pages/doctor/DoctorProfile'
 import DoctorCreate from './pages/doctor/DoctorCreate'
+import DoctorCreateFree from './pages/doctor/DoctorCreateFree'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -34,7 +35,8 @@ function App() {
    */
   const isDoctorCreatePage =
     location.pathname === '/doctor/create' ||
-    location.pathname === '/doctor/register'
+    location.pathname === '/doctor/register' ||
+    location.pathname === '/doctor/create-free'
 
   return (
     <div className="h-screen w-screen flex flex-col font-sans overflow-hidden">
@@ -93,6 +95,11 @@ function App() {
             <Route
               path="/doctor/create"
               element={<DoctorCreate />}
+            />
+
+            <Route
+              path="/doctor/create-free"
+              element={<DoctorCreateFree />}
             />
 
             <Route
