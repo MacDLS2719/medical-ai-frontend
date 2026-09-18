@@ -1,9 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
-import Navbar from './components/Navbar'
-import Sidebar from './components/Sidebar'
-
+import NavbarPaciente from './components/Navbar_Paciente'
+import NavbarDoctor from './components/Navbar_Doctor'
+import SidebarPaciente from './components/Sidebar_paciente'
+import SidebarDoctor from './components/Sidebar_Doctor'
 import RoleSelector from './pages/RoleSelector'
 import MedicalSearch from './pages/MedicalSearch'
 import ChatAssistant from './pages/ChatAssistant'
@@ -13,12 +14,14 @@ import Profile from './pages/Profile'
 import MedicalAlerts from './pages/MedicalAlerts';
 import Plans from './pages/Plans';
 
-// Doctor pages
 import DoctorAvailability from './pages/doctor/DoctorAvailability'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
 import DoctorProfile from './pages/doctor/DoctorProfile'
+import DoctorProfileFree from './pages/doctor/DoctorProfileFree'
 import DoctorCreate from './pages/doctor/DoctorCreate'
 import DoctorCreateFree from './pages/doctor/DoctorCreateFree'
+import DoctorUpgradePlan from './pages/doctor/DoctorUpgradePlan'
+import ViewPreview from './pages/doctor/ViewPreview'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -36,18 +39,23 @@ function App() {
   const isDoctorCreatePage =
     location.pathname === '/doctor/create' ||
     location.pathname === '/doctor/register' ||
-    location.pathname === '/doctor/create-free'
+    location.pathname === '/doctor/create-free' ||
+    location.pathname === '/doctor/preview'
 
   return (
     <div className="h-screen w-screen flex flex-col font-sans overflow-hidden">
 
-      {/* Navbar solamente fuera de creación de médico */}
-      {!isDoctorCreatePage && <Navbar />}
+      {/* Navbar renderizado de forma condicional */}
+      {!isDoctorCreatePage && user && (
+        user.role === 'doctor' ? <NavbarDoctor /> : <NavbarPaciente />
+      )}
 
       <div className="flex-1 flex overflow-hidden">
 
         {/* Sidebar tampoco aparece en creación de médico */}
-        {!isDoctorCreatePage && user && <Sidebar />}
+        {!isDoctorCreatePage && user && (
+          user.role === 'doctor' ? <SidebarDoctor /> : <SidebarPaciente />
+        )}
 
         <main className="flex-1 flex flex-col overflow-hidden">
 
@@ -119,7 +127,25 @@ function App() {
 
             <Route
               path="/doctor/profile"
-              element={<DoctorProfile />}
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : (!user?.subscription || user?.subscription?.slug === 'free-plan' || user?.subscription?.price === 0) ? (
+                  <DoctorProfileFree />
+                ) : (
+                  <DoctorProfile />
+                )
+              }
+            />
+
+            <Route
+              path="/doctor/upgrade-plan"
+              element={<DoctorUpgradePlan />}
+            />
+
+            <Route
+              path="/doctor/preview"
+              element={<ViewPreview />}
             />
 
             {/* Patient */}

@@ -1,14 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   User, Briefcase, ShieldCheck, Lock, Edit3, CheckCircle2, 
   Mail, Phone, Clock, Stethoscope, Award, Building2, Globe, 
-  Plus, Trash2, UploadCloud, FileText, Camera, Loader2, Check, AlertCircle, Info 
+  Plus, Trash2, UploadCloud, FileText, Camera, Loader2, Check, AlertCircle, Info,
+  Eye, CheckSquare, Calendar, Settings, ExternalLink, Heart, Users, Save, MapPin, EyeOff, Circle
 } from 'lucide-react';
 import DoctorLocationMap from '../../components/common/DoctorLocationMap';
+import DatosPersonales from './profile/datepersonal';
+import InformacionProfesional from './profile/profesionaldate';
+import DocumentosVerificacion from './profile/documentos';
+import Disponibilidad from './profile/availability';
 
 export default function DoctorProfile() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
@@ -44,7 +51,8 @@ export default function DoctorProfile() {
     professional_college: '',
     subspecialties: '',
     languages: 'Español (nativo)',
-    bio: ''
+    bio: '',
+    professional_description: ''
   });
 
   // Formulario de Educación
@@ -87,7 +95,8 @@ export default function DoctorProfile() {
           professional_college: data.professional_college || '',
           subspecialties: data.subspecialties || '',
           languages: data.languages || 'Español (nativo)',
-          bio: data.bio || ''
+          bio: data.bio || '',
+          professional_description: data.professional_description || ''
         });
       }
     } catch (error) {
@@ -114,7 +123,6 @@ export default function DoctorProfile() {
   const latestProfilePic = profilePics.length > 0 ? profilePics[profilePics.length - 1] : null;
   const avatarUrl = latestProfilePic ? getMediaUrl(latestProfilePic.file_url) : null;
 
-
   // Filtrado de documentos
   const identityDoc = mediaList.find(m => m.media_type === 'identity_doc');
   const colegiationCert = mediaList.find(m => m.media_type === 'colegiation_cert');
@@ -135,9 +143,9 @@ export default function DoctorProfile() {
       formData.professional_college,
       formData.subspecialties,
       formData.languages,
-      avatarUrl, // Foto de perfil
-      identityDoc, // Documento identidad
-      colegiationCert // Certificado colegiación
+      avatarUrl, 
+      identityDoc, 
+      colegiationCert 
     ];
 
     const filledFields = fieldsToTrack.filter(field => field && field.toString().trim() !== '').length;
@@ -277,467 +285,128 @@ export default function DoctorProfile() {
   }
 
   return (
-    <div className="flex-1 bg-slate-50/50 p-6 md:p-10 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full h-full bg-slate-50 p-3 md:p-5 lg:p-6 font-sans text-slate-800 overflow-y-auto">
+      <div className="max-w-7xl mx-auto space-y-4 pb-20">
 
-        {/* TÍTULO PRINCIPAL */}
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">Mi perfil</h1>
-          <p className="text-sm text-slate-500 mt-1">Consulta y actualiza tu información profesional.</p>
-        </div>
-
-        {/* TARJETA SUPERIOR DE PERFIL (HEADER) */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            {/* Foto de Perfil en la cabecera */}
-            <div 
-              className="relative w-20 h-20 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl overflow-hidden cursor-pointer group shrink-0"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploadingImage ? (
-                <Loader2 className="animate-spin text-indigo-600" size={24} />
-              ) : avatarUrl ? (
-                <img src={avatarUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
-              ) : (
-                <span>{formData.first_name?.[0] || 'D'}{formData.last_name?.[0] || 'R'}</span>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="text-white" size={20} />
-              </div>
-            </div>
-            <input type="file" ref={fileInputRef} onChange={(e) => uploadMedia(e.target.files[0], 'profile_picture', true)} accept="image/*" className="hidden" />
-
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-slate-900">{formData.first_name || 'Doctor'} {formData.last_name || ''}</h2>
-                {/* Badge de verificación dinámico */}
-                {profile?.verification_status === 'verified' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                    <CheckCircle2 size={13} /> Verificado
-                  </span>
-                ) : profile?.verification_status === 'rejected' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200/60">
-                    <AlertCircle size={13} /> Rechazado
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
-                    <Clock size={13} /> Pendiente de verificación
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-slate-500 mt-0.5">{formData.specialty || 'Especialidad no configurada'}</p>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-2">
-                <span className="flex items-center gap-1.5"><Mail size={14} /> {formData.email || 'Sin correo'}</span>
-                <span className="flex items-center gap-1.5"><Phone size={14} /> {formData.phone || 'Sin teléfono'}</span>
-              </div>
-            </div>
+        {/* TÍTULO PRINCIPAL Y BOTÓN */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Mi perfil</h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Gestiona tu información personal y profesional. Mantén tus datos actualizados para tus pacientes.
+            </p>
           </div>
-
           <button 
-            onClick={() => setIsEditing(!isEditing)} 
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 hover:bg-slate-50 font-semibold text-xs text-slate-700 rounded-xl transition-all shadow-sm"
-          >
-            <Edit3 size={14} /> {isEditing ? 'Cancelar edición' : 'Editar perfil'}
+            onClick={() => window.open('/doctor/preview', '_blank')}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 bg-blue-50 font-bold text-xs rounded-xl hover:bg-blue-100 transition-colors">
+            <Eye size={15} /> Vista previa del perfil
           </button>
         </div>
 
         {/* NOTIFICACIÓN */}
         {message && (
-          <div className={`p-4 rounded-2xl flex items-center gap-3 text-sm font-semibold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <div className={`p-3 rounded-xl flex items-center gap-2.5 text-xs font-semibold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* PESTAÑAS */}
-        <div className="bg-white rounded-2xl p-1.5 border border-slate-200/80 shadow-sm flex items-center justify-between overflow-x-auto hide-scrollbar gap-1">
+        <div className="flex flex-wrap items-center gap-4 md:gap-6 border-b border-slate-200 pb-1">
           {[
-            { id: 'personal', label: 'Información personal', icon: User },
-            { id: 'professional', label: 'Información profesional', icon: Briefcase },
-            { id: 'documents', label: 'Documentos y verificación', icon: ShieldCheck },
-            { id: 'security', label: 'Seguridad', icon: Lock }
+            { id: 'personal', label: 'Datos personales', icon: User },
+            { id: 'professional', label: 'Información profesional', icon: FileText },
+            { id: 'documents', label: 'Documentos', icon: CheckSquare },
+            { id: 'availability', label: 'Disponibilidad', icon: Calendar },
           ].map((tab) => {
             const Icon = tab.icon;
-            const active = activeTab === tab.id;
+            const active = activeTab === tab.id || (activeTab === 'documents' && tab.id === 'documents');
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 pb-2 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${
                   active 
-                    ? 'bg-indigo-50/80 text-indigo-600 border border-indigo-100 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    ? 'border-blue-600 text-blue-700' 
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={14} />
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* CONTENIDO PRINCIPAL + PANEL DERECHO */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* CONTENIDO PRINCIPAL + PANEL DERECHO ALINEADOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
           {/* COLUMNA IZQUIERDA */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4">
 
-            {/* TAB INFORMACIÓN PERSONAL */}
             {activeTab === 'personal' && (
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                <h3 className="text-base font-bold text-slate-900">Información personal</h3>
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Nombre</label>
-                      {isEditing ? (
-                        <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.first_name || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Correo electrónico</label>
-                      <p className="text-xs font-bold text-slate-800">{formData.email || 'Sin especificar'}</p>
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Apellidos</label>
-                      {isEditing ? (
-                        <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.last_name || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Dirección</label>
-                      {isEditing ? (
-                        <input type="text" name="address" value={formData.address} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.address || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Fecha de nacimiento</label>
-                      {isEditing ? (
-                        <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.birth_date || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Ciudad</label>
-                      {isEditing ? (
-                        <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.city || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">País de residencia</label>
-                      {isEditing ? (
-                        <input type="text" name="country" value={formData.country} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.country || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Código postal</label>
-                      {isEditing ? (
-                        <input type="text" name="postal_code" value={formData.postal_code} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.postal_code || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Teléfono</label>
-                      {isEditing ? (
-                        <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-slate-800">{formData.phone || 'Sin especificar'}</p>
-                      )}
-                    </div>
-
-                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                      <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Sitio web (opcional)</label>
-                      {isEditing ? (
-                        <input type="text" name="website" value={formData.website} onChange={handleChange} className="w-full text-xs font-semibold text-slate-800 bg-white p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                      ) : (
-                        <p className="text-xs font-bold text-indigo-600 truncate">{formData.website || 'Sin especificar'}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Sección de Mapa y Coordenadas Geográficas */}
-                  <div className="pt-2">
-                    <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-2">
-                      Ubicación geográfica del consultorio / clínica (Latitud y Longitud)
-                    </label>
-                    <DoctorLocationMap
-                      latitude={formData.latitude}
-                      longitude={formData.longitude}
-                      address={formData.address}
-                      city={formData.city}
-                      country={formData.country || 'Colombia'}
-                      onChange={({ latitude, longitude }) => setFormData(prev => ({ ...prev, latitude, longitude }))}
-                      readOnly={!isEditing}
-                      height="280px"
-                      title={isEditing ? 'Ajustar punto de atención médica en el mapa' : 'Ubicación registrada en mapa'}
-                    />
-                  </div>
-
-                  <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                        <Info size={18} />
-                      </div>
-                      <p className="text-xs text-slate-600 font-medium">
-                        Mantén tu información actualizada para ofrecer la mejor atención a tus pacientes.
-                      </p>
-                    </div>
-                    {isEditing && (
-                      <button type="submit" disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all shrink-0 flex items-center gap-2">
-                        {saving && <Loader2 size={14} className="animate-spin" />} Guardar cambios
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
+              <DatosPersonales
+                profile={profile}
+                formData={formData}
+                setFormData={setFormData}
+                handleChange={handleChange}
+                handleSubmit={handleSubmit}
+                saving={saving}
+                uploadingImage={uploadingImage}
+                avatarUrl={avatarUrl}
+                uploadMedia={uploadMedia}
+              />
             )}
 
-            {/* TAB INFORMACIÓN PROFESIONAL */}
             {activeTab === 'professional' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                  <h3 className="text-base font-bold text-slate-900">Especialidad y Colegiatura</h3>
-
-                  {isEditing ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Especialidad principal</label>
-                        <input type="text" name="specialty" value={formData.specialty} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Nº de colegiado</label>
-                        <input type="text" name="colegiated_number" value={formData.colegiated_number} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Años de experiencia</label>
-                        <input type="number" name="years_experience" value={formData.years_experience} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Colegio profesional</label>
-                        <input type="text" name="professional_college" value={formData.professional_college} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Subespecialidades</label>
-                        <input type="text" name="subspecialties" value={formData.subspecialties} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" placeholder="Ej. Cardiología Pediátrica" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Idiomas</label>
-                        <input type="text" name="languages" value={formData.languages} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div className="sm:col-span-2 flex justify-end pt-2">
-                        <button type="button" onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-md">
-                          {saving ? 'Guardando...' : 'Guardar especialidad'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Especialidad principal</label>
-                        <p className="text-xs font-bold text-slate-800">{formData.specialty || 'Sin especificar'}</p>
-                      </div>
-                      <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Nº de colegiado</label>
-                        <p className="text-xs font-bold text-slate-800">{formData.colegiated_number || 'Sin especificar'}</p>
-                      </div>
-                      <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Años de experiencia</label>
-                        <p className="text-xs font-bold text-slate-800">{formData.years_experience ? `${formData.years_experience} años` : 'Sin especificar'}</p>
-                      </div>
-                      <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Colegio profesional</label>
-                        <p className="text-xs font-bold text-slate-800">{formData.professional_college || 'Sin especificar'}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Estudios */}
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">Historial de Estudios</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Agrega tus títulos académicos y certificaciones.</p>
-                    </div>
-                    <button onClick={() => setShowEduForm(!showEduForm)} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-xs rounded-xl transition-all">
-                      <Plus size={15} /> Añadir estudio
-                    </button>
-                  </div>
-
-                  {showEduForm && (
-                    <form onSubmit={handleAddEducation} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="text" name="institution" placeholder="Institución *" value={eduData.institution} onChange={handleEduChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" required />
-                        <input type="text" name="degree" placeholder="Título / Grado *" value={eduData.degree} onChange={handleEduChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" required />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <input type="text" name="field_of_study" placeholder="Campo de estudio" value={eduData.field_of_study} onChange={handleEduChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                        <input type="number" name="start_year" placeholder="Año inicio" value={eduData.start_year} onChange={handleEduChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                        <input type="number" name="end_year" placeholder="Año fin" value={eduData.end_year} onChange={handleEduChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" />
-                      </div>
-                      <div className="flex justify-end gap-2 pt-2">
-                        <button type="button" onClick={() => setShowEduForm(false)} className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-200 rounded-lg">Cancelar</button>
-                        <button type="submit" disabled={saving} className="px-4 py-1.5 text-xs bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">Guardar</button>
-                      </div>
-                    </form>
-                  )}
-
-                  <div className="space-y-3">
-                    {profile?.educations?.length > 0 ? (
-                      profile.educations.map((edu) => (
-                        <div key={edu.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-100/70 text-indigo-600 flex items-center justify-center shrink-0">
-                              <Award size={20} />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-800">{edu.degree}</h4>
-                              <p className="text-[11px] text-slate-500">{edu.institution} {edu.start_year && `• ${edu.start_year} - ${edu.end_year || 'Presente'}`}</p>
-                            </div>
-                          </div>
-                          <button onClick={() => handleDeleteEducation(edu.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 text-center py-6 border border-dashed border-slate-200 rounded-2xl">
-                        No has registrado estudios académicos aún.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <InformacionProfesional
+                profile={profile}
+                formData={formData}
+                handleChange={handleChange}
+                handleSubmit={handleSubmit}
+                saving={saving}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+                eduData={eduData}
+                handleEduChange={handleEduChange}
+                handleAddEducation={handleAddEducation}
+                handleDeleteEducation={handleDeleteEducation}
+                showEduForm={showEduForm}
+                setShowEduForm={setShowEduForm}
+              />
             )}
 
-            {/* TAB DOCUMENTOS Y VERIFICACIÓN */}
             {activeTab === 'documents' && (
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Documentos y Verificación</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Gestión de archivos de soporte legal y multimedia.</p>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Documentación oficial</h4>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${identityDoc ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                          <FileText size={20} />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">Documento de Identidad</p>
-                          <span className="text-[10px] font-semibold text-slate-500">
-                            {identityDoc ? 'Cargado correctamente' : 'Pendiente por subir'}
-                          </span>
-                        </div>
-                      </div>
-                      {identityDoc && <CheckCircle2 className="text-emerald-500" size={18} />}
-                    </div>
-
-                    <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colegiationCert ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                          <Award size={20} />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">Certificado de Colegiación</p>
-                          <span className="text-[10px] font-semibold text-slate-500">
-                            {colegiationCert ? 'Cargado correctamente' : 'Pendiente por subir'}
-                          </span>
-                        </div>
-                      </div>
-                      {colegiationCert && <CheckCircle2 className="text-emerald-500" size={18} />}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Galería de fotos y videos</h4>
-                      <p className="text-xs text-slate-500 mt-1">Anexa imágenes o videos de tu centro médico.</p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <select 
-                        value={selectedMediaType}
-                        onChange={(e) => setSelectedMediaType(e.target.value)}
-                        className="text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none bg-white font-medium"
-                      >
-                        <option value="gallery">Imagen clínica</option>
-                        <option value="video">Video presentación</option>
-                      </select>
-                      <button 
-                        onClick={() => galleryInputRef.current?.click()}
-                        disabled={uploadingGallery}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
-                      >
-                        {uploadingGallery ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-                        Anexar
-                      </button>
-                      <input type="file" ref={galleryInputRef} onChange={(e) => uploadMedia(e.target.files[0], selectedMediaType, false)} accept="image/*,video/*" className="hidden" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {mediaList.filter(m => m.media_type !== 'identity_doc' && m.media_type !== 'colegiation_cert' && m.media_type !== 'profile_picture').map((media) => (
-                      <div key={media.id} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group">
-                        {media.media_type === 'video' || media.mime_type?.includes('video') ? (
-                          <video src={getMediaUrl(media.file_url)} className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={getMediaUrl(media.file_url)} alt="Media" className="w-full h-full object-cover" />
-                        )}
-
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <button onClick={() => handleDeleteMedia(media.id)} className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <DocumentosVerificacion
+                mediaList={mediaList}
+                identityDoc={identityDoc}
+                colegiationCert={colegiationCert}
+                selectedMediaType={selectedMediaType}
+                setSelectedMediaType={setSelectedMediaType}
+                uploadMedia={uploadMedia}
+                handleDeleteMedia={handleDeleteMedia}
+                uploadingGallery={uploadingGallery}
+                getMediaUrl={getMediaUrl}
+              />
             )}
 
-            {/* TAB SEGURIDAD */}
+            {activeTab === 'availability' && (
+              <Disponibilidad />
+            )}
+
             {activeTab === 'security' && (
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                <h3 className="text-base font-bold text-slate-900">Seguridad de la cuenta</h3>
-                <div className="space-y-4 max-w-md">
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+                <h3 className="text-xs font-bold text-slate-900">Seguridad de la cuenta</h3>
+                <div className="space-y-3 max-w-md">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Contraseña actual</label>
-                    <input type="password" className="w-full text-xs p-3 rounded-xl border border-slate-200 outline-none" placeholder="••••••••" />
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">Contraseña actual</label>
+                    <input type="password" className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" placeholder="••••••••" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Nueva contraseña</label>
-                    <input type="password" className="w-full text-xs p-3 rounded-xl border border-slate-200 outline-none" placeholder="••••••••" />
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">Nueva contraseña</label>
+                    <input type="password" className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none" placeholder="••••••••" />
                   </div>
-                  <button className="px-5 py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md">
+                  <button className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md">
                     Actualizar contraseña
                   </button>
                 </div>
@@ -746,169 +415,112 @@ export default function DoctorProfile() {
 
           </div>
 
-          {/* COLUMNA DERECHA: RESUMEN LATERAL DINÁMICO */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+          {/* COLUMNA DERECHA: RESUMEN LATERAL (Estilo exacto solicitado) */}
+          <div className="lg:col-span-1 space-y-3.5">
+            
+            {/* COMPLETA TU PERFIL */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+              <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wider">Completa tu perfil</h3>
               
-              {/* Encabezado con foto dinámica y nombre real */}
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shrink-0">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Doctor" className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={22} />
-                  )}
+              <div className="flex items-center gap-3.5">
+                <div className="relative w-12 h-12 flex items-center justify-center rounded-full border-2 border-blue-100 shrink-0">
+                  <svg className="absolute inset-0 w-full h-full text-blue-600 -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-blue-100"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none" stroke="currentColor" strokeWidth="4"
+                    />
+                    <path
+                      className="text-blue-600"
+                      strokeDasharray={`${profileCompletion}, 100`}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none" stroke="currentColor" strokeWidth="4"
+                    />
+                  </svg>
+                  <span className="text-[11px] font-extrabold text-blue-900">{profileCompletion}%</span>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 truncate">
-                    {formData.first_name || formData.last_name ? `${formData.first_name} ${formData.last_name}` : 'Sin nombre'}
-                  </h3>
-                  <p className="text-xs text-slate-500 truncate">{formData.specialty || 'Sin especialidad'}</p>
-                </div>
-              </div>
-
-              {/* Lista dinámica de campos del doctor */}
-              <div className="space-y-4">
-                {/* Especialidad */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Stethoscope size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Especialidad principal</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{formData.specialty || 'Pendiente'}</p>
-                  </div>
-                </div>
-
-                {/* Nº Colegiado */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <Award size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nº de colegiado</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{formData.colegiated_number || 'Pendiente'}</p>
-                  </div>
-                </div>
-
-                {/* Años de experiencia */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Clock size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Años de experiencia</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">
-                      {formData.years_experience ? `${formData.years_experience} años` : 'Pendiente'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Colegio profesional */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                    <Building2 size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Colegio profesional</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{formData.professional_college || 'Pendiente'}</p>
-                  </div>
-                </div>
-
-                {/* Subespecialidades */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
-                    <Briefcase size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Subespecialidades</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{formData.subspecialties || 'Sin subespecialidades'}</p>
-                  </div>
-                </div>
-
-                {/* Idiomas */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                    <Globe size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Idiomas</p>
-                    <p className="text-xs font-bold text-slate-800 truncate">{formData.languages || 'Sin idiomas registrados'}</p>
-                  </div>
-                </div>
-
-                {/* Verificación */}
-                <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <ShieldCheck size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado de verificación</p>
-                    {profile?.verification_status === 'verified' ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
-                        <CheckCircle2 size={12} /> Verificado
-                      </span>
-                    ) : profile?.verification_status === 'rejected' ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600">
-                        <AlertCircle size={12} /> Rechazado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600">
-                        <Clock size={12} /> Pendiente de verificación
-                      </span>
-                    )}
-                  </div>
+                <div>
+                  <h4 className="text-xs font-bold text-blue-950">Perfil casi completo</h4>
+                  <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Añade más información para que los pacientes te conozcan mejor.</p>
                 </div>
               </div>
 
-              {/* CARD DE PORCENTAJE DE COMPLETITUD Y ESTADO DEL PERFIL */}
-              <div className={`rounded-2xl p-4 border transition-all mt-4 ${
-                profileCompletion === 100 
-                  ? 'bg-emerald-50/70 border-emerald-200' 
-                  : 'bg-amber-50/70 border-amber-200'
-              }`}>
-                <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                      profileCompletion === 100 ? 'bg-emerald-500' : 'bg-amber-500'
-                    }`}>
-                      {profileCompletion === 100 ? <Check size={15} strokeWidth={3} /> : <Info size={15} />}
-                    </div>
-                    <div>
-                      <h4 className={`text-xs font-bold ${
-                        profileCompletion === 100 ? 'text-emerald-900' : 'text-amber-900'
-                      }`}>
-                        {profileCompletion === 100 ? 'Perfil completo' : 'Perfil incompleto'}
-                      </h4>
-                    </div>
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-medium text-slate-700">Datos personales</span>
                   </div>
-                  <span className={`text-xs font-black ${
-                    profileCompletion === 100 ? 'text-emerald-700' : 'text-amber-700'
-                  }`}>
-                    {profileCompletion}%
-                  </span>
                 </div>
-
-                {/* Barra de progreso visual */}
-                <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 rounded-full ${
-                      profileCompletion === 100 ? 'bg-emerald-500' : 'bg-amber-500'
-                    }`}
-                    style={{ width: `${profileCompletion}%` }}
-                  ></div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-medium text-slate-700">Información profesional</span>
+                  </div>
                 </div>
-
-                <p className={`text-[11px] mt-2 font-medium ${
-                  profileCompletion === 100 ? 'text-emerald-700' : 'text-amber-700'
-                }`}>
-                  {profileCompletion === 100 
-                    ? '¡Excelente! Todos tus datos están guardados.' 
-                    : 'Completa tus datos personales, profesionales y foto para alcanzar el 100%.'}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    <span className="text-[11px] font-medium text-slate-700">Especialidades</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Circle size={14} className="text-slate-300 shrink-0" />
+                    <span className="text-[11px] font-medium text-slate-600">Foto de perfil profesional</span>
+                  </div>
+                  <button onClick={() => setActiveTab('personal')} className="text-[11px] font-bold text-blue-600 hover:underline">Añadir</button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Circle size={14} className="text-slate-300 shrink-0" />
+                    <span className="text-[11px] font-medium text-slate-600">Biografía profesional</span>
+                  </div>
+                  <button onClick={() => setActiveTab('professional')} className="text-[11px] font-bold text-blue-600 hover:underline">Añadir</button>
+                </div>
               </div>
-
             </div>
+
+            {/* TU PERFIL PÚBLICO */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0"><Eye size={18} /></div>
+                 <div>
+                   <h4 className="text-xs font-bold text-blue-950">Tu perfil público</h4>
+                   <p className="text-[10px] text-slate-500">Así te verán los pacientes en MIVOR.ai</p>
+                 </div>
+              </div>
+              {/* Botón en el panel derecho */}
+              <button 
+                onClick={() => window.open('/doctor/preview', '_blank')}
+                className="w-full py-2 border border-blue-200 rounded-xl text-blue-700 bg-blue-50/50 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-blue-100 transition-colors">
+                Ver mi perfil <ExternalLink size={13} />
+              </button>
+            </div>
+
+            {/* COMUNIDAD MIVOR */}
+            <div className="bg-gradient-to-b from-blue-50/80 to-blue-50/30 rounded-2xl p-4 border border-blue-100 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-100/60 text-blue-600 rounded-xl shrink-0">
+                  <Users size={18} />
+                </div>
+                <h4 className="text-xs font-bold text-blue-950 leading-tight">
+                  Una comunidad de médicos que marca la diferencia
+                </h4>
+              </div>
+              
+              <p className="text-[10px] text-slate-600 leading-relaxed">
+                Gracias por formar parte de MIVOR.ai. Tu experiencia contribuye a una salud más humana y eficiente.
+              </p>
+
+              <div className="pt-2 border-t border-blue-100/60 flex items-center gap-2.5">
+                <Heart size={14} className="text-rose-500 fill-rose-500 shrink-0" />
+                <span className="text-[11px] italic font-serif text-blue-900 font-medium">
+                  Juntos por una medicina más humana y eficiente.
+                </span>
+              </div>
+            </div>
+            
           </div>
 
         </div>

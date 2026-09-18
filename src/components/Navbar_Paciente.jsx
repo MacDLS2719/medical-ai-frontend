@@ -4,7 +4,7 @@ import { LogOut, Stethoscope, Bell } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-export default function Navbar() {
+export default function NavbarPaciente() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -97,7 +97,7 @@ export default function Navbar() {
                 <div className="p-4 border-b border-slate-50 bg-slate-50/50">
                   <h3 className="font-semibold text-slate-800">{t('navbar.latestPublications')}</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {user.role === 'patient' ? t('navbar.byPathologies') : t('navbar.bySpecialty')}
+                    {t('navbar.byPathologies')}
                   </p>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto">
@@ -124,9 +124,9 @@ export default function Navbar() {
               </div>
             )}
           </div>
-          <Link to={user.role === 'doctor' ? "/doctor/profile" : "/profile"} className="flex flex-col items-end hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-100">
+          <Link to="/profile" className="flex flex-col items-end hover:bg-slate-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-100">
             <span className="text-sm font-medium text-slate-800">{user.name}</span>
-            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{user.role}</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{t('role.patient', 'Paciente')}</span>
           </Link>
           <button 
             onClick={handleLogout}

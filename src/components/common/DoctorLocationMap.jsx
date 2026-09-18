@@ -65,12 +65,12 @@ export default function DoctorLocationMap({
   const [geoError, setGeoError] = useState(null);
   const [geoSuccess, setGeoSuccess] = useState(null);
   const markerRef = useRef(null);
-  const lastSearchQueryRef = useRef('');
-
-  // Parsear valores
   const currentLat = latitude !== undefined && latitude !== null && latitude !== '' ? parseFloat(latitude) : null;
   const currentLng = longitude !== undefined && longitude !== null && longitude !== '' ? parseFloat(longitude) : null;
   const hasCoordinates = currentLat !== null && currentLng !== null && !isNaN(currentLat) && !isNaN(currentLng);
+
+  const initialQueryParts = [address?.trim(), city?.trim(), country?.trim()].filter(Boolean);
+  const lastSearchQueryRef = useRef(hasCoordinates ? initialQueryParts.join(', ') : '');
 
   // Centro por defecto según país
   const defaultCenter = useMemo(() => {
@@ -175,7 +175,10 @@ export default function DoctorLocationMap({
   };
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden border border-slate-200 bg-white relative flex flex-col">
+    <div 
+      className="w-full rounded-xl overflow-hidden border border-slate-200 bg-white relative flex flex-col"
+      style={{ height }}
+    >
       {/* Alertas informativas opcionales */}
       {geoError && (
         <div className="absolute top-2 left-2 right-2 z-30 px-3 py-1.5 bg-amber-50/90 backdrop-blur-xs border border-amber-200 text-amber-800 text-[10px] font-medium rounded-lg flex items-center gap-2 shadow-sm">
