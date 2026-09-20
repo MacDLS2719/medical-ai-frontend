@@ -132,11 +132,20 @@ export default function DoctorCreate() {
       let doctorUser;
       if (response.ok) {
         const responseData = await response.json();
+        const subInfo = responseData.subscription || {
+          id: formData.subscriptionPlanId || 2,
+          name: formData.subscriptionPlanName || 'Plan Profesional',
+          slug: formData.subscriptionPlanSlug || 'pro',
+          price: 99,
+          is_free: false
+        };
+
         doctorUser = {
           id: responseData.user_id || responseData.id || 2,
           role: 'doctor',
           name: `Dr. ${formData.firstName} ${formData.lastName}`.trim() || 'Dr. Médico',
-          email: formData.email
+          email: formData.email,
+          subscription: subInfo
         };
 
         // Subir fotos o documentos opcionales si se seleccionaron
@@ -179,7 +188,14 @@ export default function DoctorCreate() {
           id: Date.now(),
           role: 'doctor',
           name: `Dr. ${formData.firstName} ${formData.lastName}`.trim() || 'Dr. Médico',
-          email: formData.email
+          email: formData.email,
+          subscription: {
+            id: formData.subscriptionPlanId || 2,
+            name: formData.subscriptionPlanName || 'Plan Profesional',
+            slug: formData.subscriptionPlanSlug || 'pro',
+            price: 99,
+            is_free: false
+          }
         };
         loginAsDoctor(localDoctor);
         setCurrentStep(6);

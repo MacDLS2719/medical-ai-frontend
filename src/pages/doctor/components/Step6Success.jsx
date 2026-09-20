@@ -1,21 +1,32 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Clock, Mail, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Check, Clock, Mail, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function Step5Success({ formData }) {
   const navigate = useNavigate();
   const { user, loginAsDoctor } = useAuth();
 
+  const planName = formData?.subscriptionPlanName || user?.subscription?.name || 'Plan Profesional';
+
   const handleGoToDoctorMenu = () => {
-    if (!user || user.role !== 'doctor') {
-      loginAsDoctor({
-        id: 2,
-        role: 'doctor',
-        name: formData?.firstName ? `Dr. ${formData.firstName} ${formData.lastName}` : 'Dr. Jane Smith (Doctor)',
-        email: formData?.email || ''
-      });
-    }
+    const activeSub = user?.subscription || {
+      id: formData?.subscriptionPlanId || 2,
+      name: formData?.subscriptionPlanName || 'Plan Profesional',
+      slug: formData?.subscriptionPlanSlug || 'pro',
+      price: 99,
+      is_free: false
+    };
+
+    loginAsDoctor({
+      ...(user || {}),
+      id: user?.id || 2,
+      role: 'doctor',
+      name: formData?.firstName ? `Dr. ${formData.firstName} ${formData.lastName}`.trim() : (user?.name || 'Dr. Médico'),
+      email: formData?.email || user?.email || '',
+      subscription: activeSub
+    });
+
     navigate('/doctor/profile');
   };
 
@@ -40,8 +51,12 @@ export default function Step5Success({ formData }) {
       <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
         ¡Cuenta creada con éxito!
       </h1>
+      <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-full shadow-xs">
+        <Sparkles size={14} className="text-blue-600" />
+        <span>Suscripción activa: {planName}</span>
+      </div>
       <p className="text-sm text-slate-500 mt-2 font-medium">
-        Hemos recibido tu información correctamente.
+        Hemos recibido tu información correctamente y tu plan de suscripción ha sido asignado.
       </p>
 
       {/* Contenedor de las 3 Cards Informativas */}

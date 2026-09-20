@@ -13,7 +13,8 @@ import {
   Globe, 
   ChevronDown,
   Menu,
-  X
+  X,
+  User
 } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -166,12 +167,16 @@ export default function NavbarDoctor() {
 
             {/* Perfil del Usuario */}
             <Link to="/doctor/profile" className="flex items-center gap-2 bg-blue-50/50 hover:bg-blue-50 pl-1.5 pr-2.5 py-1 rounded-2xl transition-colors cursor-pointer border border-blue-100/60">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-white shadow-xs shrink-0">
-                <img 
-                  src={user.avatar || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=400&auto=format&fit=crop"} 
-                  alt={user.name} 
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-white shadow-xs shrink-0 bg-slate-200/80 flex items-center justify-center">
+                {user?.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User size={16} className="text-slate-500" />
+                )}
               </div>
               <div className="hidden sm:flex flex-col text-left">
                 <span className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[100px]">{user.name}</span>

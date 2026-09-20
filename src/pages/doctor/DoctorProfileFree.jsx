@@ -193,17 +193,24 @@ export default function DoctorProfileFree() {
               <div className="glass-card p-6 rounded-3xl border border-slate-200/80 shadow-xs bg-white/90 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-200">
-                      <img
-                        src={user?.avatar || "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150"}
-                        alt="Avatar Doctor"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm bg-slate-100 flex items-center justify-center">
+                      {(profile?.avatar || profile?.photo_url || profile?.profile_image || user?.avatar) ? (
+                        <img
+                          src={profile?.avatar || profile?.photo_url || profile?.profile_image || user?.avatar}
+                          alt="Avatar Doctor"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 text-slate-400 p-1">
+                          <User size={30} className="text-slate-400 stroke-[1.5]" />
+                          <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-tight -mt-0.5">Sin foto</span>
+                        </div>
+                      )}
                     </div>
                     <button
                       disabled
-                      className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full shadow-md cursor-not-allowed opacity-70"
-                      title="Función PRO"
+                      className="absolute bottom-0 right-0 p-1.5 bg-slate-400 text-white rounded-full shadow-md cursor-not-allowed opacity-75"
+                      title="Función PRO (Subir foto)"
                     >
                       <Camera size={12} />
                     </button>
