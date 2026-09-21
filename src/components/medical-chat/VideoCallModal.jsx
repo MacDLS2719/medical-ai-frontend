@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, Loader2, ExternalLink } from 'lucide-react';
+import { 
+  Phone, 
+  PhoneOff, 
+  Video, 
+  Mic, 
+  MicOff, 
+  VideoOff, 
+  Loader2, 
+  ExternalLink,
+  Monitor,
+  UserPlus,
+  MoreHorizontal
+} from 'lucide-react';
 import { callSoundPlayer } from '../../utils/callSoundPlayer';
 
 export default function VideoCallModal({
@@ -14,17 +26,33 @@ export default function VideoCallModal({
 }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  // Controls whether the Daily.co iframe is shown or the join-room button
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
 
-  // Reset hasJoined whenever a new call starts
+  // Timer para llamada activa
+  useEffect(() => {
+    let interval = null;
+    if (callStatus === 'in-call') {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setTimerSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [callStatus]);
+
+  // Reset al cambiar estado
   useEffect(() => {
     if (callStatus !== 'in-call') {
       setHasJoined(false);
     }
   }, [callStatus]);
 
-  // Manejo de sonido de llamadas entrantes y salientes
+  // Sonido de llamada
   useEffect(() => {
     if (callStatus === 'calling') {
       callSoundPlayer.playOutgoingRing();
@@ -44,10 +72,20 @@ export default function VideoCallModal({
   const roomUrl = callData?.room_url || null;
   const isInCall = callStatus === 'in-call';
 
+  const formatTimer = (totalSeconds) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+  };
+
+  const contactName = callData?.caller_name || callData?.target_name || 'Paciente';
+
   return (
-    <div className={`fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center ${isInCall ? 'p-0 md:p-3' : 'p-4'} animate-in fade-in duration-300`}>
+    <div className={`fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center ${isInCall ? 'p-2 md:p-4' : 'p-4'} animate-in fade-in duration-300 font-sans`}>
       <div
-        className={`bg-slate-900 border border-slate-800 w-full ${isInCall ? 'max-w-[98vw] h-[95vh]' : 'max-w-2xl min-h-[520px]'} rounded-3xl overflow-hidden shadow-2xl flex flex-col relative`}
+        className={`bg-[#F8FAFC] border border-slate-200/80 w-full ${isInCall ? 'max-w-[1600px] h-[95vh]' : 'max-w-2xl min-h-[520px]'} rounded-3xl overflow-hidden shadow-2xl flex flex-col relative`}
       >
         {/* ESTADO: LLAMADA ENTRANTE */}
         {callStatus === 'ringing' && (
@@ -123,66 +161,34 @@ export default function VideoCallModal({
           </div>
         )}
 
-        {/* ESTADO: EN LLAMADA (VISTA DIVIDIDA: VIDEO DAILY + CHAT A LA DERECHA) */}
+        {/* ESTADO: EN LLAMADA */}
         {isInCall && (
-          <div className="flex-1 flex flex-col md:flex-row h-full min-h-0 overflow-hidden">
-
-            {/* LADO IZQUIERDO: SALA DAILY.CO */}
-            <div className="flex-1 flex flex-col h-full bg-slate-950 relative min-w-0 border-r border-slate-800">
-
-              {/* PANTALLA DE INGRESO — antes de unirse a la sala */}
-              {!hasJoined ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 text-center bg-gradient-to-b from-slate-950 to-slate-900">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-blue-600 shadow-xl shadow-teal-500/30">
-                    <Video size={44} className="text-white" />
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">
-                      Videoconferencia lista
-                    </h3>
-                    <p className="text-slate-400 text-sm">
-                      La sala con {callData?.caller_name || callData?.target_name || 'tu contacto'} está disponible
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-                    {/* Botón principal para entrar en iframe embebido */}
-                    <button
-                      onClick={() => setHasJoined(true)}
-                      className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl font-semibold text-base transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-teal-500/30 cursor-pointer"
-                    >
-                      <Video size={22} />
-                      Ingresar a videoconferencia
-                    </button>
-
-                    {/* Alternativa: abrir en pestaña nueva */}
-                    {roomUrl && (
-                      <a
-                        href={roomUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer"
-                      >
-                        <ExternalLink size={16} />
-                        Abrir en nueva pestaña
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Colgar desde pantalla de ingreso */}
-                  <button
-                    onClick={onEnd}
-                    className="mt-2 flex items-center gap-2 text-red-400 hover:text-red-300 text-sm transition-colors cursor-pointer"
-                  >
-                    <PhoneOff size={16} />
-                    Finalizar llamada
-                  </button>
+          <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#F8FAFC]">
+            
+            {/* ENCABEZADO SUPERIOR DE LA CONSULTA */}
+            <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex items-center justify-between shrink-0 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
+                  Consulta con {contactName}
+                </h2>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 rounded-full border border-slate-200/60 text-xs font-bold text-slate-700">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>{formatTimer(timerSeconds)}</span>
                 </div>
-              ) : (
-                /* IFRAME DAILY.CO — visible tras hacer click en "Ingresar" */
-                <div className="flex-1 relative bg-slate-950" style={{ minHeight: '350px' }}>
-                  {roomUrl ? (
+              </div>
+            </div>
+
+            {/* CONTENIDO PRINCIPAL: VIDEO + CHAT */}
+            <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+
+              {/* COLUMNA IZQUIERDA: ÁREA DE VIDEO & CONTROLES */}
+              <div className="flex-1 flex flex-col h-full p-4 md:p-6 overflow-hidden min-w-0">
+
+                {/* CONTENEDOR DE VIDEO LIMPIO (SALA DAILY.CO) */}
+                <div className="relative w-full flex-1 rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-slate-900 min-h-[300px]">
+                  
+                  {/* IFRAME DAILY.CO O PANTALLA DE INGRESO */}
+                  {hasJoined && roomUrl ? (
                     <iframe
                       src={roomUrl}
                       allow="camera; microphone; fullscreen; display-capture; autoplay"
@@ -190,59 +196,107 @@ export default function VideoCallModal({
                       title="Videollamada médica — Daily.co"
                     />
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
-                      <Loader2 size={36} className="animate-spin text-teal-500" />
-                      <p className="text-slate-300 font-medium">Conectando videollamada...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-6 text-center text-white">
+                      <div className="w-20 h-20 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400 shadow-lg shadow-blue-500/10">
+                        <Video size={40} />
+                      </div>
+                      <h3 className="text-xl font-extrabold mb-1 tracking-tight">Videoconferencia médica en vivo</h3>
+                      <p className="text-xs text-slate-400 max-w-sm mb-6">
+                        La sala con {contactName} está lista. Haz clic abajo para ingresar.
+                      </p>
+                      <button
+                        onClick={() => setHasJoined(true)}
+                        className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all cursor-pointer hover:scale-[1.02]"
+                      >
+                        Ingresar a la consulta en vivo
+                      </button>
                     </div>
                   )}
+                </div>
 
-                  {/* Indicador de usuario */}
-                  <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur px-3.5 py-1.5 rounded-xl text-xs text-slate-200 border border-slate-700/80 z-10">
-                    {userName || 'Tú'}
+                {/* BARRA DE CONTROLES INFERIOR */}
+                <div className="mt-4 py-3 px-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-center gap-4 sm:gap-7 flex-wrap shrink-0">
+                  {/* Silenciar */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => setIsMuted(!isMuted)}
+                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                        isMuted ? 'bg-red-500 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
+                      }`}
+                    >
+                      {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">Silenciar</span>
+                  </div>
+
+                  {/* Detener vídeo */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => setIsVideoOff(!isVideoOff)}
+                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                        isVideoOff ? 'bg-red-500 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
+                      }`}
+                    >
+                      {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">Detener vídeo</span>
+                  </div>
+
+                  {/* Compartir pantalla */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={() => setIsScreenSharing(!isScreenSharing)}
+                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                        isScreenSharing ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
+                      }`}
+                    >
+                      <Monitor size={20} />
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">Compartir pantalla</span>
+                  </div>
+
+                  {/* Finalizar consulta (Botón Rojo Central) */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={onEnd}
+                      className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <PhoneOff size={22} />
+                    </button>
+                    <span className="text-[11px] font-extrabold text-red-600">Finalizar consulta</span>
+                  </div>
+
+                  {/* Añadir participante */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      <UserPlus size={20} />
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">Añadir participante</span>
+                  </div>
+
+                  {/* Más opciones */}
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      <MoreHorizontal size={20} />
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">Más opciones</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* COLUMNA DERECHA: CHAT LIMPIO */}
+              {children && (
+                <div className="w-full md:w-[380px] lg:w-[440px] shrink-0 h-full bg-white flex flex-col overflow-hidden border-l border-slate-200/80">
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    {children}
                   </div>
                 </div>
               )}
-
-              {/* CONTROLES — solo visibles cuando se unió al iframe */}
-              {hasJoined && (
-                <div className="p-3 md:p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-center gap-4 shrink-0">
-                  <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className={`p-3.5 rounded-full transition-colors cursor-pointer ${
-                      isMuted ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
-                    }`}
-                    title={isMuted ? 'Desactivar silencio' : 'Silenciar'}
-                  >
-                    {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-                  </button>
-
-                  <button
-                    onClick={() => setIsVideoOff(!isVideoOff)}
-                    className={`p-3.5 rounded-full transition-colors cursor-pointer ${
-                      isVideoOff ? 'bg-red-500 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700'
-                    }`}
-                    title={isVideoOff ? 'Encender cámara' : 'Apagar cámara'}
-                  >
-                    {isVideoOff ? <VideoOff size={22} /> : <Video size={22} />}
-                  </button>
-
-                  <button
-                    onClick={onEnd}
-                    className="bg-red-600 hover:bg-red-700 text-white px-7 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/30 flex items-center gap-2 cursor-pointer"
-                  >
-                    <PhoneOff size={20} />
-                    <span>Colgar</span>
-                  </button>
-                </div>
-              )}
             </div>
-
-            {/* LADO DERECHO: CHAT EN TIEMPO REAL CON REGISTRO */}
-            {children && (
-              <div className="w-full md:w-[420px] lg:w-[460px] shrink-0 h-full bg-white flex flex-col overflow-hidden">
-                {children}
-              </div>
-            )}
           </div>
         )}
       </div>

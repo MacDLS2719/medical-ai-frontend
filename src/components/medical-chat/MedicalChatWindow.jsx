@@ -31,6 +31,7 @@ export default function MedicalChatWindow({
     onStartVideoCall,
     onOpenCallHistory,
     onDeleteConversation,
+    isInCall = false,
 
     children,
 }) {
@@ -167,8 +168,8 @@ export default function MedicalChatWindow({
             >
                 {/* Persona */}
                 <div className="flex min-w-0 items-center gap-3">
-                    {/* Volver - visible siempre para cerrar el chat y salir al grid */}
-                    {onBack && (
+                    {/* Volver - visible siempre para cerrar el chat y salir al grid si no estamos en llamada */}
+                    {!isInCall && onBack && (
                         <button
                             type="button"
                             onClick={onBack}
@@ -234,76 +235,78 @@ export default function MedicalChatWindow({
                     </div>
                 </div>
 
-                {/* Acciones */}
-                <div className="flex items-center gap-2">
-                    {/* VIDEOCONFERENCIA (SOLO MÉDICO O SEGÚN PERMISOS) */}
-                    {canStartCall && (
-                        <button
-                            type="button"
-                            onClick={() =>
-                                onStartVideoCall?.(
-                                    conversation
-                                )
-                            }
-                            className="flex h-9 items-center gap-2 rounded-xl px-3.5 text-white shadow-sm transition hover:opacity-95 active:scale-[0.98]"
-                            style={{
-                                background:
-                                    "linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)",
-                            }}
-                            title="Iniciar videoconferencia"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
+                {/* Acciones (Ocultas durante una llamada activa en el modal) */}
+                {!isInCall && (
+                    <div className="flex items-center gap-2">
+                        {/* VIDEOCONFERENCIA (SOLO MÉDICO O SEGÚN PERMISOS) */}
+                        {canStartCall && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    onStartVideoCall?.(
+                                        conversation
+                                    )
+                                }
+                                className="flex h-9 items-center gap-2 rounded-xl px-3.5 text-white shadow-sm transition hover:opacity-95 active:scale-[0.98]"
+                                style={{
+                                    background:
+                                        "linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)",
+                                }}
+                                title="Iniciar videoconferencia"
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M15 10l4.55-2.73A1 1 0 0121 8.13v7.74a1 1 0 01-1.45.86L15 14"
-                                />
-                                <rect
-                                    x="3"
-                                    y="6"
-                                    width="12"
-                                    height="12"
-                                    rx="2"
-                                    ry="2"
-                                />
-                            </svg>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M15 10l4.55-2.73A1 1 0 0121 8.13v7.74a1 1 0 01-1.45.86L15 14"
+                                    />
+                                    <rect
+                                        x="3"
+                                        y="6"
+                                        width="12"
+                                        height="12"
+                                        rx="2"
+                                        ry="2"
+                                    />
+                                </svg>
 
-                            <span className="hidden text-xs font-semibold sm:inline">
-                                Videoconferencia
-                            </span>
-                        </button>
-                    )}
+                                <span className="hidden text-xs font-semibold sm:inline">
+                                    Videoconferencia
+                                </span>
+                            </button>
+                        )}
 
-                    {/* ELIMINAR CONVERSACIÓN */}
-                    {onDeleteConversation && conversation?.id && (
-                        <button
-                            type="button"
-                            onClick={() => onDeleteConversation(conversation)}
-                            className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-red-600 shadow-sm transition hover:bg-red-100 hover:text-red-700 active:scale-[0.98]"
-                            title="Eliminar conversación"
-                            aria-label="Eliminar conversación"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
+                        {/* ELIMINAR CONVERSACIÓN */}
+                        {onDeleteConversation && conversation?.id && (
+                            <button
+                                type="button"
+                                onClick={() => onDeleteConversation(conversation)}
+                                className="flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-red-600 shadow-sm transition hover:bg-red-100 hover:text-red-700 active:scale-[0.98]"
+                                title="Eliminar conversación"
+                                aria-label="Eliminar conversación"
                             >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span className="hidden text-xs font-semibold sm:inline">Eliminar</span>
-                        </button>
-                    )}
-                </div>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span className="hidden text-xs font-semibold sm:inline">Eliminar</span>
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* =====================================================

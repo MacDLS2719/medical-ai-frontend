@@ -14,7 +14,8 @@ import {
   HelpCircle,
   Headphones,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react';
 
 export default function SidebarDoctor() {
@@ -160,10 +161,27 @@ export default function SidebarDoctor() {
                 </NavLink>
               </li>
 
-              {/* 5. Mis alertas */}
+              {/* 5. Buscador */}
               <li>
                 <NavLink
                   to="/search"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/80'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  <Search size={18} strokeWidth={2} /> 
+                  <span>Buscador Médico</span>
+                </NavLink>
+              </li>
+
+              {/* 6. Mis alertas */}
+              <li>
+                <NavLink
+                  to="/notifications"
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
                       isActive
@@ -176,6 +194,8 @@ export default function SidebarDoctor() {
                   <span>Mis alertas</span>
                 </NavLink>
               </li>
+
+              
 
               {/* 6. Videoconsultas (Buscador médico) */}
               <li>

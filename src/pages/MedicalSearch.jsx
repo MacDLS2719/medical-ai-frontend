@@ -14,10 +14,11 @@ import {
   ChevronRight,
   Sparkles,
   Info,
-  Database
+  Database,
+  Globe
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AIHeaderImage from '../assets/Imges_Paciente.png';
+import AIHeaderImage from '../assets/imgs/buscador.jpg';
 
 export default function MedicalSearch() {
   const { user } = useAuth();
@@ -26,9 +27,16 @@ export default function MedicalSearch() {
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [agentAnswer, setAgentAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Modo de búsqueda: 'library' | 'agent' | 'universal'
+  const [searchMode, setSearchMode] = useState('library');
+  // Sub-fuente dentro del modo activo
   const [selectedLibrary, setSelectedLibrary] = useState('all');
+  const [selectedSourceType, setSelectedSourceType] = useState('all');
+  const [selectedUniversal, setSelectedUniversal] = useState('all');
 
   // Voz a texto
   const [isListening, setIsListening] = useState(false);
@@ -43,12 +51,72 @@ export default function MedicalSearch() {
   const [searchCount, setSearchCount] = useState(0);
 
   const libraries = [
-    { id: 'all', name: 'Todas' },
+    { id: 'all', name: 'Todas las bibliotecas' },
     { id: 'pubmed', name: 'PubMed' },
     { id: 'cochrane', name: 'Cochrane' },
     { id: 'europepmc', name: 'EuropePMC' },
     { id: 'openfda', name: 'OpenFDA' },
     { id: 'clinicaltrials', name: 'ClinicalTrials' },
+  ];
+
+  // Fuentes del Medical Agent
+  const agentSources = [
+    { id: 'all', name: 'Buscador MIVOR.ai' },
+    { id: 'nejm', name: 'NEJM' },
+    { id: 'lancet', name: 'The Lancet' },
+    { id: 'lancet_global_health', name: 'The Lancet Global Health' },
+    { id: 'lancet_public_health', name: 'The Lancet Public Health' },
+    { id: 'jama', name: 'JAMA' },
+    { id: 'jama_network_open', name: 'JAMA Network Open' },
+    { id: 'bmj', name: 'BMJ' },
+    { id: 'nature_medicine', name: 'Nature Medicine' },
+    { id: 'annals_internal_medicine', name: 'Annals of Internal Medicine' },
+    { id: 'nature', name: 'Nature' },
+    { id: 'science', name: 'Science' },
+    { id: 'science_translational_medicine', name: 'Science Translational Medicine' },
+    { id: 'ctis', name: 'EU Clinical Trials Register / CTIS' },
+    { id: 'who', name: 'WHO' },
+    { id: 'nih', name: 'NIH' },
+    { id: 'ema', name: 'EMA' },
+    { id: 'fda', name: 'FDA' },
+    { id: 'cdc', name: 'CDC' },
+    { id: 'ecdc', name: 'ECDC' },
+  ];
+
+  const universalSources = [
+    { id: 'all', name: 'Todas las universales' },
+    { id: 'medline', name: 'Medline' },
+    { id: 'embase', name: 'Embase' },
+    { id: 'scopus', name: 'Scopus' },
+    { id: 'webofscience', name: 'Web of Science' },
+  ];
+
+  // Configuración de los 3 modos de búsqueda (tabs)
+  const searchModes = [
+    {
+      id: 'library',
+      label: 'Bibliotecas',
+      description: 'PubMed, Cochrane, EuropePMC…',
+      color: 'blue',
+      activeCls: 'bg-[#0062FF] text-white border-[#0062FF] shadow-md shadow-blue-500/20',
+      inactiveCls: 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600',
+    },
+    {
+      id: 'agent',
+      label: 'MIVOR.ai Agent',
+      description: 'NEJM, JAMA, BMJ, WHO…',
+      color: 'violet',
+      activeCls: 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/20',
+      inactiveCls: 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600',
+    },
+    {
+      id: 'universal',
+      label: 'Universal',
+      description: 'Medline, Embase, Scopus…',
+      color: 'teal',
+      activeCls: 'bg-teal-600 text-white border-teal-600 shadow-md shadow-teal-500/20',
+      inactiveCls: 'bg-white text-slate-600 border-slate-200 hover:border-teal-300 hover:text-teal-600',
+    },
   ];
 
   useEffect(() => {
@@ -167,7 +235,8 @@ export default function MedicalSearch() {
           query: searchQuery,
           max_results: 100,
           user_id: user?.id,
-          source: selectedLibrary,
+          source: searchMode === 'library' && selectedLibrary !== 'all' ? selectedLibrary : undefined,
+          universal_source: searchMode === 'universal' && selectedUniversal !== 'all' ? selectedUniversal : undefined,
         }),
       });
 
@@ -219,6 +288,39 @@ export default function MedicalSearch() {
     if (user && user.role === 'patient') fetchResults('');
   }, [user]);
 
+  // ---------------------------------------------------------------
+  // Medical Agent (2do selector)
+  // ---------------------------------------------------------------
+  const fetchAgentAnswer = async (searchQuery) => {
+    setLoading(true);
+    setError(null);
+    setAgentAnswer(null);
+    setResults([]);
+    try {
+      const url = import.meta.env.VITE_API_URL + '/medical-agent/ask';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: searchQuery,
+          source: selectedSourceType !== 'all' ? selectedSourceType : undefined,
+          language: i18n.language?.startsWith('en') ? 'en' : 'es',
+        }),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Error al consultar el agente médico.');
+      }
+      const data = await response.json();
+      setAgentAnswer(data);
+    } catch (err) {
+      console.error('Error en Medical Agent:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async (e) => {
     e?.preventDefault();
     if (!query.trim()) return;
@@ -232,7 +334,18 @@ export default function MedicalSearch() {
       return;
     }
 
-    await fetchResults(query);
+    // Enruta según el modo activo
+    if (searchMode === 'agent') {
+      await fetchAgentAnswer(query);
+    } else if (searchMode === 'universal') {
+      // Búsqueda en fuentes universales (misma API, filtro universal_source)
+      setAgentAnswer(null);
+      await fetchResults(query);
+    } else {
+      // Modo biblioteca (default)
+      setAgentAnswer(null);
+      await fetchResults(query);
+    }
   };
 
   // ------------------------------------------------------------------
@@ -286,22 +399,49 @@ export default function MedicalSearch() {
       <div className="mx-auto flex w-full max-w-6xl flex-col animate-in fade-in duration-500">
 
         {/* ── Encabezado ── */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight md:text-4xl">
-              Evidencia médica
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 sm:text-base">
-              Pregunta sobre lo que necesitas saber y obtén evidencia científica confiable.
-            </p>
-          </div>
-          <div className="hidden sm:block shrink-0">
-            <img src={AIHeaderImage} alt="Evidencia Médica IA" className="h-28 w-auto object-contain md:h-36" />
+        <div className="relative mb-8 overflow-hidden rounded-3xl border border-slate-100 shadow-sm px-6 py-6 sm:px-8 sm:py-7">
+          
+          {/* Imagen de fondo del banner superior (única llamada) */}
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-20"
+            style={{ backgroundImage: `url(${AIHeaderImage})` }}
+          />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
+                Evidencia <span className="text-[#008080]">médica</span>
+              </h1>
+              <p className="mt-1.5 text-xs sm:text-sm text-slate-700 font-medium">
+                Busca y accede a la información científica más reciente y fiable.<br />
+                Avances en enfermedades, tratamientos, fármacos, ensayos clínicos y más.
+              </p>
+            </div>
+            
+            {/* Bloque derecho con los textos y badges organizados sobre el fondo */}
+            <div className="flex items-center gap-5">
+              <div className="text-right">
+                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">
+                  Conocimiento global<br />para una mejor salud
+                </h4>
+                <p className="text-[10px] text-slate-600 mt-0.5 max-w-[210px] ml-auto">
+                  Accede a la evidencia científica más relevante del mundo, verificada y actualizada con IA.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                {['Investigación', 'Tratamientos', 'Fármacos', 'Ensayos clínicos', 'Publicaciones científicas'].map((badge, idx) => (
+                  <span key={idx} className="bg-white/90 backdrop-blur-xs text-slate-800 text-[9px] px-2 py-0.5 rounded-md font-semibold text-right shadow-2xs border border-white/60">
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── Grid 2 columnas ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
 
           {/* ── Columna izq: búsqueda ── */}
           <div className="flex flex-col gap-4 lg:col-span-7">
@@ -309,7 +449,7 @@ export default function MedicalSearch() {
 
               {/* Badge + contador */}
               <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-block rounded-md bg-violet-100 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-violet-700">
+                <span className="inline-block rounded-md bg-blue-100 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-blue-700">
                   PRINCIPAL
                 </span>
 
@@ -332,7 +472,7 @@ export default function MedicalSearch() {
 
               {/* Título */}
               <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-indigo-600">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#0062FF]">
                   <Search size={22} />
                 </div>
                 <div>
@@ -345,7 +485,7 @@ export default function MedicalSearch() {
 
               {/* Formulario */}
               <form onSubmit={handleSearch} className="space-y-4">
-                <div className="relative rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition-all focus-within:border-indigo-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-600/10">
+                <div className="relative rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition-all focus-within:border-[#0062FF] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0062FF]/10">
                   <textarea
                     rows={3}
                     value={isTranscribing ? '' : query}
@@ -355,7 +495,7 @@ export default function MedicalSearch() {
                     maxLength={1000}
                     placeholder={
                       isTranscribing
-                        ? '⏳ Transcribiendo con Deepgram...'
+                        ? '⏳ Transcribiendo...'
                         : 'Escribe aquí qué quieres conocer...'
                     }
                     readOnly={isListening || isTranscribing}
@@ -363,7 +503,7 @@ export default function MedicalSearch() {
                       isListening
                         ? 'text-red-500 font-medium'
                         : isTranscribing
-                        ? 'text-indigo-400 font-medium italic'
+                        ? 'text-blue-400 font-medium italic'
                         : 'text-slate-800'
                     }`}
                   />
@@ -372,27 +512,83 @@ export default function MedicalSearch() {
                   </div>
                 </div>
 
-                {/* Acciones */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                {/* Selectores de fuente */}
+                <div className="space-y-3 pt-1">
                   <div className="flex items-center gap-2">
-                    <Database size={16} className="text-indigo-600 shrink-0" />
-                    <select
-                      value={selectedLibrary}
-                      onChange={(e) => setSelectedLibrary(e.target.value)}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition-all hover:border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 cursor-pointer"
-                    >
-                      {libraries.map((lib) => (
-                        <option key={lib.id} value={lib.id}>
-                          {lib.id === 'all' ? 'Todas las bibliotecas' : lib.name}
-                        </option>
-                      ))}
-                    </select>
+                    <Globe size={16} className="text-[#0062FF] shrink-0" />
+                    <span className="text-xs font-bold text-slate-800">Selecciona las fuentes</span>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+                    {/* 1. Bibliotecas — azul cuando activo */}
+                    <select
+                      value={selectedLibrary}
+                      onChange={(e) => {
+                        setSelectedLibrary(e.target.value);
+                        setSearchMode('library');
+                        setAgentAnswer(null);
+                        setResults([]);
+                      }}
+                      className={`w-full rounded-xl border bg-white px-3 py-2.5 text-xs font-semibold outline-none transition-all cursor-pointer truncate ${
+                        searchMode === 'library'
+                          ? 'border-[#0062FF] ring-2 ring-[#0062FF]/15 text-[#0062FF] font-bold'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {libraries.map((lib) => (
+                        <option key={lib.id} value={lib.id}>{lib.name}</option>
+                      ))}
+                    </select>
+
+                    {/* 2. Buscador MIVOR.ai — azul cuando activo */}
+                    <select
+                      value={selectedSourceType}
+                      onChange={(e) => {
+                        setSelectedSourceType(e.target.value);
+                        setSearchMode('agent');
+                        setAgentAnswer(null);
+                        setResults([]);
+                      }}
+                      className={`w-full rounded-xl border bg-white px-3 py-2.5 text-xs font-semibold outline-none transition-all cursor-pointer truncate ${
+                        searchMode === 'agent'
+                          ? 'border-[#0062FF] ring-2 ring-[#0062FF]/15 text-[#0062FF] font-bold'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {agentSources.map((src) => (
+                        <option key={src.id} value={src.id}>{src.name}</option>
+                      ))}
+                    </select>
+
+                    {/* 3. Universal — azul cuando activo */}
+                    <select
+                      value={selectedUniversal}
+                      onChange={(e) => {
+                        setSelectedUniversal(e.target.value);
+                        setSearchMode('universal');
+                        setAgentAnswer(null);
+                        setResults([]);
+                      }}
+                      className={`w-full rounded-xl border bg-white px-3 py-2.5 text-xs font-semibold outline-none transition-all cursor-pointer truncate ${
+                        searchMode === 'universal'
+                          ? 'border-[#0062FF] ring-2 ring-[#0062FF]/15 text-[#0062FF] font-bold'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {universalSources.map((uni) => (
+                        <option key={uni.id} value={uni.id}>{uni.name}</option>
+                      ))}
+                    </select>
+
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
                   <button
                     type="submit"
                     disabled={loading || !query.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition-all hover:bg-indigo-700 active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                    className="flex items-center gap-2 rounded-xl bg-[#0062FF] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-700 active:scale-95 disabled:bg-slate-300 disabled:shadow-none cursor-pointer"
                   >
                     {loading ? <Loader2 className="animate-spin" size={14} /> : <Search size={14} />}
                     <span>Buscar</span>
@@ -400,17 +596,17 @@ export default function MedicalSearch() {
                 </div>
 
                 {/* Micrófono */}
-                <div className="flex flex-col items-center justify-center pt-4">
+                <div className="flex flex-col items-center justify-center pt-4 border-t border-slate-100 mt-4">
                   <button
                     type="button"
                     onClick={toggleListening}
                     disabled={loading || isTranscribing}
-                    className={`group relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                    className={`group relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer ${
                       isTranscribing
-                        ? 'bg-indigo-400 shadow-indigo-400/40 cursor-not-allowed'
+                        ? 'bg-blue-400 shadow-blue-400/40 cursor-not-allowed'
                         : isListening
                         ? 'bg-red-500 shadow-red-500/40 animate-pulse'
-                        : 'bg-gradient-to-tr from-indigo-600 to-violet-600 shadow-indigo-500/30'
+                        : 'bg-[#0062FF] shadow-blue-500/30'
                     }`}
                   >
                     {isTranscribing ? (
@@ -430,7 +626,7 @@ export default function MedicalSearch() {
                     {isListening ? '🔴 Escuchando... pulsa para detener' : 'Pulsa el micrófono para hablar'}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    {isListening ? 'El texto aparecerá arriba en tiempo real.' : 'Puedes explicarle a Vital IA lo que buscas.'}
+                    {isListening ? 'El texto aparecerá arriba en tiempo real.' : 'Puedes explicarle lo que buscas.'}
                   </p>
                   {speechError && (
                     <p className="mt-2 text-[11px] text-red-500 text-center max-w-xs">{speechError}</p>
@@ -440,20 +636,19 @@ export default function MedicalSearch() {
             </div>
 
             {/* Banner */}
-            <div className="flex items-center justify-between rounded-2xl border border-violet-100 bg-violet-50/50 p-4 text-xs text-violet-900">
+            <div className="flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-xs text-blue-900">
               <div className="flex items-center gap-3">
-                <Info size={18} className="shrink-0 text-indigo-600" />
-                <span>Vital IA busca en fuentes científicas de confianza para ofrecerte información actualizada y de calidad.</span>
+                <Info size={18} className="shrink-0 text-[#0062FF]" />
+                <span>Mivor.ai busca en fuentes científicas de confianza para ofrecerte información actualizada y de calidad.</span>
               </div>
-              <Sparkles size={16} className="shrink-0 text-indigo-500" />
             </div>
           </div>
 
           {/* ── Columna der: alertas ── */}
-          <div className="flex flex-col justify-between gap-4 lg:col-span-5">
-            <div className="flex flex-col justify-between rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 shadow-sm transition-all hover:shadow-md">
+          <div className="flex flex-col gap-4 lg:col-span-5">
+            <div className="rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 shadow-sm transition-all hover:shadow-md">
               <div>
-                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-indigo-600">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#0062FF]">
                   <Bell size={22} />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900">Crear alerta médica</h2>
@@ -461,23 +656,23 @@ export default function MedicalSearch() {
                   Recibe al instante nuevos avances sobre lo que más te interesa.
                 </p>
 
-                <button
+                <div
                   onClick={() => navigate('/notifications')}
-                  className="mt-8 flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-left transition-all hover:bg-violet-50/50 hover:border-violet-200"
+                  className="mt-8 flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-left transition-all hover:bg-blue-50/50 hover:border-blue-200 cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <BellPlus size={20} className="text-indigo-600" />
+                    <BellPlus size={20} className="text-[#0062FF]" />
                     <span className="text-xs font-medium text-slate-700">
                       Crea alertas sobre enfermedades, tratamientos o especialidades.
                     </span>
                   </div>
-                  <ChevronRight size={18} className="text-slate-400" />
-                </button>
+                  <ChevronRight size={18} className="text-slate-400 shrink-0" />
+                </div>
               </div>
 
               <button
                 onClick={() => navigate('/notifications')}
-                className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-indigo-600 px-5 py-3.5 text-xs font-bold text-indigo-600 transition-all hover:bg-indigo-600 hover:text-white"
+                className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00875A] px-5 py-3.5 text-xs font-bold text-white shadow-sm hover:bg-[#007049] transition-all cursor-pointer"
               >
                 <span>Crear nueva alerta</span>
                 <ArrowRight size={16} />
@@ -493,6 +688,68 @@ export default function MedicalSearch() {
             <AlertCircle size={20} className="shrink-0 text-red-500" />
             <p>{error}</p>
           </div>
+        )}
+
+        {/* ── Respuesta del Medical Agent → mismas tarjetas que bibliotecas ── */}
+        {agentAnswer && (
+          <section className="mt-10">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={20} className="text-violet-600" />
+              <h3 className="text-lg font-bold text-slate-800">
+                Resultados del Medical Agent ({agentAnswer.results?.length || 0})
+              </h3>
+              <span className="ml-2 rounded-full bg-violet-100 px-3 py-0.5 text-[10px] font-bold text-violet-700">
+                {agentSources.find(s => s.id === selectedSourceType)?.name || 'Todas las fuentes'}
+              </span>
+            </div>
+
+            {/* Respuesta en texto del agente */}
+            {agentAnswer.answer && (
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+                <Sparkles size={16} className="shrink-0 text-violet-500 mt-0.5" />
+                <p className="text-xs leading-relaxed text-slate-700 whitespace-pre-wrap">{agentAnswer.answer}</p>
+              </div>
+            )}
+
+            {/* Tarjetas iguales a las de bibliotecas */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {(agentAnswer.results || []).map((r, idx) => (
+                <article key={idx} className="flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+                  <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold text-violet-700">
+                      {r.source?.toUpperCase() || 'MIVOR.AI'}
+                    </span>
+                    {r.published_at && (
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(r.published_at).toLocaleDateString(i18n.language || 'es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="mb-2 line-clamp-2 text-sm font-bold text-slate-800">
+                    {r.title || 'Sin título'}
+                  </h4>
+                  <p className="mb-4 line-clamp-3 text-xs text-slate-500">
+                    {r.abstract || r.summary || 'Sin resumen disponible.'}
+                  </p>
+                  <div className="mt-auto flex items-center justify-end border-t border-slate-100 pt-3">
+                    {r.url ? (
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:underline"
+                      >
+                        {t('searchPage.viewOriginal')}
+                        <ExternalLink size={12} />
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">Sin enlace</span>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* ── Resultados ── */}

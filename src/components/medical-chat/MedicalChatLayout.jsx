@@ -536,9 +536,7 @@ export default function MedicalChatLayout({
                         permissions={effectivePermissions}
                         messagesLoading={messagesLoading}
                         error={messagesError}
-                        onBack={() => {}}
-                        onStartVideoCall={handleStartVideoCall}
-                        onDeleteConversation={handleDeleteConversation}
+                        isInCall={true}
                     >
                         <MedicalChatInput
                             conversation={selectedConversation}
