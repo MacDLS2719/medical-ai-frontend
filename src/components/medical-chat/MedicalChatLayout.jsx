@@ -404,6 +404,12 @@ export default function MedicalChatLayout({
                 });
                 setCallStatus("calling");
 
+                // Seleccionar la conversación para que el médico vea el chat durante la llamada
+                setSelectedConversation(conversation);
+                if (messages.length === 0) {
+                    loadMessages(conversation.id);
+                }
+
                 const result = await medicalChatService.startVideoCall(conversation.id, userId);
                 if (result?.room_url) {
                     setCallData((prev) => ({
@@ -419,7 +425,7 @@ export default function MedicalChatLayout({
                 setCallData(null);
             }
         },
-        [isDoctor, userId, user, getOtherUserId]
+        [isDoctor, userId, user, getOtherUserId, messages.length, loadMessages]
     );
 
     // ── Acciones de Videollamada ─────────────────
@@ -432,7 +438,28 @@ export default function MedicalChatLayout({
             room_url: callData?.room_url,
         });
         setCallStatus("in-call");
-    }, [callData, getOtherUserId, selectedConversation, sendWsMessage]);
+
+        // Si el paciente no tiene la conversación seleccionada, intentar cargarla
+        if (!selectedConversation && callData?.conversation_id) {
+            const targetId = Number(callData.conversation_id);
+            const found = conversations.find((c) => Number(c.id) === targetId);
+            if (found) {
+                setSelectedConversation(found);
+                loadMessages(found.id);
+            } else if (userId) {
+                medicalChatService.getConversations(userId).then((list) => {
+                    if (list) {
+                        setConversations(list);
+                        const f = list.find((c) => Number(c.id) === targetId);
+                        if (f) {
+                            setSelectedConversation(f);
+                            loadMessages(f.id);
+                        }
+                    }
+                }).catch(() => {});
+            }
+        }
+    }, [callData, getOtherUserId, selectedConversation, sendWsMessage, conversations, userId, loadMessages]);
 
     const handleRejectCall = useCallback(() => {
         const targetUser = callData?.from_user || callData?.target_user || getOtherUserId(selectedConversation);

@@ -2,22 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, CheckCircle2, Loader2, AlertCircle, Crown, ArrowRight
+  ArrowLeft, CheckCircle2, Loader2, AlertCircle, Crown, ArrowRight,
+  Stethoscope, Building2, Star
 } from 'lucide-react';
 
-const PLAN_FEATURES = {
-  'free-plan': ['Hasta 50 pacientes', 'Agenda médica básica', 'Soporte por email'],
-  'free':      ['Hasta 50 pacientes', 'Agenda médica básica', 'Soporte por email'],
-  'basic':     ['Hasta 50 pacientes', 'Agenda médica básica', 'Soporte por email'],
-  'pro':       ['Pacientes ilimitados', 'IA Clínica Avanzada', 'Recordatorios SMS', 'Soporte prioritario'],
-  'premium':   ['Todo lo del plan Pro', 'Telemedicina integrada', 'Asistente IA 24/7', 'Marca blanca'],
-  'default':   ['Acceso completo a la plataforma', 'Soporte incluido'],
+const PLAN_CONFIG = {
+  'professional': {
+    badge: { label: '¡MÁS ELEGIDO', color: 'bg-blue-600', textColor: 'text-white' },
+    borderColor: 'border-blue-600',
+    shadow: 'shadow-lg shadow-blue-500/10',
+    icon: <Stethoscope size={24} className="text-blue-600" />,
+    featuresIconColor: 'text-blue-500',
+    ctaText: 'Seleccionar plan profesional',
+    displayTitle: 'PLAN PROFESIONAL',
+    subtitle: 'Para médicos y profesionales sanitarios',
+    extraDescription: 'Herramienta avanzada para apoyar tu práctica clínica diaria.'
+  },
+  'premium': {
+    badge: null,
+    borderColor: 'border-slate-200',
+    shadow: 'hover:shadow',
+    icon: <Building2 size={24} className="text-teal-600" />,
+    featuresIconColor: 'text-teal-500',
+    ctaText: 'Seleccionar plan premium',
+    displayTitle: 'PLAN PREMIUM',
+    subtitle: 'Para organizaciones sanitarias',
+    extraDescription: 'Soluciones a medida para clínicas, hospitales e instituciones.'
+  },
 };
 
-const PLAN_BADGE = {
-  'pro':     { label: '⭐ Recomendado', color: 'from-blue-600 to-blue-500' },
-  'premium': { label: '👑 Premium',     color: 'from-purple-600 to-purple-500' },
-};
+const FEATURES_PROFESIONAL = [
+  'Uso ilimitado de MIVOR.ai',
+  'Consultas avanzadas con inteligencia artificial',
+  'Acceso completo a evidencia médica actualizada',
+  'Consulta de avances en tratamientos y farmacología',
+  'Creación de alertas médicas personalizadas',
+  'Gestión y videoconsultas de pacientes',
+  'Herramientas profesionales para la práctica médica'
+];
+
+const FEATURES_PREMIUM = [
+  'Acceso para múltiples profesionales',
+  'Gestión centralizada de usuarios',
+  'Herramientas adaptadas a instituciones',
+  'Integración en entornos sanitarios',
+  'Formación y soporte especializado',
+  'Soluciones personalizadas según necesidades'
+];
 
 export default function DoctorUpgradePlan() {
   const { user, loginAsDoctor } = useAuth();
@@ -40,8 +71,17 @@ export default function DoctorUpgradePlan() {
       })
       .then(data => {
         const paidPlans = data.filter(p => !p.is_free);
-        setPlans(paidPlans);
-        if (paidPlans.length > 0) setSelectedPlanId(paidPlans[0].id);
+        const filteredPlans = paidPlans.filter(plan => {
+          const nameLower = plan.name?.trim().toLowerCase();
+          return nameLower === 'professional' || nameLower === 'premium' || nameLower === 'pro';
+        });
+        
+        setPlans(filteredPlans.length > 0 ? filteredPlans : paidPlans);
+        if (filteredPlans.length > 0) {
+          setSelectedPlanId(filteredPlans[0].id);
+        } else if (paidPlans.length > 0) {
+          setSelectedPlanId(paidPlans[0].id);
+        }
       })
       .catch(() => setApiError(true))
       .finally(() => setLoading(false));
@@ -57,7 +97,7 @@ export default function DoctorUpgradePlan() {
       const res = await fetch(`${apiUrl}/doctor-profile/upgrade-subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, plan_id: selectedPlanId }),
+        body: JSON.stringify({ user_id: user?.id, plan_id: selectedPlanId }),
       });
 
       if (!res.ok) {
@@ -65,11 +105,8 @@ export default function DoctorUpgradePlan() {
         throw new Error(err.detail || 'Error al cambiar el plan');
       }
 
-      const result = await res.json();
-
-      // Actualizar el user en el contexto con la nueva suscripción
       const selected = plans.find(p => p.id === selectedPlanId);
-      if (selected && loginAsDoctor) {
+      if (selected && loginAsDoctor && user) {
         loginAsDoctor({ ...user, subscription: selected });
       }
 
@@ -84,19 +121,19 @@ export default function DoctorUpgradePlan() {
   // ── Pantalla de éxito
   if (success) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-50/50">
-        <div className="max-w-sm w-full glass-card p-8 rounded-3xl border border-emerald-100 text-center space-y-5">
+      <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-50/50 min-h-screen">
+        <div className="max-w-sm w-full p-8 bg-white rounded-3xl border border-emerald-100 text-center space-y-5 shadow-lg">
           <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100">
             <CheckCircle2 size={32} className="text-emerald-500" />
           </div>
           <h2 className="text-xl font-extrabold text-slate-900">¡Plan actualizado!</h2>
-          <p className="text-sm text-slate-500">Tu suscripción ha sido activada. Ahora tienes acceso a todas las funciones de tu nuevo plan.</p>
+          <p className="text-xs text-slate-500 leading-relaxed">Tu suscripción ha sido activada correctamente. Ya tienes acceso a todas las funciones de tu nuevo plan.</p>
           <button
             onClick={() => navigate('/doctor/profile')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[#0052FF] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer"
           >
-            Ver mi perfil completo
-            <ArrowRight size={16} />
+            <span>Ver mi perfil completo</span>
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>
@@ -105,10 +142,10 @@ export default function DoctorUpgradePlan() {
 
   return (
     <div className="w-full min-h-full p-4 md:p-6 bg-slate-50/50 overflow-y-auto">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
-        {/* Cabecera */}
-        <div className="flex items-center gap-4">
+        {/* Cabecera compacta */}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
@@ -116,112 +153,158 @@ export default function DoctorUpgradePlan() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Mejorar mi plan</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Selecciona el plan que mejor se adapta a tu práctica médica.</p>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Mejorar mi plan</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5"> Accede a herramientas inteligentes para tu práctica clínica y conecta con profesionales verificados.</p>
           </div>
         </div>
 
-        {/* Error de carga */}
+        {/* Alertas de Error */}
         {apiError && (
-          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl">
-            <AlertCircle size={18} className="shrink-0" />
+          <div className="flex items-center gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+            <AlertCircle size={16} className="shrink-0" />
             <span>No se pudieron cargar los planes. Verifica tu conexión al servidor.</span>
           </div>
         )}
 
-        {/* Error de envío */}
         {submitError && (
-          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl">
-            <AlertCircle size={18} className="shrink-0" />
+          <div className="flex items-center gap-2.5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+            <AlertCircle size={16} className="shrink-0" />
             <span>{submitError}</span>
           </div>
         )}
 
         {/* Grid de Planes */}
         {loading ? (
-          <div className="flex items-center gap-3 text-slate-500 py-20 justify-center">
-            <Loader2 size={22} className="animate-spin text-blue-500" />
-            <span className="text-sm">Cargando planes disponibles...</span>
+          <div className="flex items-center gap-2 text-slate-500 py-16 justify-center text-xs">
+            <Loader2 size={18} className="animate-spin text-blue-500" />
+            <span>Cargando planes disponibles...</span>
           </div>
         ) : plans.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 text-slate-500 py-20">
-            <AlertCircle size={28} className="text-rose-400" />
-            <p className="text-sm font-semibold text-slate-700">No hay planes disponibles en este momento.</p>
+          <div className="flex flex-col items-center gap-2 text-slate-500 py-16">
+            <AlertCircle size={24} className="text-rose-400" />
+            <p className="text-xs font-semibold text-slate-700">No hay planes disponibles en este momento.</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {plans.map((plan) => {
                 const isSelected = selectedPlanId === plan.id;
-                const badge = PLAN_BADGE[plan.slug];
-                const features = PLAN_FEATURES[plan.slug] || PLAN_FEATURES['default'];
+                const nameKey = plan.name?.trim().toLowerCase() === 'pro' ? 'professional' : plan.name?.trim().toLowerCase();
+                const config = PLAN_CONFIG[nameKey] || PLAN_CONFIG['professional'];
+
+                const isPremium = nameKey === 'premium';
+                const featuresToRender = isPremium ? FEATURES_PREMIUM : FEATURES_PROFESIONAL;
 
                 return (
                   <div
                     key={plan.id}
                     onClick={() => setSelectedPlanId(plan.id)}
-                    className={`relative p-6 rounded-3xl border-2 transition-all duration-200 cursor-pointer flex flex-col bg-white ${
-                      isSelected
-                        ? 'border-blue-600 shadow-xl shadow-blue-500/10 scale-[1.02] z-10'
-                        : 'border-slate-100 hover:border-blue-200 hover:shadow-md'
-                    }`}
+                    className={`relative p-5 sm:p-6 rounded-2xl border-2 transition-all duration-150 cursor-pointer flex flex-col bg-white ${config.borderColor} ${isSelected ? 'ring-2 ring-blue-500/20 ' + config.shadow : 'hover:border-slate-300'}`}
                   >
-                    {badge && (
-                      <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r ${badge.color} text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm whitespace-nowrap`}>
-                        {badge.label}
+                    {/* Badge */}
+                    {config.badge && (
+                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${config.badge.color} ${config.badge.textColor} text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm whitespace-nowrap inline-flex items-center gap-1`}>
+                        <Star size={10} fill="white" />
+                        {config.badge.label}
                       </div>
                     )}
 
-                    <div className="mb-4">
-                      <h3 className={`text-lg font-bold ${isSelected ? 'text-blue-600' : 'text-slate-800'}`}>
-                        {plan.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-1 min-h-[2rem] leading-relaxed">
-                        {plan.description || 'Plan de suscripción médica.'}
+                    {/* Encabezado Tarjeta */}
+                    <div className="flex items-center gap-3.5 mb-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                        {config.icon}
+                      </div>
+                      <div>
+                        <h3 className={`text-base sm:text-lg font-extrabold ${isPremium ? 'text-teal-800' : 'text-blue-900'} tracking-tight`}>
+                          {config.displayTitle}
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          {config.subtitle}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Descripción */}
+                    {config.extraDescription && (
+                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                        {config.extraDescription}
                       </p>
+                    )}
+
+                    {/* Precio */}
+                    {isPremium ? (
+                      <div className="bg-teal-50 rounded-xl p-3 mb-3 border border-teal-100 text-center">
+                        <p className="text-sm sm:text-base font-extrabold text-teal-950">Solución a medida</p>
+                        <p className="text-[11px] text-teal-700">Contacta con nuestro equipo</p>
+                      </div>
+                    ) : (
+                      <div className="mb-1 flex items-baseline gap-1 justify-center bg-slate-50 py-2.5 rounded-xl border border-slate-100">
+                        <span className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tighter">
+                          ${Number(plan.price).toFixed(2)}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          /{plan.billing_interval === 'month' ? 'mes' : plan.billing_interval}
+                        </span>
+                      </div>
+                    )}
+
+                    {!isPremium && <p className="text-center text-[10px] text-slate-400 mb-3 font-medium">Sin límites de uso</p>}
+
+                    {/* Botón estado de selección dentro de la tarjeta */}
+                    <div className="mb-4">
+                      <div className={`w-full py-2.5 rounded-xl text-center text-xs font-bold transition-all ${
+                        isSelected 
+                          ? (isPremium ? 'bg-teal-800 text-white shadow-md' : 'bg-[#0052FF] text-white shadow-md') 
+                          : (isPremium ? 'bg-teal-50 text-teal-900' : 'bg-slate-100 text-slate-800')
+                      }`}>
+                        {isSelected ? '✓ Plan seleccionado' : 'Seleccionar plan'}
+                      </div>
                     </div>
 
-                    <div className="mb-6 flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-slate-900">
-                        ${Number(plan.price).toFixed(2)}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium">
-                        /{plan.billing_interval === 'month' ? 'mes' : plan.billing_interval}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5 flex-1">
-                      {features.map((feat, idx) => (
+                    {/* Características */}
+                    <div className={`space-y-2 flex-1 pt-3 border-t border-slate-100 text-xs ${isPremium ? 'text-teal-900' : 'text-slate-700'}`}>
+                      {featuresToRender.map((feature, idx) => (
                         <div key={idx} className="flex items-start gap-2">
-                          <CheckCircle2 size={15} className={`shrink-0 mt-0.5 ${isSelected ? 'text-blue-500' : 'text-slate-400'}`} />
-                          <span className="text-xs text-slate-600 font-medium leading-snug">{feat}</span>
+                          <CheckCircle2
+                            size={14}
+                            className={`shrink-0 mt-0.5 ${isPremium ? 'text-teal-600' : config.featuresIconColor}`}
+                          />
+                          <span className="font-medium leading-snug">{feature}</span>
                         </div>
                       ))}
                     </div>
 
-                    <div className={`mt-8 py-2.5 rounded-xl text-center text-xs font-bold transition-all ${
-                      isSelected
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                        : 'bg-slate-50 text-slate-600 border border-slate-100'
-                    }`}>
-                      {isSelected ? '✓ Plan seleccionado' : 'Seleccionar plan'}
-                    </div>
+                    {/* Nota inferior Premium */}
+                    {isPremium && (
+                      <div className="mt-4 pt-3 border-t border-teal-100 flex items-start gap-2.5 text-[11px] bg-white p-2.5 rounded-lg border border-teal-50">
+                        <Building2 size={18} className="text-teal-600 shrink-0 mt-0.5"/>
+                        <p className="text-teal-800 leading-snug">
+                          ¿Quieres implementar MIVOR.ai en tu organización? Analizamos tus necesidades.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Botón de confirmación */}
+            {/* Botón de confirmación final */}
             <div className="flex justify-end pt-4 border-t border-slate-200/60">
               <button
                 onClick={handleUpgrade}
                 disabled={!selectedPlanId || submitting}
-                className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-95"
+                className="flex items-center gap-2 px-8 py-2.5 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-95"
               >
                 {submitting ? (
-                  <><Loader2 size={16} className="animate-spin" /><span>Procesando...</span></>
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Procesando...</span>
+                  </>
                 ) : (
-                  <><Crown size={16} className="text-yellow-300" /><span>Confirmar y mejorar plan</span></>
+                  <>
+                    <Crown size={15} className="text-yellow-300" />
+                    <span>Confirmar y mejorar plan</span>
+                  </>
                 )}
               </button>
             </div>

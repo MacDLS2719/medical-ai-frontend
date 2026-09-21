@@ -209,7 +209,7 @@ export default function DoctorCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans text-slate-800">
+    <div className="min-h-screen h-auto bg-[#F8FAFC] flex flex-col font-sans text-slate-800 overflow-y-auto">
 
       {/* Dynamic Content Area */}
       <div className="flex-1 flex flex-col max-w-[1600px] w-full mx-auto p-6">

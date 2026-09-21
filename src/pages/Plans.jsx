@@ -1,63 +1,86 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Zap, BookOpen, Bell, Brain, ArrowLeft, Shield, RefreshCw, Globe } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import {
+  Check, Zap, BookOpen, Bell, Brain, ArrowLeft, Shield, RefreshCw, Globe,
+  Stethoscope, Building2, User, Star, Loader2, AlertCircle, CheckCircle2, Crown, ArrowRight
+} from 'lucide-react';
 
-const PLANS = [
+const PLANS_CONFIG = [
   {
-    id: 'basic',
-    name: 'Básico',
+    id: 'free',
+    name: 'GRATUITO',
+    displayTitle: 'GRATUITO',
+    subtitle: 'Para personas que quieren empezar',
+    description: 'Descubre todo lo que MIVOR.ai puede hacer por ti, con acceso limitado y sin coste.',
+    price: '0 €',
+    period: 'Siempre disponible',
     badge: null,
-    price: '$9.99',
-    period: '/mes',
-    description: 'Perfecto para empezar a explorar evidencia médica con confianza.',
-    accent: '#1e40af',        // azul marino
-    accentLight: '#dbeafe',   // azul claro
-    accentText: '#1e3a8a',
+    icon: <User size={24} className="text-blue-600" />,
+    featuresIconColor: 'text-blue-500',
+    borderColor: 'border-slate-200',
+    isPro: false,
+    isPremium: false,
     features: [
-      '20 búsquedas al mes',
-      'Acceso a PubMed y Cochrane',
-      'Transcripción por voz',
-      'Soporte por correo electrónico',
+      'Consultas limitadas con MIVOR.ai',
+      'Comprensión de información médica de forma sencilla',
+      'Acceso limitado a avances médicos y farmacológicos',
+      'Organización básica de información de salud',
+      'Acceso desde cualquier dispositivo'
     ],
+    footerNote: 'Para mantener el servicio gratuito, puedes recibir ocasionalmente publicidad adaptada.'
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    badge: 'MÁS POPULAR',
-    price: '$24.99',
+    id: 'professional',
+    name: 'PROFESIONAL',
+    displayTitle: 'PROFESIONAL',
+    subtitle: 'Para médicos y profesionales sanitarios',
+    description: 'Una herramienta avanzada, diseñada para apoyar tu práctica clínica diaria.',
+    price: 'XX €',
     period: '/mes',
-    description: 'Para profesionales que necesitan evidencia disponible siempre.',
-    accent: '#1e40af',
-    accentLight: '#dbeafe',
-    accentText: '#1e3a8a',
+    badge: { label: 'MÁS ELEGIDO', color: 'bg-blue-600', textColor: 'text-white' },
+    icon: <Stethoscope size={24} className="text-blue-600" />,
+    featuresIconColor: 'text-blue-500',
+    borderColor: 'border-blue-600',
+    shadow: 'shadow-xl shadow-blue-500/15',
+    isPro: true,
+    isPremium: false,
     features: [
-      'Búsquedas ilimitadas',
-      'Todas las bibliotecas médicas',
-      'Transcripción de voz en tiempo real',
-      'Alertas médicas personalizadas',
-      'Exportar resultados',
-      'Soporte prioritario 24/7',
+      'Uso ilimitado de MIVOR.ai',
+      'Consultas avanzadas con inteligencia artificial',
+      'Acceso completo a evidencia médica actualizada',
+      'Consulta de avances en tratamientos y farmacología',
+      'Creación de alertas médicas personalizadas',
+      'Gestión de pacientes',
+      'Videoconsultas con pacientes',
+      'Herramientas profesionales para la práctica médica'
     ],
+    footerNote: 'Sin limites de uso'
   },
   {
-    id: 'clinic',
-    name: 'Clínica',
-    badge: 'PARA EQUIPOS',
-    price: '$79.99',
-    period: '/mes',
-    description: 'Solución completa para equipos médicos y clínicas.',
-    accent: '#1e40af',
-    accentLight: '#dbeafe',
-    accentText: '#1e3a8a',
+    id: 'premium',
+    name: 'PREMIUM',
+    displayTitle: 'PREMIUM',
+    subtitle: 'Para organizaciones sanitarias',
+    description: 'Soluciones personalizadas para clínicas, hospitales, universidades y otras instituciones.',
+    price: 'Solución a medida',
+    period: 'Contacta con nuestro equipo',
+    badge: null,
+    icon: <Building2 size={24} className="text-teal-600" />,
+    featuresIconColor: 'text-teal-600',
+    borderColor: 'border-slate-200',
+    isPro: false,
+    isPremium: true,
     features: [
-      'Todo lo de Pro',
-      'Hasta 10 usuarios',
-      'Panel de administración',
-      'Integraciones EHR / EMR',
-      'Informes de uso detallados',
-      'Soporte dedicado 24/7',
+      'Acceso para múltiples profesionales',
+      'Gestión centralizada de usuarios',
+      'Herramientas adaptadas a instituciones',
+      'Integración en entornos sanitarios',
+      'Formación y soporte especializado',
+      'Soluciones personalizadas según necesidades'
     ],
-  },
+    footerNote: '¿Quieres implementar MIVOR.ai en tu organización? Nuestro equipo analizará tus necesidades y preparará una propuesta personalizada.'
+  }
 ];
 
 const BENEFITS = [
@@ -69,281 +92,427 @@ const BENEFITS = [
 
 export default function Plans() {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const { user, loginAsDoctor } = useAuth();
+  
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState('professional');
   const [showPayModal, setShowPayModal] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    fetch(`${apiUrl}/doctor-profile/subscription-plans`)
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          setPlans(data);
+        }
+      })
+      .catch(() => {
+        setApiError(true);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getMatchedBackendPlan = (configId) => {
+    if (!plans || plans.length === 0) return null;
+    if (configId === 'free') {
+      return plans.find(p => p.is_free || p.slug?.toLowerCase() === 'free' || p.slug?.toLowerCase() === 'free-plan' || p.name?.toLowerCase().includes('grat') || p.name?.toLowerCase().includes('free'));
+    }
+    if (configId === 'professional') {
+      return plans.find(p => p.slug?.toLowerCase() === 'professional' || p.slug?.toLowerCase() === 'pro' || p.name?.toLowerCase().includes('prof') || p.name?.toLowerCase().includes('pro'));
+    }
+    if (configId === 'premium') {
+      return plans.find(p => p.slug?.toLowerCase() === 'premium' || p.name?.toLowerCase().includes('prem'));
+    }
+    return null;
+  };
+
+  const isCurrentPlan = (planConfigId) => {
+    if (!user?.subscription) return planConfigId === 'free';
+    const sub = user.subscription;
+    if (sub.is_free || sub.slug === 'free' || sub.slug === 'free-plan' || sub.price === 0) {
+      return planConfigId === 'free';
+    }
+    const s = (sub.slug || sub.name || '').toLowerCase();
+    if (planConfigId === 'professional' && (s.includes('prof') || s === 'pro')) {
+      return true;
+    }
+    if (planConfigId === 'premium' && s.includes('prem')) {
+      return true;
+    }
+    return false;
+  };
 
   const formatCard = (v) => {
     const digits = v.replace(/\D/g, '').slice(0, 16);
     return digits.replace(/(.{4})/g, '$1 ').trim();
   };
 
-  const openModal = (plan) => {
-    setSelectedPlan(plan);
+  const executeUpgrade = async (targetPlan) => {
+    if (!targetPlan) {
+      alert('Plan no encontrado en el servidor.');
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+      const res = await fetch(`${apiUrl}/doctor-profile/upgrade-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user?.id, plan_id: targetPlan.id }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al cambiar el plan');
+      }
+
+      if (loginAsDoctor && user) {
+        loginAsDoctor({ ...user, subscription: targetPlan });
+      }
+
+      setShowPayModal(false);
+      setSuccess(true);
+    } catch (err) {
+      setSubmitError(err.message || 'Error al procesar la actualización del plan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSelectPlan = (planConfigId) => {
+    setSelectedPlanId(planConfigId);
+    setSubmitError(null);
+
+    if (isCurrentPlan(planConfigId)) {
+      return;
+    }
+
+    const matched = getMatchedBackendPlan(planConfigId);
+
+    if (planConfigId === 'free') {
+      if (window.confirm('¿Deseas cambiar al Plan Gratuito?')) {
+        if (matched) {
+          executeUpgrade(matched);
+        } else {
+          const fallbackFree = { id: 1, name: 'Gratuito', slug: 'free', is_free: true, price: 0 };
+          if (loginAsDoctor && user) loginAsDoctor({ ...user, subscription: fallbackFree });
+          setSuccess(true);
+        }
+      }
+      return;
+    }
+
     setShowPayModal(true);
   };
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'inherit' }}>
+  const handleSubscribePayment = async () => {
+    const matchedPlan = getMatchedBackendPlan(selectedPlanId);
+    if (!matchedPlan) {
+      setSubmitError('No se pudo identificar el plan en el servidor.');
+      return;
+    }
+    await executeUpgrade(matchedPlan);
+  };
 
-      {/* ─── TOP NAVY HERO ─── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)',
-        padding: '56px 24px 80px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* decorative circles */}
-        <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '340px', height: '340px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-80px', left: '-80px', width: '400px', height: '400px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
+  const selectedPlanDetails = PLANS_CONFIG.find(p => p.id === selectedPlanId) || PLANS_CONFIG[1];
 
-        <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          {/* Back button */}
-          <button
-            onClick={() => navigate(-1)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '999px', padding: '8px 18px', color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginBottom: '36px', transition: 'all 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
-          >
-            <ArrowLeft size={15} />
-            Volver a búsqueda
-          </button>
-
-          {/* Logo pill */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', padding: '6px 18px', marginBottom: '24px' }}>
-            <span style={{ fontSize: '18px' }}>🧬</span>
-            <span style={{ fontWeight: 900, fontSize: '15px', color: '#fff', letterSpacing: '0.02em' }}>movir.ai</span>
+  if (success) {
+    const activeMatched = getMatchedBackendPlan(selectedPlanId) || selectedPlanDetails;
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
+        <div className="max-w-md w-full p-8 bg-white rounded-3xl border border-emerald-100 text-center space-y-5 shadow-xl">
+          <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100">
+            <CheckCircle2 size={32} className="text-emerald-500" />
           </div>
-
-          <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem, 4.5vw, 3rem)', fontWeight: 900, lineHeight: 1.18, letterSpacing: '-0.02em', margin: '0 0 14px' }}>
-            Has alcanzado el límite gratuito
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '16px', maxWidth: '520px', lineHeight: 1.7, margin: '0 0 32px' }}>
-            Elige un plan y sigue accediendo a evidencia médica científica de las mejores bibliotecas del mundo, potenciada por IA.
+          <h2 className="text-xl font-extrabold text-slate-900">¡Plan actualizado con éxito!</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Tu suscripción a <strong>{activeMatched.name}</strong> ha sido activada correctamente. Ya tienes acceso a todas las funciones disponibles para tu perfil.
           </p>
-
-          {/* Trust badges */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {[
-              { icon: Shield, label: 'Pagos seguros con Paddle' },
-              { icon: RefreshCw, label: 'Cancela cuando quieras' },
-              { icon: Globe, label: 'Disponible globalmente' },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '999px', padding: '6px 14px' }}>
-                <Icon size={13} style={{ color: 'rgba(255,255,255,0.7)' }} />
-                <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: 600 }}>{label}</span>
-              </div>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              onClick={() => navigate('/medical-search')}
+              className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+            >
+              Ir a buscador médico
+            </button>
+            <button
+              onClick={() => navigate('/doctor/profile')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-[#0052FF] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer"
+            >
+              <span>Ver mi perfil</span>
+              <ArrowRight size={15} />
+            </button>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* ─── MAIN CONTENT (white) ─── */}
-      <div style={{ maxWidth: '1060px', margin: '-40px auto 0', padding: '0 20px 80px', position: 'relative', zIndex: 2 }}>
+  return (
+    <div className="min-h-screen w-full bg-[#f8fafc] flex flex-col overflow-y-auto" style={{ fontFamily: 'inherit' }}>
+      {/* ─── MAIN CONTAINER (RESPONSIVO Y CON ESPACIADO REDUCIDO) ─── */}
+      <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-6 sm:pt-7 pb-10 flex-1 flex flex-col">
 
-        {/* ─── BENEFITS STRIP ─── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '52px' }}>
-          {BENEFITS.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px 20px', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', transition: 'all 0.2s', cursor: 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#93c5fd'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(30,64,175,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = '0 1px 6px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'none'; }}
-            >
-              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-                <Icon size={20} style={{ color: '#1e40af' }} />
-              </div>
-              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px', marginBottom: '5px' }}>{title}</div>
-              <div style={{ color: '#64748b', fontSize: '12px', lineHeight: 1.6 }}>{desc}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ─── SECTION TITLE ─── */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
+        {/* Título y subtítulo con espaciado ajustado */}
+        <div className="text-center max-w-2xl mx-auto mb-4 sm:mb-5">
+          <h1 className="text-slate-900 text-2xl sm:text-3xl font-black tracking-tight leading-tight mb-1">
             Elige el plan que mejor se adapta a ti
-          </h2>
-          <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Sin permanencia. Cambia o cancela en cualquier momento.</p>
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm leading-relaxed m-0">
+            Herramientas inteligentes para comprender tu información médica y conectar con profesionales.
+          </p>
         </div>
 
-        {/* ─── PRICING CARDS ─── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '20px', alignItems: 'start' }}>
-          {PLANS.map((plan) => {
-            const isPro = plan.id === 'pro';
+        {/* ─── CARDS GRID (3 PLANES) ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch mb-6">
+          {PLANS_CONFIG.map((plan) => {
+            const isCurrent = isCurrentPlan(plan.id);
+            const isPro = plan.isPro;
+            const isPremium = plan.isPremium;
+            const isFree = plan.id === 'free';
+
+            const matchedBackend = getMatchedBackendPlan(plan.id);
+            const displayPrice = matchedBackend && matchedBackend.price !== undefined && !isPremium
+              ? (matchedBackend.is_free ? '0 €' : `$${Number(matchedBackend.price).toFixed(2)}`)
+              : plan.price;
+
             return (
               <div
                 key={plan.id}
+                onClick={() => setSelectedPlanId(plan.id)}
                 style={{
                   position: 'relative',
-                  background: isPro ? '#0f172a' : '#fff',
-                  border: isPro ? '2px solid #1e40af' : '1px solid #e2e8f0',
-                  borderRadius: '24px',
-                  padding: '32px 28px',
-                  boxShadow: isPro ? '0 20px 50px rgba(30,64,175,0.25)' : '0 2px 12px rgba(0,0,0,0.06)',
-                  transform: isPro ? 'scale(1.03)' : 'scale(1)',
-                  transition: 'all 0.25s',
+                  background: '#ffffff',
+                  border: isCurrent 
+                    ? '2px solid #10b981' 
+                    : isPro 
+                      ? '2px solid #2563eb' 
+                      : '1px solid #e2e8f0',
+                  borderRadius: '20px',
+                  padding: '24px 20px',
+                  boxShadow: isCurrent
+                    ? '0 8px 24px rgba(16,185,129,0.1)'
+                    : isPro 
+                      ? '0 16px 32px rgba(37,99,235,0.1)' 
+                      : '0 2px 8px rgba(0,0,0,0.02)',
+                  transform: isPro ? 'scale(1.01)' : 'scale(1)',
+                  display: 'flex',
+                  flexDirection: 'column',
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
-                onClick={() => openModal(plan)}
-                onMouseEnter={e => e.currentTarget.style.transform = isPro ? 'scale(1.06)' : 'scale(1.02)'}
-                onMouseLeave={e => e.currentTarget.style.transform = isPro ? 'scale(1.03)' : 'scale(1)'}
               >
-                {plan.badge && (
-                  <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(90deg, #1e40af, #3b82f6)', borderRadius: '999px', padding: '4px 18px', fontSize: '10px', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(30,64,175,0.4)' }}>
-                    ★ {plan.badge}
+                {/* Badge superior */}
+                {isCurrent ? (
+                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#10b981', borderRadius: '999px', padding: '3px 12px', fontSize: '9px', fontWeight: 900, color: '#fff', letterSpacing: '0.08em', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 3px 10px rgba(16,185,129,0.3)' }}>
+                    <Check size={10} strokeWidth={3} />
+                    TU PLAN ACTUAL
+                  </div>
+                ) : plan.badge ? (
+                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#2563eb', borderRadius: '999px', padding: '3px 12px', fontSize: '9px', fontWeight: 900, color: '#fff', letterSpacing: '0.08em', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Star size={9} fill="white" />
+                    {plan.badge.label}
+                  </div>
+                ) : null}
+
+                {/* Header Icono y Título */}
+                <div className="flex items-center gap-3 mb-2.5">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPremium ? 'bg-teal-50' : 'bg-blue-50'}`}>
+                    {plan.icon}
+                  </div>
+                  <div>
+                    <h3 className={`text-base font-black tracking-tight ${isPremium ? 'text-teal-800' : 'text-blue-950'}`}>
+                      {plan.displayTitle}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      {plan.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-600 mb-4 leading-relaxed min-h-[30px]">
+                  {plan.description}
+                </p>
+
+                {/* Precio compacto */}
+                {isPremium ? (
+                  <div className="bg-teal-50 rounded-xl p-2.5 mb-4 border border-teal-100 text-center">
+                    <p className="text-sm font-extrabold text-teal-950">{plan.price}</p>
+                    <p className="text-[10px] text-teal-700">{plan.period}</p>
+                  </div>
+                ) : (
+                  <div className="mb-4 text-center bg-slate-50 py-2.5 rounded-xl border border-slate-100">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-2xl font-black text-slate-950 tracking-tight">{displayPrice}</span>
+                      <span className="text-[11px] text-slate-500 font-medium">{plan.period}</span>
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-semibold">{plan.footerNote || 'Siempre disponible'}</span>
                   </div>
                 )}
 
-                {/* Plan name + dot */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                  <span style={{ fontWeight: 800, fontSize: '18px', color: isPro ? '#fff' : '#0f172a' }}>{plan.name}</span>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#1e40af', boxShadow: '0 0 12px rgba(30,64,175,0.6)' }} />
-                </div>
-
-                {/* Price */}
-                <div style={{ marginBottom: '12px' }}>
-                  <span style={{ fontSize: '40px', fontWeight: 900, color: isPro ? '#fff' : '#0f172a', lineHeight: 1 }}>{plan.price}</span>
-                  <span style={{ color: isPro ? 'rgba(255,255,255,0.4)' : '#94a3b8', fontSize: '14px', marginLeft: '4px' }}>{plan.period}</span>
-                </div>
-
-                <p style={{ color: isPro ? 'rgba(255,255,255,0.55)' : '#64748b', fontSize: '13px', lineHeight: 1.6, marginBottom: '22px' }}>{plan.description}</p>
-
-                <div style={{ height: '1px', background: isPro ? 'rgba(255,255,255,0.1)' : '#f1f5f9', marginBottom: '22px' }} />
-
-                {/* Features */}
-                <ul style={{ listStyle: 'none', margin: '0 0 28px', padding: 0, display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', color: isPro ? 'rgba(255,255,255,0.75)' : '#334155', fontSize: '13px' }}>
-                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: isPro ? 'rgba(59,130,246,0.25)' : '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
-                        <Check size={11} style={{ color: '#1e40af' }} />
-                      </span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
+                {/* Botón CTA */}
                 <button
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '14px',
-                    border: isPro ? 'none' : '2px solid #1e40af',
-                    cursor: 'pointer',
-                    fontWeight: 800,
-                    fontSize: '14px',
-                    transition: 'all 0.2s',
-                    background: isPro ? 'linear-gradient(135deg, #1e40af, #3b82f6)' : 'transparent',
-                    color: isPro ? '#fff' : '#1e40af',
-                    boxShadow: isPro ? '0 6px 24px rgba(30,64,175,0.4)' : 'none',
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectPlan(plan.id);
                   }}
-                  onMouseEnter={e => { if (!isPro) { e.currentTarget.style.background = '#1e40af'; e.currentTarget.style.color = '#fff'; } else { e.currentTarget.style.opacity = '0.85'; } }}
-                  onMouseLeave={e => { if (!isPro) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#1e40af'; } else { e.currentTarget.style.opacity = '1'; } }}
+                  disabled={isCurrent || submitting}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all mb-4 flex items-center justify-center gap-1.5 ${
+                    isCurrent
+                      ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 cursor-default'
+                      : isPro 
+                        ? 'bg-[#0052FF] hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 cursor-pointer' 
+                        : isPremium 
+                          ? 'bg-teal-700 hover:bg-teal-800 text-white shadow-md cursor-pointer'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer'
+                  }`}
                 >
-                  Elegir {plan.name} →
+                  {isCurrent ? (
+                    <>
+                      <Check size={13} className="text-emerald-600" />
+                      <span>✓ Tu plan actual</span>
+                    </>
+                  ) : isFree ? (
+                    'Crear cuenta gratis →'
+                  ) : isPro ? (
+                    'Comenzar prueba profesional →'
+                  ) : (
+                    'Contactar con MIVOR.ai →'
+                  )}
                 </button>
+
+                {/* Lista de Características (más compacta) */}
+                <div className="space-y-2 flex-1 pt-3 border-t border-slate-100 text-[11px]">
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle2
+                        size={13}
+                        className={`shrink-0 mt-0.5 ${isPremium ? 'text-teal-600' : 'text-blue-600'}`}
+                      />
+                      <span className="font-medium text-slate-700 leading-tight">{feature}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* footer note */}
-        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px', marginTop: '40px' }}>
-          Precios en USD. IVA puede aplicar según tu país. Al suscribirte aceptas nuestros Términos y Política de Privacidad.
-        </p>
+        {/* Footer minimalista de confianza */}
+        <div className="flex flex-wrap items-center justify-center gap-6 text-[11px] text-slate-500 pt-4 border-t border-slate-200">
+          <div className="flex items-center gap-1.5">
+            <Shield size={14} className="text-blue-600" />
+            <span>Datos protegidos y seguros</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-blue-600" />
+            <span>Información basada en evidencia</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Zap size={14} className="text-emerald-600" />
+            <span>Cancela cuando quieras</span>
+          </div>
+        </div>
+
       </div>
 
-      {/* ─── PAYMENT MODAL ─── */}
-      {showPayModal && selectedPlan && (
+      {/* ─── PAYMENT MODAL (Checkout) ─── */}
+      {showPayModal && selectedPlanDetails && (
         <div
-          onClick={() => setShowPayModal(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(10px)' }}
+          onClick={() => !submitting && setShowPayModal(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(10px)', overflowY: 'auto' }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: '440px', borderRadius: '28px', background: '#fff', boxShadow: '0 40px 80px rgba(15,23,42,0.3)', overflow: 'hidden' }}
+            style={{ width: '100%', maxWidth: '420px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '24px', background: '#fff', boxShadow: '0 30px 60px rgba(15,23,42,0.3)' }}
           >
-            {/* Navy top bar */}
-            <div style={{ height: '5px', background: 'linear-gradient(90deg, #0f172a, #1e40af, #3b82f6)' }} />
+            <div style={{ height: '4px', background: 'linear-gradient(90deg, #0f172a, #1e40af, #3b82f6)' }} />
 
-            <div style={{ padding: '32px 32px 36px' }}>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '26px' }}>
+            <div style={{ padding: '24px 28px 28px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '16px' }}>🧬</span>
-                    <span style={{ fontWeight: 900, fontSize: '14px', color: '#1e40af', letterSpacing: '0.02em' }}>movir.ai</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '14px' }}>🧬</span>
+                    <span style={{ fontWeight: 900, fontSize: '13px', color: '#1e40af' }}>mivor.ai</span>
                   </div>
-                  <h2 style={{ margin: 0, fontWeight: 900, fontSize: '20px', color: '#0f172a', lineHeight: 1.2 }}>Checkout seguro</h2>
+                  <h2 style={{ margin: 0, fontWeight: 900, fontSize: '18px', color: '#0f172a' }}>Checkout seguro</h2>
                 </div>
                 <button
+                  disabled={submitting}
                   onClick={() => setShowPayModal(false)}
-                  style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#1e40af'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#1e40af'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                  style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >×</button>
               </div>
 
-              {/* Order summary */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '18px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              {submitError && (
+                <div className="mb-3 flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
+              {/* Order summary compacto */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px 16px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', marginBottom: '4px' }}>PLAN SELECCIONADO</div>
-                  <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '15px' }}>movir.ai {selectedPlan.name}</div>
-                  <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '2px' }}>Facturado mensualmente · cancela cuando quieras</div>
+                  <div style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em', marginBottom: '2px' }}>PLAN SELECCIONADO</div>
+                  <div style={{ color: '#0f172a', fontWeight: 800, fontSize: '14px' }}>mivor.ai {selectedPlanDetails.name}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ color: '#1e40af', fontWeight: 900, fontSize: '22px' }}>{selectedPlan.price}</div>
-                  <div style={{ color: '#94a3b8', fontSize: '11px' }}>{selectedPlan.period}</div>
+                  <div style={{ color: '#1e40af', fontWeight: 900, fontSize: '18px' }}>
+                    {getMatchedBackendPlan(selectedPlanId)?.price !== undefined
+                      ? (getMatchedBackendPlan(selectedPlanId)?.is_free ? '0 €' : `$${Number(getMatchedBackendPlan(selectedPlanId)?.price).toFixed(2)}`)
+                      : selectedPlanDetails.price
+                    }
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '10px' }}>{selectedPlanDetails.period}</div>
                 </div>
               </div>
 
-              {/* Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px' }}>
-                {/* Email */}
+              {/* Form inputs compactos */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
                 <div>
-                  <label style={{ color: '#475569', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '6px' }}>CORREO ELECTRÓNICO</label>
+                  <label style={{ color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '4px' }}>CORREO ELECTRÓNICO</label>
                   <input
                     type="email"
+                    defaultValue={user?.email || ''}
                     placeholder="tu@correo.com"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '11px 14px', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                    onFocus={e => e.target.style.borderColor = '#1e40af'}
-                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 12px', color: '#0f172a', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
-                {/* Card number */}
                 <div>
-                  <label style={{ color: '#475569', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '6px' }}>NÚMERO DE TARJETA</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="1234  5678  9012  3456"
-                      value={cardNumber}
-                      onChange={e => setCardNumber(formatCard(e.target.value))}
-                      maxLength={19}
-                      style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '11px 46px 11px 14px', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.08em', transition: 'border-color 0.2s' }}
-                      onFocus={e => e.target.style.borderColor = '#1e40af'}
-                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                    />
-                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', pointerEvents: 'none' }}>💳</span>
-                  </div>
+                  <label style={{ color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '4px' }}>NÚMERO DE TARJETA</label>
+                  <input
+                    type="text"
+                    placeholder="1234 5678 9012 3456"
+                    value={cardNumber}
+                    onChange={e => setCardNumber(formatCard(e.target.value))}
+                    maxLength={19}
+                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 12px', color: '#0f172a', fontSize: '13px', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.08em' }}
+                  />
                 </div>
-                {/* Exp / CVC */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ color: '#475569', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '6px' }}>VENCIMIENTO</label>
+                    <label style={{ color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '4px' }}>VENCIMIENTO</label>
                     <input type="text" placeholder="MM / AA" maxLength={7}
-                      style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '11px 14px', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                      onFocus={e => e.target.style.borderColor = '#1e40af'}
-                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                      style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 12px', color: '#0f172a', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ color: '#475569', fontSize: '11px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '6px' }}>CVC</label>
+                    <label style={{ color: '#475569', fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', display: 'block', marginBottom: '4px' }}>CVC</label>
                     <input type="text" placeholder="•••" maxLength={4}
-                      style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '11px 14px', color: '#0f172a', fontSize: '14px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                      onFocus={e => e.target.style.borderColor = '#1e40af'}
-                      onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                      style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 12px', color: '#0f172a', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -351,18 +520,26 @@ export default function Plans() {
 
               {/* Pay CTA */}
               <button
-                style={{ width: '100%', padding: '15px', borderRadius: '15px', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '15px', background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 60%, #3b82f6 100%)', color: '#fff', boxShadow: '0 8px 28px rgba(30,64,175,0.35)', transition: 'all 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 40px rgba(30,64,175,0.5)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(30,64,175,0.35)'; }}
-                onClick={() => alert('¡Integración con Paddle próximamente! 🚀')}
+                disabled={submitting}
+                style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '14px', background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 60%, #3b82f6 100%)', color: '#fff', boxShadow: '0 6px 20px rgba(30,64,175,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={handleSubscribePayment}
               >
-                🔒 Suscribirse — {selectedPlan.price}{selectedPlan.period}
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Crown size={15} className="text-yellow-300" />
+                    <span>Confirmar y Activar</span>
+                  </>
+                )}
               </button>
 
-              {/* Footer */}
-              <div style={{ textAlign: 'center', marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <Shield size={12} style={{ color: '#94a3b8' }} />
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>Pagos procesados por <strong style={{ color: '#475569' }}>PADDLE</strong> · SSL 256-bit</span>
+              <div style={{ textAlign: 'center', marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                <Shield size={11} style={{ color: '#94a3b8' }} />
+                <span style={{ fontSize: '10px', color: '#94a3b8' }}>Pagos seguros procesados por PADDLE</span>
               </div>
             </div>
           </div>

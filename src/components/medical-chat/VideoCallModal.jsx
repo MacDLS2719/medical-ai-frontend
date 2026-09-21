@@ -288,14 +288,25 @@ export default function VideoCallModal({
                 </div>
               </div>
 
-              {/* COLUMNA DERECHA: CHAT LIMPIO */}
-              {children && (
-                <div className="w-full md:w-[380px] lg:w-[440px] shrink-0 h-full bg-white flex flex-col overflow-hidden border-l border-slate-200/80">
+              {/* COLUMNA DERECHA: CHAT */}
+              <div className="w-full md:w-[380px] lg:w-[440px] shrink-0 h-full bg-white flex flex-col overflow-hidden border-l border-slate-200/80">
+                {children ? (
                   <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {children}
                   </div>
-                </div>
-              )}
+                ) : (
+                  /* Placeholder mientras se carga la conversación */
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                      <svg className="animate-spin w-5 h-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium">Cargando chat de la consulta...</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
