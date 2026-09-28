@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import MedicalConversationList from "./MedicalConversationList";
 import MedicalChatWindow from "./MedicalChatWindow";
 import MedicalChatInput from "./MedicalChatInput";
