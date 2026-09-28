@@ -372,7 +372,7 @@ export default function MedicalSearch() {
                       </div>
 
                       <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
-                          {result.references?.map((ref, idx) => (
+                      {result.references?.filter(ref => ref._final_url).map((ref, idx) => (
                             <div key={idx} id={`ref-${idx + 1}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors group scroll-mt-24">
                                 <div className="flex justify-between items-start mb-2">
                                   <span className="text-xs font-bold text-[#0052FF] bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
@@ -404,16 +404,14 @@ export default function MedicalSearch() {
                                   </p>
                                 )}
                                 
-                                {ref._final_url || ref.url ? (
-                                  <a 
-                                      href={ref._final_url || ref.url} 
-                                      target="_blank" 
-                                      rel="noreferrer"
-                                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0052FF] hover:text-blue-700 transition-colors"
-                                  >
-                                      Leer original <ArrowRight size={14} />
-                                  </a>
-                                ) : null}
+                                <a 
+                                    href={ref._final_url} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0052FF] hover:text-blue-700 transition-colors"
+                                >
+                                    Leer original <ArrowRight size={14} />
+                                </a>
                             </div>
                           ))}
                           

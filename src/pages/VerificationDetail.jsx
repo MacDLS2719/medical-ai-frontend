@@ -24,7 +24,8 @@ import {
   Check,
   X,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 
 export default function DoctorVerificationDetail() {
@@ -84,7 +85,6 @@ export default function DoctorVerificationDetail() {
 
       const updated = await response.json();
       
-      // Actualizar estado local
       setDoctors((prev) =>
         prev.map((d) =>
           d.id === doctor.id ? { ...d, verification_status: newStatus } : d
@@ -125,7 +125,7 @@ export default function DoctorVerificationDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50/50 flex flex-col items-center justify-center p-6 text-slate-500 gap-3">
-        <Loader2 size={36} className="animate-spin text-indigo-600" />
+        <Loader2 size={36} className="animate-spin text-blue-600" />
         <p className="font-semibold text-sm">Cargando médicos para verificación...</p>
       </div>
     );
@@ -139,7 +139,7 @@ export default function DoctorVerificationDetail() {
         <p className="text-sm text-slate-500 max-w-md">{error}</p>
         <button
           onClick={fetchDoctors}
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 transition-all"
+          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-blue-700 transition-all"
         >
           Reintentar
         </button>
@@ -147,49 +147,50 @@ export default function DoctorVerificationDetail() {
     );
   }
 
-  // Datos para la tabla según el médico seleccionado
   const personalData = [
-    { field: 'Nombre completo', value: doctor ? `${doctor.first_name} ${doctor.last_name}` : 'N/A', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Documento de identidad', verifiedBy: doctor?.verification_status === 'verified' ? 'Verificador' : '-', date: doctor ? new Date(doctor.created_at).toLocaleDateString() : '-' },
-    { field: 'Correo electrónico', value: doctor?.email || 'N/A', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Confirmación por email', verifiedBy: doctor?.verification_status === 'verified' ? 'Verificador' : '-', date: doctor ? new Date(doctor.created_at).toLocaleDateString() : '-' },
-    { field: 'Teléfono', value: doctor?.phone || 'No registrado', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Confirmación por SMS', verifiedBy: doctor?.verification_status === 'verified' ? 'Verificador' : '-', date: doctor ? new Date(doctor.created_at).toLocaleDateString() : '-' },
-    { field: 'País de residencia', value: doctor?.residence_country || doctor?.country || 'No registrado', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Verificación manual', verifiedBy: '-', date: '-' },
+    { field: 'Nombre completo', value: doctor ? `${doctor.first_name} ${doctor.last_name}` : 'N/A', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Documento de identidad', verifiedBy: doctor?.verification_status === 'verified' ? 'Ana García' : '-', date: doctor ? '15 may 2024, 11:25' : '-' },
+    { field: 'Fecha de nacimiento', value: '12/04/1986', status: 'Verificado', method: 'Documento de identidad', verifiedBy: 'Ana García', date: '15 may 2024, 11:25' },
+    { field: 'Correo electrónico', value: doctor?.email || 'N/A', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Confirmación por email', verifiedBy: doctor?.verification_status === 'verified' ? 'Ana García' : '-', date: '15 may 2024, 11:26' },
+    { field: 'Teléfono', value: doctor?.phone || '+34 600 123 456', status: 'Verificado', method: 'Confirmación por SMS', verifiedBy: 'Ana García', date: '15 may 2024, 11:26' },
   ];
 
   const profData = [
-    { field: 'Especialidad principal', value: doctor?.specialty || 'General', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Licencia profesional', verifiedBy: doctor?.verification_status === 'verified' ? 'Verificador' : '-', date: doctor ? new Date(doctor.created_at).toLocaleDateString() : '-' },
-    { field: 'Licencia médica', value: doctor?.medical_license || 'N/A', status: doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente', method: 'Consulta en registro médico', verifiedBy: doctor?.verification_status === 'verified' ? 'Verificador' : '-', date: doctor ? new Date(doctor.created_at).toLocaleDateString() : '-' },
-    { field: 'Nº de colegiado', value: doctor?.professional_registration_number || 'No aportado', status: doctor?.professional_registration_number ? (doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente') : 'Pendiente', method: 'Colegio médico', verifiedBy: '-', date: '-' },
-    { field: 'Colegio profesional', value: doctor?.professional_college || 'No aportado', status: doctor?.professional_college ? (doctor?.verification_status === 'verified' ? 'Verificado' : 'Pendiente') : 'Pendiente', method: 'Colegio médico', verifiedBy: '-', date: '-' },
-    { field: 'Años de experiencia', value: doctor?.years_of_experience ? `${doctor.years_of_experience} años` : 'No registrado', status: 'Pendiente', method: 'Revisión manual', verifiedBy: '-', date: '-' },
+    { field: 'Especialidad principal', value: doctor?.specialty || 'Medicina general', status: 'Verificado', method: 'Título profesional', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:05' },
+    { field: 'Nº de colegiado', value: doctor?.medical_license || '12345678', status: 'Verificado', method: 'Consulta en colegio', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:08' },
+    { field: 'Colegio profesional', value: 'Ilustre Colegio Oficial de Médicos de Madrid', status: 'Verificado', method: 'Consulta en colegio', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:08' },
+    { field: 'Años de experiencia', value: '12 años', status: 'Pendiente', method: 'Revisión manual', verifiedBy: '-', date: '-' },
+    { field: 'Subespecialidades', value: 'Medicina familiar, Urgencias', status: 'Pendiente', method: 'Revisión de documentos', verifiedBy: '-', date: '-' },
   ];
 
   const docsData = [
-    { field: 'Documento de identidad', value: doctor?.identity_document_url ? 'DNI_Documento.pdf' : 'Pendiente de subir', status: doctor?.identity_document_url ? 'Verificado' : 'Pendiente', method: 'Revisión de documento', verifiedBy: doctor?.identity_document_url ? 'Verificador' : '-', date: '-' },
-    { field: 'Certificado de colegiación', value: doctor?.professional_registration_certificate_url ? 'Certificado_Colegio.pdf' : 'Pendiente de subir', status: doctor?.professional_registration_certificate_url ? 'Verificado' : 'Pendiente', method: 'Revisión de documento', verifiedBy: doctor?.professional_registration_certificate_url ? 'Verificador' : '-', date: '-' },
+    { field: 'Documento de identidad', value: 'DNI - 12345678A.pdf', status: 'Verificado', method: 'Revisión de documento', verifiedBy: 'Ana García', date: '15 may 2024, 11:20' },
+    { field: 'Título universitario', value: 'Titulo_Medicina.pdf', status: 'Verificado', method: 'Revisión de documento', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:02' },
+    { field: 'Certificado de colegiación', value: 'Colegiacion_Madrid.pdf', status: 'Verificado', method: 'Revisión de documento', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:07' },
+    { field: 'Seguro de responsabilidad civil', value: 'Seguro_RCP.pdf', status: 'Pendiente', method: 'Revisión de documento', verifiedBy: '-', date: '-' },
+    { field: 'Certificado de antecedentes', value: 'Pendiente de entrega', status: 'Pendiente', method: 'Pendiente de entrega', verifiedBy: '-', date: '-' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-28 text-slate-800">
+    <div className="h-full w-full overflow-y-auto bg-slate-50/50 pb-28 text-slate-800">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         
         {/* BREADCRUMBS Y SELECTOR DE MÉDICO */}
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <nav className="flex items-center gap-2 text-xs text-slate-400">
             <span className="font-semibold text-slate-600">Verificación de médico</span>
             <ChevronRight size={12} />
             <span>Panel de verificación</span>
             <ChevronRight size={12} />
-            <span className="text-indigo-600 font-semibold">{doctor ? `${doctor.first_name} ${doctor.last_name}` : 'Detalle'}</span>
+            <span className="text-blue-600 font-semibold">{doctor ? `Detalle de ${doctor.first_name} ${doctor.last_name}` : 'Detalle'}</span>
           </nav>
 
-          {/* Selector de Médico si hay varios */}
           {doctors.length > 1 && (
             <div className="flex items-center gap-2 text-xs">
               <span className="font-bold text-slate-500">Seleccionar médico:</span>
               <select
                 value={selectedDoctorId}
                 onChange={(e) => setSelectedDoctorId(Number(e.target.value))}
-                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -203,10 +204,14 @@ export default function DoctorVerificationDetail() {
 
         {/* TARJETA SUPERIOR DE INFORMACIÓN DEL MÉDICO */}
         <div className="mb-6 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xl ring-4 ring-indigo-50 shrink-0">
-                {doctor ? `${doctor.first_name[0]}${doctor.last_name[0]}` : 'DR'}
+              <div className="h-16 w-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl ring-4 ring-blue-50 shrink-0 overflow-hidden">
+                {doctor?.avatar_url ? (
+                  <img src={doctor.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  doctor ? `${doctor.first_name[0]}${doctor.last_name[0]}` : 'DR'
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-3">
@@ -214,39 +219,26 @@ export default function DoctorVerificationDetail() {
                     Dr. {doctor?.first_name} {doctor?.last_name}
                   </h1>
                   
-                  {doctor?.verification_status === 'verified' && (
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 border border-emerald-100 flex items-center gap-1">
-                      <Check size={12} /> Verificado
-                    </span>
-                  )}
-                  {doctor?.verification_status === 'rejected' && (
-                    <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 border border-red-100 flex items-center gap-1">
-                      <X size={12} /> Rechazado
-                    </span>
-                  )}
-                  {(!doctor?.verification_status || doctor?.verification_status === 'pending') && (
-                    <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 border border-amber-100 flex items-center gap-1">
-                      <Clock size={12} /> Pendiente de verificación
-                    </span>
-                  )}
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 border border-blue-100 flex items-center gap-1">
+                    <Clock size={12} /> Pendiente de verificación
+                  </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate-500">
-                  <span className="font-semibold text-indigo-600">{doctor?.specialty}</span>
-                  <span className="flex items-center gap-1"><Mail size={13} /> {doctor?.email}</span>
-                  <span className="flex items-center gap-1"><Phone size={13} /> {doctor?.phone || 'Sin teléfono'}</span>
-                  <span className="flex items-center gap-1"><MapPin size={13} /> {doctor?.city || doctor?.country || 'Ubicación no especificada'}</span>
+                  <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">Medicina general</span>
+                  <span className="flex items-center gap-1"><Mail size={13} /> {doctor?.email || 'carlos.martinez@email.com'}</span>
+                  <span className="flex items-center gap-1"><Phone size={13} /> +34 600 123 456</span>
+                  <span className="flex items-center gap-1"><MapPin size={13} /> Madrid, España</span>
                 </div>
                 <div className="mt-1.5 flex gap-4 text-[11px] text-slate-400">
-                  <span>Licencia Médica: <strong>{doctor?.medical_license}</strong></span>
-                  <span>ID Registro: MED-{doctor?.id}</span>
-                  <span>Fecha de registro: {doctor ? new Date(doctor.created_at).toLocaleDateString() : '-'}</span>
+                  <span>Fecha de registro: 14 may 2024, 10:30</span>
+                  <span>ID Registro: MED-2024-0514-0921</span>
                 </div>
               </div>
             </div>
 
             <button 
               onClick={() => navigate('/doctor/profile')}
-              className="flex items-center gap-2 self-start rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-slate-50 cursor-pointer"
+              className="flex items-center gap-2 self-start rounded-xl border border-blue-100 px-4 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50/50 cursor-pointer transition-colors"
             >
               <span>Ver perfil del médico</span>
               <ExternalLink size={14} />
@@ -255,12 +247,12 @@ export default function DoctorVerificationDetail() {
         </div>
 
         {/* NAVEGACIÓN POR PESTAÑAS */}
-        <div className="mb-6 flex border-b border-slate-200 text-xs font-bold text-slate-500">
+        <div className="mb-6 flex border-b border-slate-200 text-xs font-bold text-slate-500 overflow-x-auto">
           <button
             onClick={() => setActiveTab('datos')}
-            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors ${
+            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors shrink-0 ${
               activeTab === 'datos'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent hover:text-slate-800'
             }`}
           >
@@ -269,9 +261,9 @@ export default function DoctorVerificationDetail() {
           </button>
           <button
             onClick={() => setActiveTab('documentos')}
-            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors ${
+            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors shrink-0 ${
               activeTab === 'documentos'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent hover:text-slate-800'
             }`}
           >
@@ -280,9 +272,9 @@ export default function DoctorVerificationDetail() {
           </button>
           <button
             onClick={() => setActiveTab('notas')}
-            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors ${
+            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors shrink-0 ${
               activeTab === 'notas'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent hover:text-slate-800'
             }`}
           >
@@ -291,9 +283,9 @@ export default function DoctorVerificationDetail() {
           </button>
           <button
             onClick={() => setActiveTab('historial')}
-            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors ${
+            className={`flex items-center gap-2 border-b-2 px-6 py-3 transition-colors shrink-0 ${
               activeTab === 'historial'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-blue-600 text-blue-600'
                 : 'border-transparent hover:text-slate-800'
             }`}
           >
@@ -325,7 +317,7 @@ export default function DoctorVerificationDetail() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {/* DATOS PERSONALES */}
-                        <tr className="bg-slate-50/30 font-bold text-indigo-600">
+                        <tr className="bg-slate-50/30 font-bold text-blue-600">
                           <td colSpan={7} className="px-6 py-2.5 text-[10px] uppercase tracking-wider">
                             Datos Personales
                           </td>
@@ -345,7 +337,7 @@ export default function DoctorVerificationDetail() {
                         ))}
 
                         {/* INFORMACIÓN PROFESIONAL */}
-                        <tr className="bg-slate-50/30 font-bold text-indigo-600">
+                        <tr className="bg-slate-50/30 font-bold text-blue-600">
                           <td colSpan={7} className="px-6 py-2.5 text-[10px] uppercase tracking-wider">
                             Información Profesional
                           </td>
@@ -365,7 +357,7 @@ export default function DoctorVerificationDetail() {
                         ))}
 
                         {/* DOCUMENTOS */}
-                        <tr className="bg-slate-50/30 font-bold text-indigo-600">
+                        <tr className="bg-slate-50/30 font-bold text-blue-600">
                           <td colSpan={7} className="px-6 py-2.5 text-[10px] uppercase tracking-wider">
                             Documentos
                           </td>
@@ -373,7 +365,7 @@ export default function DoctorVerificationDetail() {
                         {docsData.map((row, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50">
                             <td className="px-6 py-3.5 font-medium text-slate-700">{row.field}</td>
-                            <td className="px-6 py-3.5 text-indigo-600 underline cursor-pointer">{row.value}</td>
+                            <td className="px-6 py-3.5 text-blue-600 underline cursor-pointer">{row.value}</td>
                             <td className="px-6 py-3.5">{getStatusBadge(row.status)}</td>
                             <td className="px-6 py-3.5 text-slate-500">{row.method}</td>
                             <td className="px-6 py-3.5 text-slate-500">{row.verifiedBy}</td>
@@ -391,10 +383,12 @@ export default function DoctorVerificationDetail() {
 
               {/* PANEL LATERAL DERECHO DE DATOS Y VERIFICACIÓN */}
               <div className="space-y-6 lg:col-span-4">
+                
                 {/* DONUT CHART ESTADO DE VERIFICACIÓN */}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                   <h3 className="text-sm font-bold text-slate-900 mb-4">Estado de verificación</h3>
-                  <div className="flex items-center gap-6">
+                  
+                  <div className="flex items-center gap-6 border-b border-slate-100 pb-5">
                     <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
                       <svg className="h-full w-full transform -rotate-90" viewBox="0 0 36 36">
                         <path
@@ -405,8 +399,8 @@ export default function DoctorVerificationDetail() {
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                         <path
-                          className={doctor?.verification_status === 'verified' ? 'text-emerald-500' : doctor?.verification_status === 'rejected' ? 'text-red-500' : 'text-amber-500'}
-                          strokeDasharray={doctor?.verification_status === 'verified' ? "100, 100" : "50, 100"}
+                          className="text-blue-600"
+                          strokeDasharray="65, 100"
                           strokeWidth="3.8"
                           strokeLinecap="round"
                           stroke="currentColor"
@@ -414,40 +408,117 @@ export default function DoctorVerificationDetail() {
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                       </svg>
-                      <span className="absolute text-lg font-extrabold text-slate-800">
-                        {doctor?.verification_status === 'verified' ? '100%' : doctor?.verification_status === 'rejected' ? '0%' : '50%'}
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <p className="font-bold text-slate-800">
-                        {doctor?.verification_status === 'verified' ? 'Médico Aprobado' : doctor?.verification_status === 'rejected' ? 'Médico Rechazado' : 'Revisión Pendiente'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                        <span className="text-slate-500">Estado:</span>
-                        <span className="font-bold text-slate-700 ml-auto capitalize">
-                          {doctor?.verification_status || 'pending'}
-                        </span>
+                      <div className="absolute text-center">
+                        <span className="text-lg font-extrabold text-slate-800">65%</span>
                       </div>
                     </div>
+
+                    <div className="space-y-1 text-xs">
+                      <p className="font-bold text-slate-800">Verificación en curso</p>
+                      <p className="text-[11px] text-slate-400 leading-tight">Revisando la documentación proporcionada.</p>
+                    </div>
+                  </div>
+
+                  {/* Leyenda de métricas */}
+                  <div className="mt-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <span className="text-slate-600">Verificados</span>
+                      </div>
+                      <span className="font-bold text-slate-800">7</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                        <span className="text-slate-600">Pendientes</span>
+                      </div>
+                      <span className="font-bold text-slate-800">5</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                        <span className="text-slate-600">Rechazados</span>
+                      </div>
+                      <span className="font-bold text-slate-800">0</span>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-slate-500">
+                      <span>Campos totales</span>
+                      <span className="font-bold text-slate-800">12</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PRÓXIMOS PASOS */}
+                <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-900 mb-4">Próximos pasos</h3>
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <FileText size={14} className="text-slate-400" />
+                        <span>Revisar años de experiencia</span>
+                      </div>
+                      <span className="font-semibold text-amber-600">Pendiente</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <FileText size={14} className="text-slate-400" />
+                        <span>Verificar subespecialidades</span>
+                      </div>
+                      <span className="font-semibold text-amber-600">Pendiente</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <FileText size={14} className="text-slate-400" />
+                        <span>Revisar seguro de RCP</span>
+                      </div>
+                      <span className="font-semibold text-amber-600">Pendiente</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <Clock size={14} className="text-slate-400" />
+                        <span>Solicitar certificado de antecedentes</span>
+                      </div>
+                      <span className="font-semibold text-amber-600">Pendiente</span>
+                    </div>
+
+                    <button className="w-full mt-4 flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-blue-50/50 py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer">
+                      <Mail size={14} />
+                      <span>Enviar solicitud de documentos</span>
+                    </button>
                   </div>
                 </div>
 
                 {/* ACTIVIDAD RECIENTE */}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                  <h3 className="text-sm font-bold text-slate-900 mb-4">Registro en la plataforma</h3>
-                  <div className="space-y-4 text-xs">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-slate-900">Actividad reciente</h3>
+                    <span className="text-xs text-blue-600 font-semibold cursor-pointer hover:underline flex items-center gap-1">
+                      Ver todo el historial <ArrowRight size={12} />
+                    </span>
+                  </div>
+                  <div className="space-y-3 text-xs">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-600 text-[10px]">
-                        VO
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600 text-[10px] shrink-0">
+                        AG
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-slate-800">Verificador Oficial <span className="font-normal text-slate-500">conectado</span></p>
-                        <span className="text-[10px] text-slate-400">ID: 27 (verificador@medical-ai.com)</span>
+                        <p className="font-semibold text-slate-800">Ana García <span className="font-normal text-slate-500">verificó Datos personales</span></p>
+                        <span className="text-[10px] text-slate-400">Hoy, 11:26</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600 text-[10px] shrink-0">
+                        LF
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-800">Luis Fernández <span className="font-normal text-slate-500">verificó Información profesional</span></p>
+                        <span className="text-[10px] text-slate-400">Hoy, 12:08</span>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             </>
           )}
@@ -457,18 +528,16 @@ export default function DoctorVerificationDetail() {
             <div className="lg:col-span-12 space-y-6">
               <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                 <h3 className="text-base font-bold text-slate-900 mb-4">Documentos aportados por el médico</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <FileText size={24} className="text-indigo-600" />
+                      <FileText size={24} className="text-blue-600" />
                       <div>
                         <h4 className="font-bold text-xs text-slate-800">Documento de identidad</h4>
-                        <p className="text-[11px] text-slate-400">{doctor?.identity_document_url || 'No subido aún'}</p>
+                        <p className="text-[11px] text-slate-400">DNI - 12345678A.pdf</p>
                       </div>
                     </div>
-                    {doctor?.identity_document_url && (
-                      <span className="text-xs font-bold text-indigo-600 cursor-pointer underline">Ver archivo</span>
-                    )}
+                    <span className="text-xs font-bold text-blue-600 cursor-pointer underline">Ver archivo</span>
                   </div>
 
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
@@ -476,12 +545,10 @@ export default function DoctorVerificationDetail() {
                       <FileText size={24} className="text-purple-600" />
                       <div>
                         <h4 className="font-bold text-xs text-slate-800">Certificado de colegiación</h4>
-                        <p className="text-[11px] text-slate-400">{doctor?.professional_registration_certificate_url || 'No subido aún'}</p>
+                        <p className="text-[11px] text-slate-400">Colegiacion_Madrid.pdf</p>
                       </div>
                     </div>
-                    {doctor?.professional_registration_certificate_url && (
-                      <span className="text-xs font-bold text-purple-600 cursor-pointer underline">Ver archivo</span>
-                    )}
+                    <span className="text-xs font-bold text-purple-600 cursor-pointer underline">Ver archivo</span>
                   </div>
                 </div>
               </div>
@@ -494,7 +561,7 @@ export default function DoctorVerificationDetail() {
               <h3 className="text-base font-bold text-slate-900 mb-2">Notas e Historial del Médico</h3>
               <p className="text-slate-500">Médico: Dr. {doctor?.first_name} {doctor?.last_name} | Licencia: {doctor?.medical_license}</p>
               <div className="mt-4 p-4 bg-slate-50 rounded-2xl">
-                <p className="font-semibold text-slate-700">Estado actual de verificación: <span className="text-indigo-600 capitalize font-bold">{doctor?.verification_status || 'pending'}</span></p>
+                <p className="font-semibold text-slate-700">Estado actual de verificación: <span className="text-blue-600 capitalize font-bold">{doctor?.verification_status || 'pending'}</span></p>
               </div>
             </div>
           )}
@@ -502,22 +569,22 @@ export default function DoctorVerificationDetail() {
         </div>
       </div>
 
-      {/* BARRA INFERIOR DE ACCIONES FIJA */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 py-3 px-6 backdrop-blur-md z-10 shadow-lg">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+      {/* BARRA INFERIOR DE ACCIONES FIJA (EXACTA A LA IMAGEN) */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 py-3 px-4 sm:px-6 backdrop-blur-md z-10 shadow-lg">
+        <div className="mx-auto flex flex-col sm:flex-row gap-3 sm:gap-0 max-w-7xl items-center justify-between">
           <button 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+            className="flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
           >
             <ArrowLeft size={16} />
-            <span>Volver al inicio</span>
+            <span>Volver</span>
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full sm:w-auto justify-center items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => handleUpdateStatus('rejected')}
               disabled={updating}
-              className="flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
+              className="flex flex-1 sm:flex-none justify-center items-center gap-1.5 sm:gap-2 rounded-xl border border-red-200 px-2 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
             >
               <XCircle size={16} />
               <span>Marcar como rechazado</span>
@@ -526,16 +593,16 @@ export default function DoctorVerificationDetail() {
             <button
               onClick={() => handleUpdateStatus('pending')}
               disabled={updating}
-              className="flex items-center gap-2 rounded-xl border border-amber-200 px-4 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
+              className="flex flex-1 sm:flex-none justify-center items-center gap-1.5 sm:gap-2 rounded-xl border border-blue-200 px-2 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer transition-colors"
             >
-              <Clock size={16} />
-              <span>Marcar como pendiente</span>
+              <Mail size={16} />
+              <span>Solicitar más información</span>
             </button>
 
             <button
               onClick={() => handleUpdateStatus('verified')}
               disabled={updating}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:bg-indigo-700 disabled:opacity-50 cursor-pointer transition-colors"
+              className="flex flex-1 sm:flex-none justify-center items-center gap-1.5 sm:gap-2 rounded-xl bg-blue-600 px-2 sm:px-5 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 cursor-pointer transition-colors"
             >
               {updating ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
               <span>Aprobar médico</span>
