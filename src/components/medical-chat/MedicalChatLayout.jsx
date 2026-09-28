@@ -239,7 +239,6 @@ export default function MedicalChatLayout({
                 setCallStatus("idle");
                 setCallData(null);
             }
-            }
         },
         [selectedConversation?.id, loadConversations, loadMessages, conversations, userId]
     );
