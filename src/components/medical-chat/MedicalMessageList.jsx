@@ -20,6 +20,7 @@ export default function MedicalMessageList({
     colors = DEFAULT_COLORS,
     loading = false,
     error = null,
+    isTyping = false,
 }) {
     const bottomRef = useRef(null);
     const topRef = useRef(null);
@@ -171,6 +172,21 @@ export default function MedicalMessageList({
                             ))}
                         </div>
                     ))}
+
+                    {isTyping && (
+                        <div className="flex w-full justify-start mt-2">
+                            <div
+                                className="max-w-[70%] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border"
+                                style={{ backgroundColor: "#ffffff", borderColor: "#e2e8f0" }}
+                            >
+                                <div className="flex items-center gap-1.5 h-3">
+                                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div ref={bottomRef} />
                 </div>

@@ -67,6 +67,10 @@ export default function MedicalChatLayout({
     const [callStatus, setCallStatus] = useState("idle"); // 'idle' | 'calling' | 'ringing' | 'in-call'
     const [callData, setCallData] = useState(null);
 
+    // ── Estado Typing ─────────────────────────
+    const [isTyping, setIsTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
+
     const isDoctor = role === "doctor";
     const userId = user?.id;
 
@@ -162,15 +166,27 @@ export default function MedicalChatLayout({
     const handleWsMessage = useCallback(
         (data) => {
             const action = data.action || data.type;
+            const actionUpper = String(action || "").toUpperCase();
 
             if (
                 data.type === "new_message" &&
-                data.conversation_id === selectedConversation?.id
+                Number(data.conversation_id) === Number(selectedConversation?.id)
             ) {
                 setMessages((prev) => {
                     const exists = prev.some((m) => m.id === data.message?.id);
                     return exists ? prev : [...prev, data.message];
                 });
+                setIsTyping(false);
+            }
+
+            if (
+                actionUpper === "TYPING" &&
+                Number(data.conversation_id) === Number(selectedConversation?.id) &&
+                Number(data.user_id) !== Number(userId)
+            ) {
+                setIsTyping(true);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
             }
 
             if (
@@ -181,8 +197,6 @@ export default function MedicalChatLayout({
             }
 
             // Manejo de eventos de señalización de videollamada
-            const actionUpper = String(action || "").toUpperCase();
-
             if (actionUpper === "INCOMING_CALL" || actionUpper === "VIDEO_CALL_INVITE") {
                 console.log("[Chat] Llamada entrante recibida:", data);
                 setCallData(data);
@@ -225,11 +239,21 @@ export default function MedicalChatLayout({
                 setCallStatus("idle");
                 setCallData(null);
             }
+            }
         },
-        [selectedConversation?.id, loadConversations, loadMessages, conversations]
+        [selectedConversation?.id, loadConversations, loadMessages, conversations, userId]
     );
 
     const { sendWsMessage } = useWebSocket(userId, handleWsMessage);
+
+    const handleTyping = useCallback(() => {
+        if (!selectedConversation?.id || !userId) return;
+        sendWsMessage({
+            action: "TYPING",
+            conversation_id: selectedConversation.id,
+            user_id: userId
+        });
+    }, [selectedConversation?.id, userId, sendWsMessage]);
 
     // ── Seleccionar conversación ──────────────
     const handleSelectConversation = useCallback(
@@ -564,6 +588,7 @@ export default function MedicalChatLayout({
                         messagesLoading={messagesLoading}
                         error={messagesError}
                         isInCall={true}
+                        isTyping={isTyping}
                     >
                         <MedicalChatInput
                             conversation={selectedConversation}
@@ -572,6 +597,7 @@ export default function MedicalChatLayout({
                             permissions={effectivePermissions}
                             value={inputText}
                             onChange={setInputText}
+                            onTyping={handleTyping}
                             onSendMessage={handleSendMessage}
                             onSendAudio={handleSendAudio}
                             onSendFile={(file) => handleSendFile(file, "file")}
@@ -739,6 +765,7 @@ export default function MedicalChatLayout({
                             permissions={effectivePermissions}
                             messagesLoading={messagesLoading}
                             error={messagesError}
+                            isTyping={isTyping}
                             onBack={handleBackToGrid}
                             onStartVideoCall={handleStartVideoCall}
                             onDeleteConversation={handleDeleteConversation}
@@ -754,6 +781,7 @@ export default function MedicalChatLayout({
                                     permissions={effectivePermissions}
                                     value={inputText}
                                     onChange={setInputText}
+                                    onTyping={handleTyping}
                                     onSendMessage={handleSendMessage}
                                     onSendAudio={handleSendAudio}
                                     onSendFile={(file) => handleSendFile(file, "file")}

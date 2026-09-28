@@ -32,6 +32,7 @@ export default function MedicalChatWindow({
     onOpenCallHistory,
     onDeleteConversation,
     isInCall = false,
+    isTyping = false,
 
     children,
 }) {
@@ -321,6 +322,7 @@ export default function MedicalChatWindow({
                     colors={colors}
                     loading={messagesLoading}
                     error={error}
+                    isTyping={isTyping}
                 />
 
                 <div ref={messagesEndRef} />

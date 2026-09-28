@@ -22,6 +22,7 @@ export default function MedicalChatInput({
 
     value = "",
     onChange,
+    onTyping,
 
     onSendMessage,
     onSendAudio,
@@ -69,6 +70,7 @@ export default function MedicalChatInput({
     const updateValue = (newValue) => {
         setLocalValue(newValue);
         onChange?.(newValue);
+        onTyping?.();
     };
 
     const clearStagedFile = () => {
