@@ -182,10 +182,10 @@ export default function VideoCallModal({
             <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
 
               {/* COLUMNA IZQUIERDA: ÁREA DE VIDEO & CONTROLES */}
-              <div className="flex-1 flex flex-col h-full p-4 md:p-6 overflow-hidden min-w-0">
+              <div className="flex-1 flex flex-col p-2 md:p-6 overflow-hidden min-w-0 min-h-[45%] md:min-h-0">
 
                 {/* CONTENEDOR DE VIDEO LIMPIO (SALA DAILY.CO) */}
-                <div className="relative w-full flex-1 rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-slate-900 min-h-[300px]">
+                <div className="relative w-full flex-1 rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-slate-900 min-h-[200px] md:min-h-[300px]">
                   
                   {/* IFRAME DAILY.CO O PANTALLA DE INGRESO */}
                   {hasJoined && roomUrl ? (
@@ -196,100 +196,100 @@ export default function VideoCallModal({
                       title="Videollamada médica — Daily.co"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-6 text-center text-white">
-                      <div className="w-20 h-20 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400 shadow-lg shadow-blue-500/10">
-                        <Video size={40} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-4 md:p-6 text-center text-white">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-4 text-blue-400 shadow-lg shadow-blue-500/10">
+                        <Video className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
-                      <h3 className="text-xl font-extrabold mb-1 tracking-tight">Videoconferencia médica en vivo</h3>
-                      <p className="text-xs text-slate-400 max-w-sm mb-6">
+                      <h3 className="text-lg md:text-xl font-extrabold mb-1 tracking-tight">Videoconferencia en vivo</h3>
+                      <p className="text-[10px] md:text-xs text-slate-400 max-w-sm mb-4 md:mb-6">
                         La sala con {contactName} está lista. Haz clic abajo para ingresar.
                       </p>
                       <button
                         onClick={() => setHasJoined(true)}
-                        className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all cursor-pointer hover:scale-[1.02]"
+                        className="px-6 py-2.5 md:px-8 md:py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all cursor-pointer hover:scale-[1.02]"
                       >
-                        Ingresar a la consulta en vivo
+                        Ingresar a la consulta
                       </button>
                     </div>
                   )}
                 </div>
 
                 {/* BARRA DE CONTROLES INFERIOR */}
-                <div className="mt-4 py-3 px-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-center gap-4 sm:gap-7 flex-wrap shrink-0">
+                <div className="mt-2 md:mt-4 py-2 px-2 md:py-3 md:px-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 sm:gap-7 flex-wrap shrink-0">
                   {/* Silenciar */}
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => setIsMuted(!isMuted)}
-                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         isMuted ? 'bg-red-500 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
                       }`}
                     >
-                      {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                      {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
                     </button>
-                    <span className="text-[11px] font-semibold text-slate-600">Silenciar</span>
+                    <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Silenciar</span>
                   </div>
 
                   {/* Detener vídeo */}
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => setIsVideoOff(!isVideoOff)}
-                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         isVideoOff ? 'bg-red-500 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
                       }`}
                     >
-                      {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+                      {isVideoOff ? <VideoOff size={18} /> : <Video size={18} />}
                     </button>
-                    <span className="text-[11px] font-semibold text-slate-600">Detener vídeo</span>
+                    <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Vídeo</span>
                   </div>
 
                   {/* Compartir pantalla */}
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={() => setIsScreenSharing(!isScreenSharing)}
-                      className={`w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         isScreenSharing ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'
                       }`}
                     >
-                      <Monitor size={20} />
+                      <Monitor size={18} />
                     </button>
-                    <span className="text-[11px] font-semibold text-slate-600">Compartir pantalla</span>
+                    <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Compartir</span>
                   </div>
 
                   {/* Finalizar consulta (Botón Rojo Central) */}
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-col items-center gap-1 mx-2 sm:mx-0">
                     <button
                       onClick={onEnd}
                       className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
                       <PhoneOff size={22} />
                     </button>
-                    <span className="text-[11px] font-extrabold text-red-600">Finalizar consulta</span>
+                    <span className="hidden sm:block text-[11px] font-extrabold text-red-600">Finalizar</span>
                   </div>
 
                   {/* Añadir participante */}
                   <div className="flex flex-col items-center gap-1">
                     <button
-                      className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
                     >
-                      <UserPlus size={20} />
+                      <UserPlus size={18} />
                     </button>
-                    <span className="text-[11px] font-semibold text-slate-600">Añadir participante</span>
+                    <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Añadir</span>
                   </div>
 
                   {/* Más opciones */}
                   <div className="flex flex-col items-center gap-1">
                     <button
-                      className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
+                      className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60 flex items-center justify-center transition-all cursor-pointer"
                     >
-                      <MoreHorizontal size={20} />
+                      <MoreHorizontal size={18} />
                     </button>
-                    <span className="text-[11px] font-semibold text-slate-600">Más opciones</span>
+                    <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Opciones</span>
                   </div>
                 </div>
               </div>
 
               {/* COLUMNA DERECHA: CHAT */}
-              <div className="w-full md:w-[380px] lg:w-[440px] shrink-0 h-full bg-white flex flex-col overflow-hidden border-l border-slate-200/80">
+              <div className="flex-1 md:flex-none w-full md:w-[380px] lg:w-[440px] shrink-0 bg-white flex flex-col overflow-hidden border-t md:border-t-0 md:border-l border-slate-200/80 min-h-[45%] md:min-h-0">
                 {children ? (
                   <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {children}
