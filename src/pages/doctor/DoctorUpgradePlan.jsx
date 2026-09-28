@@ -285,6 +285,7 @@ export default function DoctorUpgradePlan() {
 
   // Checkout
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
   const [checkoutData, setCheckoutData] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -349,6 +350,46 @@ export default function DoctorUpgradePlan() {
       setCheckoutError(err.message);
     } finally {
       setCheckoutLoading(false);
+    }
+  }, [selectedPlanId, user?.id]);
+
+  // ── Abrir checkout Stripe ──────────────────────────────
+  const handleStripeCheckout = useCallback(async () => {
+    if (!selectedPlanId || !user?.id) return;
+
+    setStripeLoading(true);
+    setCheckoutError(null);
+
+    try {
+      // Ajusta los parámetros del body según la implementación final de tu backend.
+      // Se añade /api si has incluido el router dentro de main.py con prefix="/api".
+      const res = await fetch(
+        `${API_URL}/payments/create-checkout-session`,
+        { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            doctor_id: user.id, 
+            plan_id: selectedPlanId,
+            doctor_subscription_id: 0 // Ajustar en base a tu modelo real
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al preparar el pago con Stripe');
+      }
+
+      const data = await res.json();
+      // Stripe devuelve usualmente la URL para redirigir
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      }
+    } catch (err) {
+      setCheckoutError(err.message);
+    } finally {
+      setStripeLoading(false);
     }
   }, [selectedPlanId, user?.id]);
 
@@ -580,24 +621,32 @@ export default function DoctorUpgradePlan() {
                 })}
               </div>
 
-              {/* Botón de confirmación */}
-              <div className="flex justify-end pt-4 border-t border-slate-200/60">
+              {/* Botones de confirmación */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/60 flex-wrap">
+                <button
+                  onClick={handleStripeCheckout}
+                  disabled={!selectedPlanId || stripeLoading || checkoutLoading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#635BFF] hover:bg-[#524BDE] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition-all cursor-pointer active:scale-95"
+                >
+                  {stripeLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <CreditCard size={15} className="text-indigo-200" />
+                  )}
+                  <span>Pagar con Stripe</span>
+                </button>
+
                 <button
                   onClick={handleCheckout}
-                  disabled={!selectedPlanId || checkoutLoading}
-                  className="flex items-center gap-2 px-8 py-2.5 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-95"
+                  disabled={!selectedPlanId || checkoutLoading || stripeLoading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-95"
                 >
                   {checkoutLoading ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" />
-                      <span>Preparando pago...</span>
-                    </>
+                    <Loader2 size={15} className="animate-spin" />
                   ) : (
-                    <>
-                      <Crown size={15} className="text-yellow-300" />
-                      <span>Confirmar y pagar con Paddle</span>
-                    </>
+                    <Crown size={15} className="text-yellow-300" />
                   )}
+                  <span>Pagar con Paddle</span>
                 </button>
               </div>
             </>

@@ -113,7 +113,7 @@ export default function SidebarDoctor() {
               {/* 2. Mi agenda (Disponibilidad) */}
               <li>
                 <NavLink
-                  to="/doctor/availability"
+                  to="/doctor/appointments"
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
                       isActive
@@ -130,7 +130,7 @@ export default function SidebarDoctor() {
               {/* 3. Mis pacientes (Citas / Appointments) */}
               <li>
                 <NavLink
-                  to="/doctor/appointments"
+                  to="/doctor/patients"
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
                       isActive
@@ -174,7 +174,7 @@ export default function SidebarDoctor() {
                   }
                 >
                   <Search size={18} strokeWidth={2} /> 
-                  <span>Buscador Médico</span>
+                  <span>Buscador Mivor</span>
                 </NavLink>
               </li>
 
