@@ -74,6 +74,11 @@ export default function MedicalChatLayout({
     const isDoctor = role === "doctor";
     const userId = user?.id;
 
+    const getOtherUserId = useCallback((conv) => {
+        if (!conv) return null;
+        return Number(userId) === Number(conv.patient_id) ? conv.doctor_id : conv.patient_id;
+    }, [userId]);
+
     // ── Permisos ──────────────────────────────
     const permissions = useMemo(
         () => ({
@@ -412,11 +417,6 @@ export default function MedicalChatLayout({
         },
         [isDoctor, userId, loadConversations, handleSelectConversation]
     );
-
-    const getOtherUserId = useCallback((conv) => {
-        if (!conv) return null;
-        return Number(userId) === Number(conv.patient_id) ? conv.doctor_id : conv.patient_id;
-    }, [userId]);
 
     // ── Videollamada (médico) ─────────────────
     const handleStartVideoCall = useCallback(
