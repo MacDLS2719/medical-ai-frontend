@@ -169,13 +169,15 @@ export default function MedicalChatLayout({
             const actionUpper = String(action || "").toUpperCase();
 
             if (
-                action === "new_message" &&
-                Number(data.conversation_id) === Number(selectedConversation?.id)
+                actionUpper === "NEW_MESSAGE" &&
+                Number(data.message?.conversation_id || data.conversation_id) === Number(selectedConversation?.id)
             ) {
-                setMessages((prev) => {
-                    const exists = prev.some((m) => m.id === data.message?.id);
-                    return exists ? prev : [...prev, data.message];
-                });
+                if (data.message) {
+                    setMessages((prev) => {
+                        const exists = prev.some((m) => m.id === data.message?.id);
+                        return exists ? prev : [...prev, data.message];
+                    });
+                }
                 setIsTyping(false);
             }
 
@@ -190,8 +192,8 @@ export default function MedicalChatLayout({
             }
 
             if (
-                action === "new_message" ||
-                action === "conversation_created"
+                actionUpper === "NEW_MESSAGE" ||
+                actionUpper === "CONVERSATION_CREATED"
             ) {
                 loadConversations();
             }
