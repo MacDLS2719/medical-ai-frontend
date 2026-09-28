@@ -366,12 +366,12 @@ export default function MedicalChatInput({
                                 type="button"
                                 disabled={disabled || sending}
                                 onClick={() => imageInputRef.current?.click()}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                                 title="Seleccionar imagen para enviar"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5"
+                                    className="h-4 w-4 md:h-5 md:w-5"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -406,12 +406,12 @@ export default function MedicalChatInput({
                                 type="button"
                                 disabled={disabled || sending}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                                 title="Adjuntar documento o archivo"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5"
+                                    className="h-4 w-4 md:h-5 md:w-5"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -448,7 +448,7 @@ export default function MedicalChatInput({
                                     : "Escribe un mensaje..."
                                 : "No puedes responder esta conversación"
                         }
-                        className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-2xl border bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                        className="max-h-28 min-h-[38px] md:min-h-[42px] min-w-0 flex-1 resize-none rounded-2xl border bg-slate-50 px-3 md:px-4 py-2 md:py-2.5 text-sm outline-none transition focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                         style={{
                             borderColor: "#e2e8f0",
                             color: colors.text,
@@ -494,7 +494,7 @@ export default function MedicalChatInput({
                     <button
                         type="submit"
                         disabled={!canSubmit}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition hover:opacity-95 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                        className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition hover:opacity-95 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                         style={{
                             background: "linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)",
                         }}

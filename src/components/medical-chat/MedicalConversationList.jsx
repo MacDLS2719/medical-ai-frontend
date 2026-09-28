@@ -77,7 +77,7 @@ export default function MedicalConversationList({
     const canStartVideoCall = permissions?.canStartVideoCall === true;
 
     return (
-        <div className="flex h-full w-full flex-col bg-slate-50 p-6 md:p-10">
+        <div className="flex h-full w-full flex-col bg-slate-50 p-4 md:p-10">
             {/* Encabezado y buscador */}
             <div className="mx-auto mb-8 w-full max-w-7xl">
                 <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">

@@ -462,24 +462,26 @@ export default function MedicalChatLayout({
         });
         setCallStatus("in-call");
 
-        // Si el paciente no tiene la conversación seleccionada, intentar cargarla
-        if (!selectedConversation && callData?.conversation_id) {
+        // Si el paciente no tiene la conversación seleccionada o es diferente, intentar cargarla
+        if (callData?.conversation_id) {
             const targetId = Number(callData.conversation_id);
-            const found = conversations.find((c) => Number(c.id) === targetId);
-            if (found) {
-                setSelectedConversation(found);
-                loadMessages(found.id);
-            } else if (userId) {
-                medicalChatService.getConversations(userId).then((list) => {
-                    if (list) {
-                        setConversations(list);
-                        const f = list.find((c) => Number(c.id) === targetId);
-                        if (f) {
-                            setSelectedConversation(f);
-                            loadMessages(f.id);
+            if (Number(selectedConversation?.id) !== targetId) {
+                const found = conversations.find((c) => Number(c.id) === targetId);
+                if (found) {
+                    setSelectedConversation(found);
+                    loadMessages(found.id);
+                } else if (userId) {
+                    medicalChatService.getConversations(userId).then((list) => {
+                        if (list) {
+                            setConversations(list);
+                            const f = list.find((c) => Number(c.id) === targetId);
+                            if (f) {
+                                setSelectedConversation(f);
+                                loadMessages(f.id);
+                            }
                         }
-                    }
-                }).catch(() => {});
+                    }).catch(() => {});
+                }
             }
         }
     }, [callData, getOtherUserId, selectedConversation, sendWsMessage, conversations, userId, loadMessages]);

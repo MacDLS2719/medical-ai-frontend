@@ -162,7 +162,7 @@ export default function MedicalChatWindow({
                 HEADER DE LA CONVERSACIÓN
             ====================================================== */}
             <div
-                className="flex min-h-[70px] shrink-0 items-center justify-between border-b bg-white px-3 py-3 md:px-5"
+                className="flex min-h-[60px] md:min-h-[70px] shrink-0 items-center justify-between border-b bg-white px-3 py-2 md:py-3 md:px-5"
                 style={{
                     borderColor: "#e2e8f0",
                 }}
