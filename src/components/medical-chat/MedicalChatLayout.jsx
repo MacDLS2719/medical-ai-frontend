@@ -249,12 +249,17 @@ export default function MedicalChatLayout({
 
     const handleTyping = useCallback(() => {
         if (!selectedConversation?.id || !userId) return;
+        
+        const targetUser = getOtherUserId(selectedConversation);
+        if (!targetUser) return;
+
         sendWsMessage({
             action: "TYPING",
             conversation_id: selectedConversation.id,
-            user_id: userId
+            user_id: userId,
+            target_user: targetUser
         });
-    }, [selectedConversation?.id, userId, sendWsMessage]);
+    }, [selectedConversation, userId, sendWsMessage, getOtherUserId]);
 
     // ── Seleccionar conversación ──────────────
     const handleSelectConversation = useCallback(

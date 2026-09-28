@@ -51,10 +51,13 @@ export default function MedicalMessageList({
     }, []);
 
     useEffect(() => {
-        if (!showScrollBottom) {
+        const lastMessage = messages[messages.length - 1];
+        const isMyMessage = lastMessage && Number(lastMessage.sender_id) === Number(currentUserId);
+        
+        if (!showScrollBottom || isMyMessage) {
             scrollToBottom(true);
         }
-    }, [messages, scrollToBottom, showScrollBottom]);
+    }, [messages, scrollToBottom, showScrollBottom, currentUserId]);
 
     /**
      * Detectar scroll para mostrar botones de navegación interna
