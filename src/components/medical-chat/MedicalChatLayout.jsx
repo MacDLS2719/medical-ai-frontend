@@ -169,7 +169,7 @@ export default function MedicalChatLayout({
             const actionUpper = String(action || "").toUpperCase();
 
             if (
-                data.type === "new_message" &&
+                action === "new_message" &&
                 Number(data.conversation_id) === Number(selectedConversation?.id)
             ) {
                 setMessages((prev) => {
@@ -190,8 +190,8 @@ export default function MedicalChatLayout({
             }
 
             if (
-                data.type === "new_message" ||
-                data.type === "conversation_created"
+                action === "new_message" ||
+                action === "conversation_created"
             ) {
                 loadConversations();
             }
