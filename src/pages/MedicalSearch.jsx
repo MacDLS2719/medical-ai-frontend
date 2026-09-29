@@ -1,9 +1,111 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search, Loader2, Sparkles, BookOpen, ArrowRight, AlertCircle, CheckCircle, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AIHeaderImage from '../assets/imgs/buscador.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+/**
+ * Devuelve el nombre real de la fuente basado en el dominio de _final_url.
+ * Si no reconoce el dominio, usa ref.source como fallback.
+ */
+const DOMAIN_NAMES = {
+  'nejm.org': 'NEJM',
+  'thelancet.com': 'The Lancet',
+  'jamanetwork.com': 'JAMA',
+  'bmj.com': 'BMJ',
+  'nature.com': 'Nature',
+  'science.org': 'Science',
+  'annals.org': 'Annals of Internal Medicine',
+  'pubmed.ncbi.nlm.nih.gov': 'PubMed',
+  'ncbi.nlm.nih.gov': 'PubMed / NIH',
+  'pmc.ncbi.nlm.nih.gov': 'PubMed Central',
+  'europepmc.org': 'Europe PMC',
+  'cochranelibrary.com': 'Cochrane Library',
+  'who.int': 'OMS / WHO',
+  'cdc.gov': 'CDC',
+  'nih.gov': 'NIH',
+  'fda.gov': 'FDA',
+  'ema.europa.eu': 'EMA',
+  'clinicaltrials.gov': 'ClinicalTrials.gov',
+  'medrxiv.org': 'medRxiv',
+  'biorxiv.org': 'bioRxiv',
+  'scielo.org': 'SciELO',
+  'scielo.br': 'SciELO Brasil',
+  'scielo.cl': 'SciELO Chile',
+  'scielo.conicyt.cl': 'SciELO Chile',
+  'scielo.isciii.es': 'SciELO España',
+  'redalyc.org': 'Redalyc',
+  'researchgate.net': 'ResearchGate',
+  'semanticscholar.org': 'Semantic Scholar',
+  'springer.com': 'Springer',
+  'springerlink.com': 'SpringerLink',
+  'link.springer.com': 'Springer',
+  'wiley.com': 'Wiley',
+  'onlinelibrary.wiley.com': 'Wiley Online Library',
+  'elsevier.com': 'Elsevier',
+  'sciencedirect.com': 'ScienceDirect',
+  'cell.com': 'Cell',
+  'jci.org': 'Journal of Clinical Investigation',
+  'ahajournals.org': 'AHA Journals',
+  'academic.oup.com': 'Oxford Academic',
+  'karger.com': 'Karger',
+  'mdpi.com': 'MDPI',
+  'frontiersin.org': 'Frontiers',
+  'plos.org': 'PLOS',
+  'plosone.org': 'PLOS ONE',
+  'plosmedicine.org': 'PLOS Medicine',
+  'doi.org': null,  // doi.org se resuelve más abajo por el path
+  'dx.doi.org': null,
+};
+
+function getSourceFromUrl(finalUrl, fallback) {
+  if (!finalUrl) return fallback || 'Medical Journal';
+  try {
+    const { hostname, pathname } = new URL(finalUrl);
+    const host = hostname.replace(/^www\./, '');
+
+    // Para doi.org intentamos leer el publisher del DOI prefix
+    if (host === 'doi.org' || host === 'dx.doi.org') {
+      // DOI prefix conocidos: 10.1056 = NEJM, 10.1016 = Elsevier, etc.
+      const doiPrefixes = {
+        '10.1056': 'NEJM',
+        '10.1016': 'Elsevier / ScienceDirect',
+        '10.1001': 'JAMA',
+        '10.1136': 'BMJ',
+        '10.1038': 'Nature',
+        '10.1126': 'Science',
+        '10.7326': 'Annals of Internal Medicine',
+        '10.1182': 'Blood (ASH)',
+        '10.1200': 'JCO (ASCO)',
+        '10.1093': 'Oxford University Press',
+        '10.1002': 'Wiley',
+        '10.1007': 'Springer',
+        '10.3389': 'Frontiers',
+        '10.1371': 'PLOS',
+        '10.3390': 'MDPI',
+      };
+      const prefix = pathname.split('/').filter(Boolean)[0]?.split('/')[0];
+      if (prefix && doiPrefixes[prefix]) return doiPrefixes[prefix];
+      return fallback || 'DOI';
+    }
+
+    // Buscar coincidencia exacta o parcial en el mapa de dominios
+    if (DOMAIN_NAMES[host] !== undefined && DOMAIN_NAMES[host] !== null) {
+      return DOMAIN_NAMES[host];
+    }
+    // Buscar coincidencia por sufijo (ej: subdomain.nature.com → Nature)
+    const matchedKey = Object.keys(DOMAIN_NAMES).find(k => host.endsWith(k));
+    if (matchedKey && DOMAIN_NAMES[matchedKey]) return DOMAIN_NAMES[matchedKey];
+
+    // Fallback: capitalizar el dominio base
+    const parts = host.split('.');
+    const base = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  } catch {
+    return fallback || 'Medical Journal';
+  }
+}
 
 function parseSimpleMarkdown(text) {
   if (!text) return { __html: '' };
@@ -82,7 +184,10 @@ export default function MedicalSearch() {
 
       const response = await fetch(url.toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token || ''}`,
+        },
         body: JSON.stringify({ query: query, max_results_per_source: 2 }),
       });
 
@@ -93,6 +198,7 @@ export default function MedicalSearch() {
 
       const data = await response.json();
       setResult(data);
+      setSearchMode('standard');
       await fetchUsage();
     } catch (err) {
       setError(err.message);
@@ -114,7 +220,10 @@ export default function MedicalSearch() {
       if (user?.id) url.searchParams.append('user_id', user.id);
       const response = await fetch(url.toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token || ''}`,
+        },
         body: JSON.stringify({ query: query, max_results_per_source: 2 }),
       });
       if (!response.ok) {
@@ -375,8 +484,8 @@ export default function MedicalSearch() {
                       {result.references?.filter(ref => ref._final_url).map((ref, idx) => (
                             <div key={idx} id={`ref-${idx + 1}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors group scroll-mt-24">
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs font-bold text-[#0052FF] bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                                      {ref.source || 'Medical Journal'}
+                                  <span className="text-xs font-bold text-[#0052FF] bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider" title={ref.source}>
+                                      {getSourceFromUrl(ref._final_url, ref.source)}
                                   </span>
                                   <div className="flex flex-col items-end gap-1">
                                       {ref.year && (
