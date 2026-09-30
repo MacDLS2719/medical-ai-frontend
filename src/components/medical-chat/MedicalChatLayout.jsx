@@ -46,14 +46,16 @@ export default function MedicalChatLayout({
     canViewCallHistory = false,
 
     conversationMode = "existing",
+    initialPatientId = null,
 }) {
     // ── Estado UI ─────────────────────────────
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [view, setView] = useState("grid"); // "grid" | "chat"
+    const initialPatientHandledRef = useRef(false);
 
     // ── Estado de datos ───────────────────────
     const [conversations, setConversations] = useState([]);
-    const [conversationsLoading, setConversationsLoading] = useState(false);
+    const [conversationsLoading, setConversationsLoading] = useState(true);
     const [conversationsError, setConversationsError] = useState(null);
 
     const [messages, setMessages] = useState([]);
@@ -417,6 +419,36 @@ export default function MedicalChatLayout({
         },
         [isDoctor, userId, loadConversations, handleSelectConversation]
     );
+
+    useEffect(() => {
+        const patientId = Number(initialPatientId);
+        if (
+            !patientId ||
+            !isDoctor ||
+            conversationsLoading ||
+            initialPatientHandledRef.current
+        ) {
+            return;
+        }
+
+        initialPatientHandledRef.current = true;
+        const conversation = conversations.find(
+            (item) => Number(item.patient_id) === patientId
+        );
+
+        if (conversation) {
+            handleSelectConversation(conversation);
+        } else {
+            handleCreateConversation(patientId);
+        }
+    }, [
+        initialPatientId,
+        isDoctor,
+        conversationsLoading,
+        conversations,
+        handleSelectConversation,
+        handleCreateConversation,
+    ]);
 
     // ── Videollamada (médico) ─────────────────
     const handleStartVideoCall = useCallback(
@@ -883,4 +915,4 @@ export default function MedicalChatLayout({
             )}
         </div>
     );
-}
+}

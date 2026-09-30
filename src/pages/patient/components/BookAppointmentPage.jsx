@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Loader2, Video, Building2, Calendar, Star } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -12,6 +13,7 @@ const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 export default function BookAppointmentPage({ doctor, modality, onBack, onDone }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState(null);
@@ -21,6 +23,29 @@ export default function BookAppointmentPage({ doctor, modality, onBack, onDone }
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [actualRates, setActualRates] = useState([]);
+
+  // Fetch actual doctor rates
+  useEffect(() => {
+    // Assuming doctor.id or doctor.user_id is the reference for the user table
+    const targetId = doctor.user_id || doctor.id;
+    fetch(`${API_BASE}/doctor-payments/settings/public/${targetId}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setActualRates(data))
+      .catch(err => console.error('Error fetching rates', err));
+  }, [doctor]);
+
+  // Determine applicable rates based on modality
+  const applicableRates = actualRates.filter(rate => {
+    const type = rate.consultation_type.toLowerCase();
+    if (modality === 'video' && (type.includes('video') || type.includes('virtual'))) return true;
+    if (modality !== 'video' && (type.includes('presencial') || type.includes('general'))) return true;
+    return false;
+  });
+
+  // Fallback to show all rates if none strictly match, just in case
+  const ratesToShow = applicableRates.length > 0 ? applicableRates : actualRates;
 
   // ── Fetch calendar for the current month ────────────────────
   useEffect(() => {
@@ -75,39 +100,7 @@ export default function BookAppointmentPage({ doctor, modality, onBack, onDone }
     setIsBooking(false);
   };
 
-  // ── Success screen ───────────────────────────────────────────
-  if (bookingSuccess) {
-    return (
-      <div className="min-h-screen bg-base font-sans flex flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-10 max-w-sm w-full">
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
-            <CheckCircle className="w-10 h-10 text-green-500" />
-          </div>
-          <h2 className="text-2xl font-extrabold text-brand-dark mb-2">¡Cita confirmada!</h2>
-          <p className="text-sm text-gray-500 mb-1">
-            Tu cita con <span className="font-bold text-brand-dark">{doctor.full_name}</span> ha sido
-            agendada exitosamente.
-          </p>
-          <p className="text-xs text-gray-400 mb-8">
-            {selectedSlot?.date} a las {selectedSlot?.time?.substring(0, 5)} •{' '}
-            {modality === 'video' ? 'Videollamada' : 'Presencial'}
-          </p>
-          <button
-            onClick={onDone}
-            className="w-full py-3 rounded-2xl bg-brand-blue text-white font-bold text-sm hover:bg-brand-dark transition-all shadow-md"
-          >
-            Ver mis citas
-          </button>
-          <button
-            onClick={onBack}
-            className="w-full mt-2 py-3 rounded-2xl border border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all"
-          >
-            Buscar otro médico
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Removed early return for success screen to show it as a modal instead
 
   const paddingCells = calendarData?.days?.length > 0 ? calendarData.days[0].day_of_week : 0;
 
@@ -281,29 +274,133 @@ export default function BookAppointmentPage({ doctor, modality, onBack, onDone }
               )}
             </div>
 
-            {/* ── Confirm button ── */}
-            <button
-              disabled={!selectedSlot || isBooking}
-              onClick={handleBook}
-              className={`w-full py-3.5 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-md
-                ${
-                  !selectedSlot || isBooking
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                }
-              `}
-            >
-              {isBooking && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isBooking
-                ? 'Reservando...'
-                : selectedSlot
-                ? `Confirmar cita • ${selectedSlot.time.substring(0, 5)}`
-                : 'Selecciona horario'}
-            </button>
+            {/* ── Confirm buttons ── */}
+            <div className="space-y-3">
+              <button
+                disabled={!selectedSlot || isBooking}
+                onClick={handleBook}
+                className={`w-full py-3.5 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-md
+                  ${
+                    !selectedSlot || isBooking
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
+                  }
+                `}
+              >
+                {isBooking && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isBooking
+                  ? 'Reservando...'
+                  : selectedSlot
+                  ? `Guardado directo • ${selectedSlot.time.substring(0, 5)}`
+                  : 'Selecciona horario'}
+              </button>
+
+              {ratesToShow.length > 0 && (
+                <button
+                  disabled={!selectedSlot || isBooking}
+                  onClick={() => setShowPaymentModal(true)}
+                  className={`w-full py-3.5 rounded-2xl text-sm font-extrabold flex items-center justify-center gap-2 transition-all shadow-md
+                    ${
+                      !selectedSlot || isBooking
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                    }
+                  `}
+                >
+                  Pagar y agendar
+                </button>
+              )}
+            </div>
           </div>
 
         </div>
       </div>
+
+      {/* Payment Gateway Modal Simulator */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-brand-dark text-lg">Resumen de Pago</h3>
+              <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 bg-gray-50/50">
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+                <p className="text-xs text-gray-500 mb-1">Cita con</p>
+                <p className="font-bold text-brand-dark">{doctor.full_name}</p>
+                <p className="text-xs text-gray-500 mt-1">{selectedSlot?.date} • {selectedSlot?.time.substring(0, 5)}</p>
+              </div>
+
+              <h4 className="text-sm font-bold text-gray-700 mb-3">Tarifas del especialista</h4>
+              <div className="space-y-2">
+                {ratesToShow.map(rate => (
+                  <label key={rate.id} className="flex items-center justify-between p-4 border border-blue-100 bg-blue-50/30 rounded-2xl cursor-pointer hover:bg-blue-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <input type="radio" name="rate" className="text-blue-600 w-4 h-4" defaultChecked={rate.consultation_type.toLowerCase().includes(modality === 'video' ? 'video' : 'presencial')} />
+                      <span className="text-sm font-bold text-brand-dark">{rate.consultation_type}</span>
+                    </div>
+                    <span className="font-black text-blue-700">
+                      ${rate.price} <span className="text-xs">{rate.currency}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  handleBook(); // Simular el pago completado exitosamente
+                }}
+                className="w-full mt-6 py-3.5 rounded-2xl bg-brand-dark text-white font-bold hover:bg-black transition-colors flex items-center justify-center gap-2"
+              >
+                Simular Pago y Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {bookingSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 text-center p-10">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-10 h-10 text-green-500" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-brand-dark mb-2">¡Cita confirmada!</h2>
+            <p className="text-sm text-gray-500 mb-1">
+              Tu cita con <span className="font-bold text-brand-dark">{doctor.full_name}</span> ha sido
+              agendada exitosamente.
+            </p>
+            <p className="text-xs text-gray-400 mb-8">
+              {selectedSlot?.date} a las {selectedSlot?.time?.substring(0, 5)} •{' '}
+              {modality === 'video' ? 'Videollamada' : 'Presencial'}
+            </p>
+            <button
+              onClick={() => {
+                if (onDone) onDone();
+                navigate('/patient/appointments');
+              }}
+              className="w-full py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-md"
+            >
+              Ver mis citas
+            </button>
+            <button
+              onClick={() => {
+                setBookingSuccess(false);
+                if (onBack) onBack();
+              }}
+              className="w-full mt-3 py-3 rounded-2xl border border-gray-200 text-gray-500 font-bold text-sm hover:bg-gray-50 transition-all"
+            >
+              Buscar otro médico
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

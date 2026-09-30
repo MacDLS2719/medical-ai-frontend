@@ -15,7 +15,8 @@ import {
   Headphones,
   Menu,
   X,
-  Search
+  Search,
+  Wallet
 } from 'lucide-react';
 
 export default function SidebarDoctor() {
@@ -228,6 +229,23 @@ export default function SidebarDoctor() {
                 >
                   <Box size={18} strokeWidth={2} />
                   <span>Planes y precios</span>
+                </NavLink>
+              </li>
+
+              {/* 8. Tarifas y métodos de pago */}
+              <li>
+                <NavLink
+                  to="/fee-payments"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/80'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  <Wallet size={18} strokeWidth={2} />
+                  <span>Tarifas y métodos de pago</span>
                 </NavLink>
               </li>
 

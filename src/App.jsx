@@ -14,7 +14,6 @@ import Profile from './pages/Profile'
 import MedicalAlerts from './pages/MedicalAlerts';
 import Plans from './pages/Plans';
 
-import DoctorAvailability from './pages/doctor/DoctorAvailability'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
 import DoctorProfile from './pages/doctor/DoctorProfile'
 import DoctorProfileFree from './pages/doctor/DoctorProfileFree'
@@ -22,6 +21,7 @@ import DoctorCreate from './pages/doctor/DoctorCreate'
 import DoctorCreateFree from './pages/doctor/DoctorCreateFree'
 import DoctorUpgradePlan from './pages/doctor/DoctorUpgradePlan'
 import ViewPreview from './pages/doctor/ViewPreview'
+import FeePayments from './pages/doctor/FeePayments'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -118,11 +118,6 @@ function App() {
             />
 
             <Route
-              path="/doctor/availability"
-              element={<DoctorAvailability />}
-            />
-
-            <Route
               path="/doctor/appointments"
               element={<DoctorAppointments />}
             />
@@ -143,6 +138,11 @@ function App() {
             <Route
               path="/doctor/upgrade-plan"
               element={<DoctorUpgradePlan />}
+            />
+
+            <Route
+              path="/fee-payments"
+              element={<FeePayments />}
             />
 
             <Route

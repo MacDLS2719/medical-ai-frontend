@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLocation } from "react-router-dom";
 import MedicalChatLayout from "../components/medical-chat/MedicalChatLayout";
 
 const MIVOR_COLORS = {
@@ -18,6 +19,7 @@ const MIVOR_COLORS = {
 
 export default function DoctorMedicalChat() {
     const { user } = useAuth();
+    const { state } = useLocation();
 
     return (
         <div className="h-full w-full flex flex-col overflow-hidden">
@@ -25,6 +27,7 @@ export default function DoctorMedicalChat() {
                 role="doctor"
                 user={user}
                 colors={MIVOR_COLORS}
+                initialPatientId={state?.initialPatientId}
 
                 // El médico SÍ puede crear conversaciones
                 canCreateConversation={true}

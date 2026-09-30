@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { Search, Loader2, Sparkles, BookOpen, ArrowRight, AlertCircle, CheckCircle, GraduationCap } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Loader2, Sparkles, BookOpen, ArrowRight, AlertCircle, CheckCircle, GraduationCap, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AIHeaderImage from '../assets/imgs/buscador.jpg';
 
@@ -240,6 +240,13 @@ export default function MedicalSearch() {
     }
   };
 
+  const handleNewThread = () => {
+    setQuery('');
+    setSearchedQuery('');
+    setResult(null);
+    setError(null);
+  };
+
   return (
     <div className="w-full h-full bg-slate-50 flex flex-col items-center overflow-y-auto">
       <div className="w-full max-w-7xl mx-auto p-4 md:p-8 flex flex-col min-h-full">
@@ -353,14 +360,14 @@ export default function MedicalSearch() {
               </button>
             </form>
 
-            {/* Botón de Búsqueda Universitaria */}
+            {/* Botón de Búsqueda Universal */}
             <button
               onClick={handleUniversitySearch}
               disabled={!query.trim() || (usage && !usage.is_pro && usage.searches_used >= usage.searches_limit)}
               className="mt-3 flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-sm"
             >
               <GraduationCap size={17} />
-              Búsqueda Universitaria
+              Búsqueda Universal
               <span className="text-[10px] font-normal text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded-full">Universidades &amp; Centros de investigación</span>
             </button>
             
@@ -379,36 +386,50 @@ export default function MedicalSearch() {
         {(loading || result || error) && (
           <div className="w-full flex flex-col flex-1">
             
-            {/* Header Compacto del Buscador */}
-            <form onSubmit={handleSearch} className="w-full mb-8 relative group shrink-0 max-w-4xl mx-auto">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
-                <Search size={18} />
-              </div>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Pregunta clínica..."
-                className="w-full pl-12 pr-14 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-[#0052FF] focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
-              />
+            {/* Header Compacto del Buscador y Nuevo Hilo */}
+            <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full mb-4 shrink-0 max-w-4xl mx-auto">
               <button
-                type="submit"
-                disabled={loading || !query.trim() || (usage && !usage.is_pro && usage.searches_used >= usage.searches_limit)}
-                className="absolute inset-y-1.5 right-1.5 px-3 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                onClick={handleNewThread}
+                type="button"
+                className="flex items-center justify-center gap-2 px-5 bg-white border-2 border-slate-200 hover:border-blue-500 text-slate-700 hover:text-blue-600 rounded-xl font-bold transition-all whitespace-nowrap shadow-sm group"
+                title="Nueva búsqueda"
               >
-                <ArrowRight size={16} />
+                <Plus size={18} className="group-hover:scale-110 transition-transform" />
+                <span>Nuevo hilo</span>
               </button>
-            </form>
 
-            {/* Botón universitario compacto */}
-            <button
-              onClick={handleUniversitySearch}
-              disabled={loading || !query.trim() || (usage && !usage.is_pro && usage.searches_used >= usage.searches_limit)}
-              className="mb-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <GraduationCap size={13} />
-              Búsqueda Universitaria
-            </button>
+              <form onSubmit={handleSearch} className="w-full relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#0052FF] transition-colors">
+                  <Search size={18} />
+                </div>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Pregunta clínica..."
+                  className="w-full pl-12 pr-14 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-[#0052FF] focus:ring-4 focus:ring-blue-500/10 transition-all font-medium h-full"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !query.trim() || (usage && !usage.is_pro && usage.searches_used >= usage.searches_limit)}
+                  className="absolute inset-y-1.5 right-1.5 px-3 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                >
+                  <ArrowRight size={16} />
+                </button>
+              </form>
+            </div>
+
+            {/* Botón universal compacto */}
+            <div className="w-full max-w-4xl mx-auto mb-8 flex justify-end">
+              <button
+                onClick={handleUniversitySearch}
+                disabled={loading || !query.trim() || (usage && !usage.is_pro && usage.searches_used >= usage.searches_limit)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <GraduationCap size={13} />
+                Búsqueda Universal
+              </button>
+            </div>
 
             {loading ? (
               <div className="flex-1 flex flex-col items-center justify-center py-12">
@@ -450,7 +471,7 @@ export default function MedicalSearch() {
                           </div>
                           <div>
                             <h2 className="text-xl font-extrabold text-slate-900">
-                              {searchMode === 'university' ? 'Investigación Universitaria' : 'Consenso de la IA'}
+                              {searchMode === 'university' ? 'Investigación Universal' : 'Consenso de la IA'}
                             </h2>
                             <p className="text-xs text-slate-500">
                               {searchMode === 'university'
