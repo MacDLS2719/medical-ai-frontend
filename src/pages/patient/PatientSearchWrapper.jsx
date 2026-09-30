@@ -1,45 +1,67 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EspecialistasLanding from './EspecialistasLanding';
+import EspecialistasVideoSearch from './EspecialistasVideoSearch';
 import EspecialistasPresencialSearch from './EspecialistasPresencialSearch';
-import LocationConsentGate from './components/LocationConsentGate';
+import BookAppointmentPage from './components/BookAppointmentPage';
 
-const PatientSearchWrapper = () => {
-    const [view, setView] = useState('landing');
-    const navigate = useNavigate();
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
-    const handleBack = () => {
-        if (view === 'landing') {
-            navigate(-1);
-        } else {
-            setView('landing');
-        }
-    };
+export default function PatientSearchWrapper() {
+  const navigate = useNavigate();
 
-    if (view === 'presencial') {
-        return (
-            <LocationConsentGate>
-                {(patientPos) => (
-                    <div className="relative">
-                        <EspecialistasPresencialSearch 
-                            apiUrl={import.meta.env.VITE_API_URL || 'http://localhost:8000'} 
-                            onBack={handleBack} 
-                            initialPos={patientPos}
-                        />
-                    </div>
-                )}
-            </LocationConsentGate>
-        );
-    }
+  // 'landing' | 'video' | 'presencial' | 'booking'
+  const [view, setView] = useState('landing');
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedModality, setSelectedModality] = useState('video');
 
+  const handleSelectDoctor = (doctor, modality) => {
+    setSelectedDoctor(doctor);
+    setSelectedModality(modality);
+    setView('booking');
+  };
+
+  if (view === 'landing') {
     return (
-        <EspecialistasLanding
-            onBack={handleBack}
-            onSelectVideo={() => setView('video')}
-            onSelectPresencial={() => setView('presencial')}
-            onMyAppointments={() => navigate('/patient/appointments')}
-        />
+      <EspecialistasLanding
+        onBack={() => navigate('/patient/home')}
+        onSelectVideo={() => setView('video')}
+        onSelectPresencial={() => setView('presencial')}
+        onMyAppointments={() => navigate('/patient/appointments')}
+      />
     );
-};
+  }
 
-export default PatientSearchWrapper;
+  if (view === 'video') {
+    return (
+      <EspecialistasVideoSearch
+        apiUrl={API_URL}
+        onBack={() => setView('landing')}
+        onSelectDoctor={(doctor, modality) => handleSelectDoctor(doctor, modality)}
+      />
+    );
+  }
+
+  if (view === 'presencial') {
+    return (
+      <EspecialistasPresencialSearch
+        apiUrl={API_URL}
+        onBack={() => setView('landing')}
+        onSelectDoctor={(doctor, modality) => handleSelectDoctor(doctor, modality)}
+      />
+    );
+  }
+
+  if (view === 'booking' && selectedDoctor) {
+    return (
+      <BookAppointmentPage
+        doctor={selectedDoctor}
+        modality={selectedModality}
+        onBack={() => setView(selectedModality === 'video' ? 'video' : 'presencial')}
+        onDone={() => navigate('/patient/appointments')}
+      />
+    );
+  }
+
+  return null;
+}
