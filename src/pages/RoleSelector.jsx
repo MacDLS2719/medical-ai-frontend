@@ -23,7 +23,7 @@ export default function RoleSelector() {
   useEffect(() => {
     if (user) {
       if (user.role === 'patient') {
-        navigate('/patient/notifications');
+        navigate('/patient/home');
       } else if (user.role === 'verifier') {
         navigate('/verification/detail');
       } else {

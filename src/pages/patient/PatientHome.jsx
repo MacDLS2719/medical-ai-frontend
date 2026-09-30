@@ -15,7 +15,7 @@ function PatientHome() {
         </p>
 
         <Link
-          to="/paciente/busqueda"
+          to="/patient/search"
           className="mt-8 inline-block rounded-lg bg-blue-600 px-6 py-3 hover:bg-blue-700"
         >
           Consultar información médica

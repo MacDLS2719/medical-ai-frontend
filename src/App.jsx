@@ -25,6 +25,8 @@ import ViewPreview from './pages/doctor/ViewPreview'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
+import PatientHome from './pages/patient/PatientHome'
+import PatientSearchWrapper from './pages/patient/PatientSearchWrapper'
 
 // Verification pages
 import VerificationDetail from './pages/VerificationDetail'
@@ -149,6 +151,14 @@ function App() {
             />
 
             {/* Patient */}
+            <Route
+              path="/patient/home"
+              element={<PatientHome />}
+            />
+            <Route
+              path="/patient/search"
+              element={<PatientSearchWrapper />}
+            />
             <Route
               path="/patient/appointments"
               element={<PatientAppointments />}
