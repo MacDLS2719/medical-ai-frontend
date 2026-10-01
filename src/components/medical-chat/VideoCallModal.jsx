@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Phone, 
   PhoneOff, 
@@ -10,7 +10,8 @@ import {
   ExternalLink,
   Monitor,
   UserPlus,
-  MoreHorizontal
+  MoreHorizontal,
+  Radio
 } from 'lucide-react';
 import { callSoundPlayer } from '../../utils/callSoundPlayer';
 
@@ -18,10 +19,12 @@ export default function VideoCallModal({
   callStatus = 'idle', // 'idle' | 'calling' | 'ringing' | 'in-call'
   callData = null,
   userName = '',
+  senderId,
   onAccept,
   onReject,
   onCancel,
   onEnd,
+  onProcessRecording,
   children
 }) {
   const [isMuted, setIsMuted] = useState(false);
@@ -29,6 +32,122 @@ export default function VideoCallModal({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isRecordingCall, setIsRecordingCall] = useState(false);
+  const [isProcessingRecording, setIsProcessingRecording] = useState(false);
+  const [recordingError, setRecordingError] = useState('');
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const captureRef = useRef({ display: null, microphone: null, audioContext: null });
+
+  const releaseCapture = () => {
+    captureRef.current.display?.getTracks().forEach((track) => track.stop());
+    captureRef.current.microphone?.getTracks().forEach((track) => track.stop());
+    captureRef.current.audioContext?.close().catch(() => {});
+    captureRef.current = { display: null, microphone: null, audioContext: null };
+    recorderRef.current = null;
+    setIsRecordingCall(false);
+  };
+
+  const stopCallRecording = () => new Promise((resolve) => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
+      releaseCapture();
+      resolve(null);
+      return;
+    }
+
+    recorder.addEventListener('stop', () => {
+      const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      chunksRef.current = [];
+      releaseCapture();
+      resolve(blob.size ? blob : null);
+    }, { once: true });
+    recorder.stop();
+  });
+
+  const startCallRecording = async () => {
+    setRecordingError('');
+    try {
+      if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
+        throw new Error('Este navegador no permite capturar audio de la llamada. Usa Chrome o Edge en HTTPS o localhost.');
+      }
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Este navegador no soporta la mezcla de audio necesaria para grabar la llamada.');
+      }
+
+      const audioContext = new AudioContextClass();
+      captureRef.current = { display: null, microphone: null, audioContext };
+      const resumeAudioContext = audioContext.resume().catch(() => null);
+      const displayPromise = navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+        systemAudio: 'include',
+      });
+      const display = await displayPromise;
+      await resumeAudioContext;
+      if (audioContext.state !== 'running') {
+        throw new Error('El navegador pausó la captura de audio. Permite el audio del sitio y vuelve a iniciar la transcripción.');
+      }
+
+      captureRef.current = { display, microphone: null, audioContext };
+      const displayAudioTracks = display.getAudioTracks();
+      if (!displayAudioTracks.length) {
+        throw new Error('El navegador no compartió audio. Elige “Pestaña de Chrome”, activa “Compartir audio de la pestaña” y luego pulsa “Compartir”. No elijas Ventana ni Pantalla.');
+      }
+
+      let microphone = null;
+      try {
+        microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (error) {
+        console.warn('[VideoCall] No se pudo capturar el micrófono; se grabará el audio de la pestaña.', error);
+      }
+
+      captureRef.current = { display, microphone, audioContext };
+      const destination = audioContext.createMediaStreamDestination();
+      audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks)).connect(destination);
+      if (microphone?.getAudioTracks().length) {
+        audioContext.createMediaStreamSource(microphone).connect(destination);
+      }
+
+      const preferredMimeType = ['audio/webm;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(destination.stream, preferredMimeType ? { mimeType: preferredMimeType } : undefined);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size) chunksRef.current.push(event.data);
+      });
+      recorder.addEventListener('error', (event) => {
+        setRecordingError(event.error?.message || 'Falló la captura de audio.');
+      });
+      recorder.start(1000);
+      setIsRecordingCall(true);
+    } catch (error) {
+      releaseCapture();
+      setRecordingError(error.message || 'No se pudo iniciar la grabación.');
+    }
+  };
+
+  const handleEndCall = async () => {
+    if (recorderRef.current) {
+      setIsProcessingRecording(true);
+      try {
+        const recording = await stopCallRecording();
+        if (recording && onProcessRecording) {
+          await onProcessRecording(recording);
+        }
+      } catch (error) {
+        console.error('[VideoCall] Error procesando la grabación:', error);
+        window.alert(error?.response?.data?.detail || error.message || 'No se pudo procesar la grabación.');
+      } finally {
+        setIsProcessingRecording(false);
+      }
+    }
+    onEnd?.();
+  };
 
   // Timer para llamada activa
   useEffect(() => {
@@ -49,8 +168,42 @@ export default function VideoCallModal({
   useEffect(() => {
     if (callStatus !== 'in-call') {
       setHasJoined(false);
+      if (recorderRef.current) {
+        const recorder = recorderRef.current;
+        if (recorder.state !== 'inactive') {
+          recorder.addEventListener('stop', async () => {
+            const recording = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+            chunksRef.current = [];
+            captureRef.current.display?.getTracks().forEach((track) => track.stop());
+            captureRef.current.microphone?.getTracks().forEach((track) => track.stop());
+            captureRef.current.audioContext?.close().catch(() => {});
+            captureRef.current = { display: null, microphone: null, audioContext: null };
+            recorderRef.current = null;
+            setIsRecordingCall(false);
+
+            if (recording.size && onProcessRecording) {
+              setIsProcessingRecording(true);
+              try {
+                await onProcessRecording(recording);
+              } catch (error) {
+                console.error('[VideoCall] Error guardando grabación al finalizar la llamada:', error);
+                window.alert(error?.response?.data?.detail || error.message || 'No se pudo guardar la grabación.');
+              } finally {
+                setIsProcessingRecording(false);
+              }
+            }
+          }, { once: true });
+          recorder.stop();
+        }
+      }
     }
-  }, [callStatus]);
+  }, [callStatus, onProcessRecording]);
+
+  useEffect(() => () => {
+    captureRef.current.display?.getTracks().forEach((track) => track.stop());
+    captureRef.current.microphone?.getTracks().forEach((track) => track.stop());
+    captureRef.current.audioContext?.close().catch(() => {});
+  }, []);
 
   // Sonido de llamada
   useEffect(() => {
@@ -216,6 +369,21 @@ export default function VideoCallModal({
 
                 {/* BARRA DE CONTROLES INFERIOR */}
                 <div className="mt-2 md:mt-4 py-2 px-2 md:py-3 md:px-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 sm:gap-7 flex-wrap shrink-0">
+                  <div className="flex flex-col items-center gap-1">
+                    <button
+                      onClick={startCallRecording}
+                      disabled={isRecordingCall || isProcessingRecording || !hasJoined || !senderId || !callData?.conversation_id}
+                      title="Selecciona la pestaña de la llamada y comparte su audio para transcribirla"
+                      aria-label="Transcribir videoconferencia"
+                      className={`w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isRecordingCall ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'}`}
+                    >
+                      {isProcessingRecording ? <Loader2 size={18} className="animate-spin" /> : <Radio size={18} />}
+                    </button>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-slate-600">
+                      {isProcessingRecording ? 'Procesando' : isRecordingCall ? 'Grabando' : 'Transcribir llamada'}
+                    </span>
+                  </div>
+
                   {/* Silenciar */}
                   <div className="flex flex-col items-center gap-1">
                     <button
@@ -258,7 +426,8 @@ export default function VideoCallModal({
                   {/* Finalizar consulta (Botón Rojo Central) */}
                   <div className="flex flex-col items-center gap-1 mx-2 sm:mx-0">
                     <button
-                      onClick={onEnd}
+                      onClick={handleEndCall}
+                      disabled={isProcessingRecording}
                       className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     >
                       <PhoneOff size={22} />
@@ -286,6 +455,19 @@ export default function VideoCallModal({
                     <span className="hidden sm:block text-[11px] font-semibold text-slate-600">Opciones</span>
                   </div>
                 </div>
+                {recordingError && (
+                  <p role="alert" className="mt-2 text-center text-xs text-red-600">{recordingError}</p>
+                )}
+                {isRecordingCall && (
+                  <p className="mt-2 text-center text-xs text-slate-500">
+                    Grabando audio de esta pestaña y del micrófono. Al colgar se enviará automáticamente para transcripción.
+                  </p>
+                )}
+                {!isRecordingCall && !isProcessingRecording && (
+                  <p className="mt-2 text-center text-xs text-slate-500">
+                    Pulsa “Transcribir llamada”, elige la pestaña de Daily y activa “Compartir audio de la pestaña”.
+                  </p>
+                )}
               </div>
 
               {/* COLUMNA DERECHA: CHAT */}

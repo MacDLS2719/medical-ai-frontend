@@ -286,6 +286,12 @@ export default function MedicalChat() {
         callStatus={callStatus}
         callData={callData}
         userName={user?.name}
+        senderId={user?.id}
+        onProcessRecording={(audioBlob) => medicalChatService.processCallRecording(
+          callData?.conversation_id || conversation?.id,
+          user?.id,
+          audioBlob
+        )}
         onAccept={() => {
           sendWsMessage({
             action: 'CALL_ACCEPTED',
@@ -663,7 +669,9 @@ export default function MedicalChat() {
                       setCallData({ 
                         room_name: result.room_name, 
                         room_url: result.room_url,
-                        target_name: otherName
+                        target_name: otherName,
+                        conversation_id: conversation.id,
+                        from_user: user.id,
                       });
                       setCallStatus('calling');
                     } catch (err) {

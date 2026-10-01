@@ -113,5 +113,17 @@ export const medicalChatService = {
       { params: { sender_id: callerId } }    // sender_id como query param
     );
     return response.data;
+  },
+
+  async processCallRecording(conversationId, senderId, audioBlob) {
+    const formData = new FormData();
+    formData.append('audio_file', audioBlob, 'video-call-recording.webm');
+
+    const response = await axios.post(
+      `${API_URL}/conversations/${conversationId}/video-call/process-recording`,
+      formData,
+      { params: { sender_id: senderId } }
+    );
+    return response.data;
   }
-};
+};

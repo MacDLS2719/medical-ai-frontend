@@ -561,6 +561,14 @@ export default function MedicalChatLayout({
         setCallData(null);
     }, [callData, getOtherUserId, selectedConversation, sendWsMessage, userId]);
 
+    const handleProcessCallRecording = useCallback(async (audioBlob) => {
+        const conversationId = callData?.conversation_id || selectedConversation?.id;
+        if (!conversationId || !userId) {
+            throw new Error("No se encontró la conversación o el usuario para procesar la grabación.");
+        }
+        await medicalChatService.processCallRecording(conversationId, userId, audioBlob);
+    }, [callData?.conversation_id, selectedConversation?.id, userId]);
+
     // ── Eliminar conversación ─────────────────
     const handleDeleteConversation = useCallback(
         async (conversation) => {
@@ -611,6 +619,8 @@ export default function MedicalChatLayout({
                 callStatus={callStatus}
                 callData={callData}
                 userName={user?.name || user?.full_name || (isDoctor ? "Doctor" : "Paciente")}
+                senderId={userId}
+                onProcessRecording={handleProcessCallRecording}
                 onAccept={handleAcceptCall}
                 onReject={handleRejectCall}
                 onCancel={handleCancelCall}
