@@ -33,10 +33,12 @@ export default function VideoCallModal({
   const [hasJoined, setHasJoined] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRecordingCall, setIsRecordingCall] = useState(false);
+  const [audioSignalDetected, setAudioSignalDetected] = useState(false);
   const [isProcessingRecording, setIsProcessingRecording] = useState(false);
   const [recordingError, setRecordingError] = useState('');
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const analyserRef = useRef(null);
   const captureRef = useRef({ display: null, microphone: null, audioContext: null });
 
   const releaseCapture = () => {
@@ -44,8 +46,10 @@ export default function VideoCallModal({
     captureRef.current.microphone?.getTracks().forEach((track) => track.stop());
     captureRef.current.audioContext?.close().catch(() => {});
     captureRef.current = { display: null, microphone: null, audioContext: null };
+    analyserRef.current = null;
     recorderRef.current = null;
     setIsRecordingCall(false);
+    setAudioSignalDetected(false);
   };
 
   const stopCallRecording = () => new Promise((resolve) => {
@@ -108,10 +112,25 @@ export default function VideoCallModal({
 
       captureRef.current = { display, microphone, audioContext };
       const destination = audioContext.createMediaStreamDestination();
-      audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks)).connect(destination);
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -45;
+      compressor.knee.value = 24;
+      compressor.ratio.value = 8;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+      const gain = audioContext.createGain();
+      gain.gain.value = 1.25;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 1024;
+
+      audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks)).connect(compressor);
       if (microphone?.getAudioTracks().length) {
-        audioContext.createMediaStreamSource(microphone).connect(destination);
+        audioContext.createMediaStreamSource(microphone).connect(compressor);
       }
+      compressor.connect(gain);
+      gain.connect(destination);
+      gain.connect(analyser);
+      analyserRef.current = analyser;
 
       const preferredMimeType = ['audio/webm;codecs=opus', 'audio/webm'].find((type) => MediaRecorder.isTypeSupported(type));
       const recorder = new MediaRecorder(destination.stream, preferredMimeType ? { mimeType: preferredMimeType } : undefined);
@@ -164,6 +183,23 @@ export default function VideoCallModal({
     };
   }, [callStatus]);
 
+  useEffect(() => {
+    const analyser = analyserRef.current;
+    if (!isRecordingCall || !analyser) {
+      setAudioSignalDetected(false);
+      return undefined;
+    }
+
+    const samples = new Float32Array(analyser.fftSize);
+    const interval = window.setInterval(() => {
+      analyser.getFloatTimeDomainData(samples);
+      const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
+      setAudioSignalDetected(rms > 0.006);
+    }, 300);
+
+    return () => window.clearInterval(interval);
+  }, [isRecordingCall]);
+
   // Reset al cambiar estado
   useEffect(() => {
     if (callStatus !== 'in-call') {
@@ -178,6 +214,7 @@ export default function VideoCallModal({
             captureRef.current.microphone?.getTracks().forEach((track) => track.stop());
             captureRef.current.audioContext?.close().catch(() => {});
             captureRef.current = { display: null, microphone: null, audioContext: null };
+            analyserRef.current = null;
             recorderRef.current = null;
             setIsRecordingCall(false);
 
@@ -460,7 +497,9 @@ export default function VideoCallModal({
                 )}
                 {isRecordingCall && (
                   <p className="mt-2 text-center text-xs text-slate-500">
-                    Grabando audio de esta pestaña y del micrófono. Al colgar se enviará automáticamente para transcripción.
+                    {audioSignalDetected
+                      ? 'Audio detectado. Al colgar se enviará automáticamente para transcripción.'
+                      : 'Grabando; todavía no se detecta voz. Habla o confirma que Daily comparte el audio de la pestaña.'}
                   </p>
                 )}
                 {!isRecordingCall && !isProcessingRecording && (
