@@ -25,18 +25,20 @@ const PATIENT_PIN_SCALE = 0.855;
 const PATIENT_PIN_W = 44 * PATIENT_PIN_SCALE;
 const PATIENT_PIN_H = 55 * PATIENT_PIN_SCALE;
 
+// Bottom-aligned so the pin tip sits exactly on the icon anchor.
+const pinImg = (src) =>
+  `<img src="${src}" alt="" draggable="false" style="width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block" />`;
+
 let patientIconCache = null;
 function patientIcon() {
   if (patientIconCache) return patientIconCache;
-  const w = 44, h = 44;
+  const w = PATIENT_PIN_W, h = PATIENT_PIN_H;
   const html = `
-    <div style="position:relative;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;">
-       <div style="background-color: #05B165; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,.35);">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-       </div>
+    <div class="patient-pin-bob" style="position:relative;width:${w}px;height:${h}px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))">
+      ${pinImg('/images/pins/patient.png')}
     </div>
   `;
-  patientIconCache = L.divIcon({ html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h / 2], tooltipAnchor: [0, -h / 2] });
+  patientIconCache = L.divIcon({ html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h], tooltipAnchor: [18, -36] });
   return patientIconCache;
 }
 
@@ -44,34 +46,35 @@ function patientIcon() {
 const EXTERNAL_AMENITY_COLOR = {
   hospital: '#EE2537',
   clinic: '#027FFF',
-  pharmacy: '#EAB308', // Amarillo para farmacias
+  pharmacy: '#a208ea', // Color para farmacias
 };
 const DEFAULT_EXTERNAL_COLOR = '#EE2537';
 const PATIENT_COLOR = '#05B165';
 
-const EXTERNAL_SVG = {
-  hospital: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12"/><path d="M14 21h-4"/><path d="M14 3h-4"/><path d="M4 10v4"/><path d="M20 10v4"/><path d="M8 12h8"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>',
-  clinic: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
-  pharmacy: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h8"/><path d="M12 6v8"/><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
+const EXTERNAL_PIN_IMG = {
+  hospital: '/images/pins/hospital.png',
+  clinic: '/images/pins/clinic.png',
+  pharmacy: '/images/pins/farmacia.png', 
 };
+
+const EXTERNAL_PIN_W = 26 * 1.05;
+const EXTERNAL_PIN_H = 32 * 1.05;
+// Extra per-kind scale on top of the base external pin size.
+const EXTERNAL_PIN_SCALE = { hospital: 1.05 };
 
 const externalIconCache = new Map();
 function externalPinIcon(amenity) {
   const key = amenity || 'default';
   if (externalIconCache.has(key)) return externalIconCache.get(key);
-  
-  const w = 32, h = 32;
-  const color = EXTERNAL_AMENITY_COLOR[amenity] || DEFAULT_EXTERNAL_COLOR;
-  const svg = EXTERNAL_SVG[amenity] || EXTERNAL_SVG.hospital;
-  
+  const src = EXTERNAL_PIN_IMG[amenity] || EXTERNAL_PIN_IMG.hospital;
+  const scale = EXTERNAL_PIN_SCALE[amenity] || 1;
+  const w = EXTERNAL_PIN_W * scale, h = EXTERNAL_PIN_H * scale;
   const html = `
-    <div style="position:relative;width:${w}px;height:${h}px;display:flex;align-items:center;justify-content:center;">
-       <div style="background-color: ${color}; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,.3);">
-          ${svg}
-       </div>
+    <div style="position:relative;width:${w}px;height:${h}px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">
+      ${pinImg(src)}
     </div>
   `;
-  const icon = L.divIcon({ html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h / 2], tooltipAnchor: [0, -h / 2] });
+  const icon = L.divIcon({ html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h], tooltipAnchor: [11, -20] });
   externalIconCache.set(key, icon);
   return icon;
 }

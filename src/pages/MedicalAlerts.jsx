@@ -52,16 +52,29 @@ export default function MedicalAlerts() {
   const [formData, setFormData] = useState({
     name: '',
     topic: '',
-    infoType: 'Tratamientos',
+    infoType: ['Tratamientos'], // multi-selección
     frequency: 'En el momento',
-    source: 'all', // 'all' o cualquiera de las 6 bibliotecas
+    source: 'all',
   });
+
+  // Toggle de tipo de información (multi-selección)
+  const toggleInfoType = (id) => {
+    setFormData((prev) => {
+      const current = prev.infoType;
+      if (current.includes(id)) {
+        // Evitar deseleccionar el último
+        if (current.length === 1) return prev;
+        return { ...prev, infoType: current.filter((t) => t !== id) };
+      }
+      return { ...prev, infoType: [...current, id] };
+    });
+  };
 
   // Lista de las 6 bibliotecas clínicas + Opción de todas
   const libraryOptions = [
     { id: 'all', name: 'Todas' },
-    { id: 'Buscador Mivor', name: 'Buscador Mivor' },
-    { id: 'Buscador Universal', name: 'Buscador Universal' },
+    { id: 'Buscador Mivor', name: 'Buscador Mivor (Fuente Verificada)' },
+    { id: 'Buscador Universal', name: 'Buscador Universal (Fuente sin Verificar)' },
   ];
 
   const infoTypeOptions = [
@@ -165,7 +178,10 @@ export default function MedicalAlerts() {
           user_id: user?.id,
           name: formData.name,
           topic: formData.topic,
-          info_type: formData.infoType,
+          // Guardamos como CSV para compatibilidad con el campo String de la BD
+          info_type: Array.isArray(formData.infoType)
+            ? formData.infoType.join(',')
+            : formData.infoType,
           frequency: formData.frequency,
           source: formData.source,
           is_active: true,
@@ -431,12 +447,12 @@ export default function MedicalAlerts() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {infoTypeOptions.map((opt) => {
                         const IconComp = opt.icon;
-                        const isSelected = formData.infoType === opt.id;
+                        const isSelected = formData.infoType.includes(opt.id);
                         return (
                           <button
                             type="button"
                             key={opt.id}
-                            onClick={() => setFormData({ ...formData, infoType: opt.id })}
+                            onClick={() => toggleInfoType(opt.id)}
                             className={`relative flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
                               isSelected
                                 ? 'border-blue-600 bg-blue-50/30 ring-2 ring-blue-600/10'
@@ -450,15 +466,23 @@ export default function MedicalAlerts() {
                               <h4 className="text-xs font-bold text-slate-800">{opt.title}</h4>
                               <p className="text-[10px] text-slate-400">{opt.subtitle}</p>
                             </div>
-                            {isSelected && (
-                              <span className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">
-                                ✓
-                              </span>
-                            )}
+                            {/* Checkbox visual */}
+                            <span className={`absolute right-3 top-3 flex h-4 w-4 items-center justify-center rounded ${
+                              isSelected
+                                ? 'bg-blue-600 text-white'
+                                : 'border border-slate-300 bg-white'
+                            } text-[10px] transition-all`}>
+                              {isSelected && '✓'}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
+                    {formData.infoType.length > 1 && (
+                      <p className="mt-1 text-[10px] text-blue-600 font-medium">
+                        {formData.infoType.length} tipos seleccionados
+                      </p>
+                    )}
                   </div>
 
                   {/* FRECUENCIA */}
@@ -536,8 +560,14 @@ export default function MedicalAlerts() {
                   <div className="flex items-start gap-3">
                     <FlaskConical size={16} className="text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-bold text-slate-700">Tipo de información</p>
-                      <p className="text-slate-500">{formData.infoType}</p>
+                      <p className="font-bold text-slate-700 mb-1">Tipo de información</p>
+                      <div className="flex flex-wrap gap-1">
+                        {(Array.isArray(formData.infoType) ? formData.infoType : [formData.infoType]).map((t) => (
+                          <span key={t} className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -618,8 +648,14 @@ export default function MedicalAlerts() {
                 <div className="py-3 flex items-start gap-3">
                   <FlaskConical size={16} className="text-blue-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-slate-800">Tipo de información</p>
-                    <p className="text-slate-500">{createdAlert.info_type || createdAlert.infoType}</p>
+                    <p className="font-bold text-slate-800 mb-1">Tipo de información</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(createdAlert.info_type || createdAlert.infoType || '').split(',').map((t) => (
+                        <span key={t} className="inline-block bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          {t.trim()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="py-3 flex items-start gap-3">
@@ -660,7 +696,7 @@ export default function MedicalAlerts() {
                     setFormData({
                       name: '',
                       topic: '',
-                      infoType: 'Tratamientos',
+                      infoType: ['Tratamientos'],
                       frequency: 'En el momento',
                       source: 'all',
                     });

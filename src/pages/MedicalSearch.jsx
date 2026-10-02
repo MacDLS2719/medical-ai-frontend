@@ -501,9 +501,13 @@ export default function MedicalSearch() {
                           </div>
                       </div>
 
-                      <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 pt-4 custom-scrollbar">
                       {result.references?.filter(ref => ref._final_url).map((ref, idx) => (
-                            <div key={idx} id={`ref-${idx + 1}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors group scroll-mt-24">
+                            <div key={idx} id={`ref-${idx + 1}`} className="relative bg-white rounded-2xl p-5 pt-6 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors group scroll-mt-24">
+                                {/* ── Número de referencia ── */}
+                                <span className="absolute -top-3 left-4 w-6 h-6 rounded-full bg-[#0052FF] text-white text-[10px] font-extrabold flex items-center justify-center shadow-sm ring-2 ring-white">
+                                  {idx + 1}
+                                </span>
                                 <div className="flex justify-between items-start mb-2">
                                   <span className="text-xs font-bold text-[#0052FF] bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider" title={ref.source}>
                                       {getSourceFromUrl(ref._final_url, ref.source)}

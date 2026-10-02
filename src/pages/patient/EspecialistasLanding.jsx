@@ -93,7 +93,7 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="flex-1 min-w-0 order-2 sm:order-1">
               <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug pl-11 mb-1.5">
-                I want a quick video call appointment
+                I want a quick video consultation with a doctor
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 pl-11">
                 Talk to a specialist doctor by video call as soon as possible, wherever you are.
@@ -126,7 +126,7 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
             onClick={onSelectVideo}
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-600 hover:text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
           >
-            Access video calls <ArrowRight className="w-3.5 h-3.5" />
+            Schedule video calls <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
