@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SupportAIModal from './SupportAI/SupportAIModal';
 import { useTranslation } from 'react-i18next';
 import {
   User,
@@ -26,6 +27,9 @@ export default function SidebarDoctor() {
 
   // Estado omohendáva pe menú flotante hamburguesa celular-pe guarã
   const [isOpen, setIsOpen] = useState(false);
+
+  // Estado para el modal de Soporte AI
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   // Oñemboty automatically pe menú ojeporu jave peteĩ enlace ruta pyahu
   useEffect(() => {
@@ -300,19 +304,14 @@ export default function SidebarDoctor() {
 
               {/* Ayuda y soporte */}
               <li>
-                <NavLink
-                  to="/support"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/80'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
-                    }`
-                  }
+                <button
+                  type="button"
+                  onClick={() => setIsSupportOpen(true)}
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600"
                 >
                   <HelpCircle size={18} strokeWidth={2} />
                   <span>Ayuda y soporte</span>
-                </NavLink>
+                </button>
               </li>
 
             </ul>
@@ -336,7 +335,7 @@ export default function SidebarDoctor() {
             </div>
             <button
               type="button"
-              onClick={() => window.location.href = '/support'}
+              onClick={() => setIsSupportOpen(true)}
               className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer text-center"
             >
               Contactar soporte
@@ -350,6 +349,12 @@ export default function SidebarDoctor() {
           </div>
         </div>
       </aside>
+
+      {/* Modal de Soporte AI */}
+      <SupportAIModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </>
   );
 }

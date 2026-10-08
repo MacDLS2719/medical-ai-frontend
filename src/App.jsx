@@ -170,6 +170,12 @@ function App() {
               element={<VerificationDetail />}
             />
 
+            {/* Soporte: redirige al home (el soporte es un modal en el Sidebar) */}
+            <Route
+              path="/support"
+              element={<Navigate to="/" replace />}
+            />
+
           </Routes>
 
         </main>
