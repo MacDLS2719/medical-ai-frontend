@@ -301,19 +301,6 @@ export default function SidebarDoctor() {
                   <span>Privacidad y seguridad</span>
                 </NavLink>
               </li>
-
-              {/* Ayuda y soporte */}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setIsSupportOpen(true)}
-                  className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600"
-                >
-                  <HelpCircle size={18} strokeWidth={2} />
-                  <span>Ayuda y soporte</span>
-                </button>
-              </li>
-
             </ul>
           </div>
 

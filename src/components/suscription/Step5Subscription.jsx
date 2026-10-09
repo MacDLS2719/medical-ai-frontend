@@ -76,8 +76,7 @@ export default function Step5Subscription({ formData, updateFormData, onNext, on
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleProceed = (paymentMethod) => {
     const selected = plans.find((p) => p.id === selectedPlanId);
     if (!selected) return;
 
@@ -88,14 +87,14 @@ export default function Step5Subscription({ formData, updateFormData, onNext, on
       subscriptionPlanPrice: selected.price,
       subscriptionPlanCurrency: selected.currency || 'USD',
     });
-    onNext(selected.id);
+    onNext(selected.id, paymentMethod);
   };
 
   const noPlansAvailable = !loading && plans.length === 0;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 bg-slate-50/50">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 items-center pb-12">
+      <div className="flex flex-col gap-6 items-center pb-12">
 
         {/* Encabezado Principal compacto */}
         <div className="text-center space-y-1.5 max-w-2xl">
@@ -280,25 +279,44 @@ export default function Step5Subscription({ formData, updateFormData, onNext, on
             <span>Volver</span>
           </button>
 
-          <button
-            type="submit"
-            disabled={!selectedPlanId || loading || isSubmitting}
-            className="flex items-center gap-1.5 px-8 py-2.5 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            {isSubmitting ? (
-              <>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => handleProceed('none')}
+              disabled={!selectedPlanId || loading || isSubmitting}
+              className="flex items-center gap-1.5 px-6 py-2.5 border-2 border-slate-300 text-slate-600 hover:bg-slate-50 disabled:border-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-xs font-semibold rounded-xl transition-all cursor-pointer"
+            >
+              <span>Sin pago</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleProceed('paddle')}
+              disabled={!selectedPlanId || loading || isSubmitting}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-[#0052FF] hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+            >
+              {isSubmitting ? (
                 <Loader2 size={15} className="animate-spin" />
-                <span>Registrando...</span>
-              </>
-            ) : (
-              <>
-                <span>Crear mi cuenta</span>
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
+              ) : (
+                <span>Paddle</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleProceed('stripe')}
+              disabled={!selectedPlanId || loading || isSubmitting}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-[#635BFF] hover:bg-[#4b45cc] disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+            >
+              {isSubmitting ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <><span>Stripe</span><ArrowRight size={15} /></>
+              )}
+            </button>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

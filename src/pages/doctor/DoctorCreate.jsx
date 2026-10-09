@@ -82,7 +82,7 @@ export default function DoctorCreate() {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const goToStep = (stepNumber) => setCurrentStep(stepNumber);
 
-  const handleRegisterDoctor = async (planId) => {
+  const handleRegisterDoctor = async (planId, paymentMethod = 'none') => {
     setIsSubmitting(true);
     setError(null);
 
@@ -121,8 +121,7 @@ export default function DoctorCreate() {
       subscription_plan_id: resolvedPlanId
     };
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    const submitUserRegistration = async (payload, apiUrl) => {
       const response = await fetch(`${apiUrl}/doctor-profile/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,8 +139,13 @@ export default function DoctorCreate() {
           is_free: false
         };
 
+        const realUserId = responseData.user_id || responseData.id;
+        if (!realUserId) {
+          throw new Error('El servidor no devolvió un ID de usuario válido. Intente de nuevo.');
+        }
+
         doctorUser = {
-          id: responseData.user_id || responseData.id || 2,
+          id: realUserId,
           role: 'doctor',
           name: `Dr. ${formData.firstName} ${formData.lastName}`.trim() || 'Dr. Médico',
           email: formData.email,
@@ -180,7 +184,80 @@ export default function DoctorCreate() {
       }
 
       loginAsDoctor(doctorUser);
-      setCurrentStep(6);
+      return doctorUser;
+    };
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
+      if (paymentMethod === 'paddle') {
+        const paddleRes = await fetch(`${apiUrl}/paddle/checkout?plan_id=${resolvedPlanId}`, { method: 'POST' });
+        if (!paddleRes.ok) {
+          const errText = await paddleRes.text();
+          throw new Error('Error al cargar la pasarela de pago: ' + errText);
+        }
+        const paddleData = await paddleRes.json();
+
+        if (window.Paddle) {
+          window.Paddle.Environment.set(paddleData.environment);
+          window.Paddle.Initialize({
+            token: paddleData.client_token,
+            eventCallback: function(data) {
+              if (data.name === "checkout.completed") {
+                submitUserRegistration(payload, apiUrl);
+              }
+            }
+          });
+
+          window.Paddle.Checkout.open({
+            settings: {
+              displayMode: "overlay",
+              theme: "light",
+              locale: "es",
+              successUrl: window.location.origin + "/doctor/dashboard"
+            },
+            items: [
+              {
+                priceId: paddleData.price_id,
+                quantity: 1
+              }
+            ]
+          });
+          
+          setIsSubmitting(false);
+          return; // Esperamos al callback
+        } else {
+          throw new Error('Paddle no está cargado');
+        }
+      } else if (paymentMethod === 'stripe') {
+        // Crear usuario primero (Stripe redirige, por lo que perderíamos los datos)
+        const doctorUser = await submitUserRegistration(payload, apiUrl);
+        
+        if (doctorUser && doctorUser.id) {
+          const successUrl = window.location.origin + "/doctor/dashboard?session_id={CHECKOUT_SESSION_ID}";
+          const cancelUrl = window.location.origin + "/doctor/dashboard?cancel=true";
+          
+          const stripeRes = await fetch(`${apiUrl}/stripe/create-checkout-session?user_id=${doctorUser.id}&plan_id=${resolvedPlanId}&success_url=${encodeURIComponent(successUrl)}&cancel_url=${encodeURIComponent(cancelUrl)}`, {
+            method: 'POST'
+          });
+          
+          if (stripeRes.ok) {
+            const stripeData = await stripeRes.json();
+            window.location.href = stripeData.checkout_url;
+            return; // Redirigiendo a Stripe
+          } else {
+            const errText = await stripeRes.text();
+            console.warn("Error creando sesión de Stripe", errText);
+            setError("El usuario fue creado pero hubo un error al abrir Stripe: " + errText);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      } else {
+        await submitUserRegistration(payload, apiUrl);
+        setCurrentStep(6);
+      }
+
     } catch (err) {
       console.error('Error in doctor registration:', err);
       if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('fetch'))) {
@@ -204,7 +281,7 @@ export default function DoctorCreate() {
         alert(err.message || 'Error al crear la cuenta.');
       }
     } finally {
-      setIsSubmitting(false);
+      if (paymentMethod === 'none') setIsSubmitting(false);
     }
   };
 
