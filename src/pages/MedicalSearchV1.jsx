@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,7 +7,6 @@ import {
   ExternalLink,
   BookOpen,
   AlertCircle,
-  Mic,
   Bell,
   BellPlus,
   ArrowRight,
@@ -38,14 +37,6 @@ export default function MedicalSearch() {
   const [selectedLibrary, setSelectedLibrary] = useState('all');
   const [selectedSourceType, setSelectedSourceType] = useState('all');
   const [selectedUniversal, setSelectedUniversal] = useState('all');
-
-  // Voz a texto
-  const [isListening, setIsListening] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [speechError, setSpeechError] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const wsRef = useRef(null);
 
   // Contador de búsquedas gratuitas
   const FREE_SEARCHES = 1;
@@ -138,97 +129,6 @@ export default function MedicalSearch() {
   useEffect(() => {
     if (!user) navigate('/');
   }, [user, navigate]);
-
-  // ------------------------------------------------------------------
-  // Micrófono (WebSocket)
-  // ------------------------------------------------------------------
-  const toggleListening = async () => {
-    if (isListening) {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'close' }));
-        wsRef.current.close();
-      }
-      setIsListening(false);
-      setIsTranscribing(false);
-      return;
-    }
-
-    setSpeechError(null);
-    setQuery('');
-
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setSpeechError('No se pudo acceder al micrófono. Verifica los permisos.');
-      return;
-    }
-
-    const lang = i18n.language?.startsWith('en') ? 'en' : 'es';
-    const wsUrl =
-      import.meta.env.VITE_API_URL.replace(/^http/, 'ws').replace(/\/api$/, '') +
-      `/api/transcribe/stream?language=${lang}`;
-
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    let currentTranscript = '';
-
-    ws.onopen = () => {
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/ogg';
-
-      const recorder = new MediaRecorder(stream, { mimeType });
-
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-          ws.send(e.data);
-        }
-      };
-
-      recorder.onstop = () => stream.getTracks().forEach((t) => t.stop());
-
-      recorder.start(250);
-      mediaRecorderRef.current = recorder;
-      setIsListening(true);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.transcript) {
-          if (data.is_final) {
-            currentTranscript += (currentTranscript ? ' ' : '') + data.transcript;
-            setQuery(currentTranscript);
-          } else {
-            setQuery((currentTranscript ? currentTranscript + ' ' : '') + data.transcript);
-          }
-        }
-      } catch (err) {
-        console.error('Error parseando WebSocket msg:', err);
-      }
-    };
-
-    ws.onerror = () => {
-      setSpeechError('Se perdió la conexión en tiempo real.');
-      setIsListening(false);
-      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
-    };
-
-    ws.onclose = () => {
-      setIsListening(false);
-      setIsTranscribing(false);
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
-    };
-  };
 
   // ------------------------------------------------------------------
   // Búsqueda
@@ -509,24 +409,11 @@ export default function MedicalSearch() {
               <div className="relative rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition-all focus-within:border-[#0062FF] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0062FF]/10">
                 <textarea
                   rows={3}
-                  value={isTranscribing ? '' : query}
-                  onChange={(e) => {
-                    if (!isListening && !isTranscribing) setQuery(e.target.value);
-                  }}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                   maxLength={1000}
-                  placeholder={
-                    isTranscribing
-                      ? '⏳ Transcribiendo...'
-                      : 'Escribe aquí qué quieres conocer...'
-                  }
-                  readOnly={isListening || isTranscribing}
-                  className={`w-full resize-none bg-transparent text-sm placeholder-slate-400 outline-none transition-colors ${
-                    isListening
-                      ? 'text-red-500 font-medium'
-                      : isTranscribing
-                      ? 'text-blue-500 font-medium italic'
-                      : 'text-slate-800'
-                  }`}
+                  placeholder="Escribe aquí qué quieres conocer..."
+                  className="w-full resize-none bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none transition-colors"
                 />
                 <div className="flex justify-end text-[11px] font-medium text-slate-400">
                   {query.length}/1000
@@ -655,43 +542,6 @@ export default function MedicalSearch() {
                 </button>
               </div>
 
-              {/* Micrófono */}
-              <div className="flex flex-col items-center justify-center pt-4 border-t border-slate-100 mt-4">
-                <button
-                  type="button"
-                  onClick={toggleListening}
-                  disabled={loading || isTranscribing}
-                  className={`group relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer ${
-                    isTranscribing
-                      ? 'bg-blue-400 shadow-blue-400/40 cursor-not-allowed'
-                      : isListening
-                      ? 'bg-red-500 shadow-red-500/40 animate-pulse'
-                      : 'bg-[#0062FF] shadow-blue-500/30'
-                  }`}
-                >
-                  {isTranscribing ? (
-                    <Loader2 className="animate-spin" size={22} />
-                  ) : isListening ? (
-                    <span className="flex items-end gap-0.5 h-5">
-                      {[0, 150, 300, 450, 600].map((delay, i) => (
-                        <span key={i} className="w-1 rounded-full bg-white animate-bounce"
-                          style={{ height: ['30%','70%','100%','70%','30%'][i], animationDelay: `${delay}ms` }} />
-                      ))}
-                    </span>
-                  ) : (
-                    <Mic size={24} />
-                  )}
-                </button>
-                <p className="mt-3 text-xs font-bold text-slate-900">
-                  {isListening ? '🔴 Escuchando... pulsa para detener' : 'Pulsa el micrófono para hablar'}
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  {isListening ? 'El texto aparecerá arriba en tiempo real.' : 'Puedes explicarle lo que buscas.'}
-                </p>
-                {speechError && (
-                  <p className="mt-2 text-[11px] text-red-500 text-center max-w-xs">{speechError}</p>
-                )}
-              </div>
             </form>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import DailyIframe from '@daily-co/daily-js';
 import { 
   Phone, 
   PhoneOff, 
@@ -30,16 +31,47 @@ export default function VideoCallModal({
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [hasJoined, setHasJoined] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRecordingCall, setIsRecordingCall] = useState(false);
   const [audioSignalDetected, setAudioSignalDetected] = useState(false);
   const [isProcessingRecording, setIsProcessingRecording] = useState(false);
   const [recordingError, setRecordingError] = useState('');
+  const [callError, setCallError] = useState('');
+  const roomUrl = callData?.room_url || null;
+  const hasJoined = callStatus === 'in-call' && Boolean(roomUrl);
+  const dailyFrameContainerRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
   const analyserRef = useRef(null);
   const captureRef = useRef({ display: null, microphone: null, audioContext: null });
+
+  useEffect(() => {
+    if (callStatus !== 'in-call' || !hasJoined || !roomUrl || !dailyFrameContainerRef.current) {
+      return undefined;
+    }
+
+    let isActive = true;
+    const call = DailyIframe.createFrame(dailyFrameContainerRef.current, {
+      iframeStyle: {
+        width: '100%',
+        height: '100%',
+        border: 'none',
+      },
+    });
+    call.join({ url: roomUrl }).catch((error) => {
+      console.error('[VideoCall] No se pudo ingresar a la sala de Daily:', error);
+      if (isActive) {
+        setCallError('No se pudo ingresar a la sala de videollamada.');
+      }
+    });
+
+    return () => {
+      isActive = false;
+      call.destroy().catch((error) => {
+        console.error('[VideoCall] No se pudo cerrar la sala de Daily:', error);
+      });
+    };
+  }, [callStatus, hasJoined, roomUrl]);
 
   const releaseCapture = () => {
     captureRef.current.display?.getTracks().forEach((track) => track.stop());
@@ -203,7 +235,6 @@ export default function VideoCallModal({
   // Reset al cambiar estado
   useEffect(() => {
     if (callStatus !== 'in-call') {
-      setHasJoined(false);
       if (recorderRef.current) {
         const recorder = recorderRef.current;
         if (recorder.state !== 'inactive') {
@@ -259,7 +290,6 @@ export default function VideoCallModal({
 
   if (callStatus === 'idle') return null;
 
-  const roomUrl = callData?.room_url || null;
   const isInCall = callStatus === 'in-call';
 
   const formatTimer = (totalSeconds) => {
@@ -377,12 +407,11 @@ export default function VideoCallModal({
                 {/* CONTENEDOR DE VIDEO LIMPIO (SALA DAILY.CO) */}
                 <div className="relative w-full flex-1 rounded-3xl overflow-hidden border border-slate-200/80 shadow-md bg-slate-900 min-h-[200px] md:min-h-[300px]">
                   
-                  {/* IFRAME DAILY.CO O PANTALLA DE INGRESO */}
+                  {/* IFRAME DAILY.CO O ESTADO DE CONEXIÓN */}
                   {hasJoined && roomUrl ? (
-                    <iframe
-                      src={roomUrl}
-                      allow="camera; microphone; fullscreen; display-capture; autoplay"
-                      style={{ width: '100%', height: '100%', border: 'none', position: 'absolute', inset: 0 }}
+                    <div
+                      ref={dailyFrameContainerRef}
+                      className="absolute inset-0"
                       title="Videollamada médica — Daily.co"
                     />
                   ) : (
@@ -391,33 +420,30 @@ export default function VideoCallModal({
                         <Video className="w-8 h-8 md:w-10 md:h-10" />
                       </div>
                       <h3 className="text-lg md:text-xl font-extrabold mb-1 tracking-tight">Videoconferencia en vivo</h3>
-                      <p className="text-[10px] md:text-xs text-slate-400 max-w-sm mb-4 md:mb-6">
-                        La sala con {contactName} está lista. Haz clic abajo para ingresar.
+                      <p className="text-[10px] md:text-xs text-slate-400 max-w-sm">
+                        {callStatus === 'in-call' && !roomUrl
+                          ? 'Conectando con la sala de videollamada...'
+                          : 'La sala está lista. Esperando que la llamada sea contestada.'}
                       </p>
-                      <button
-                        onClick={() => setHasJoined(true)}
-                        className="px-6 py-2.5 md:px-8 md:py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all cursor-pointer hover:scale-[1.02]"
-                      >
-                        Ingresar a la consulta
-                      </button>
                     </div>
                   )}
                 </div>
 
                 {/* BARRA DE CONTROLES INFERIOR */}
                 <div className="mt-2 md:mt-4 py-2 px-2 md:py-3 md:px-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-center gap-2 sm:gap-7 flex-wrap shrink-0">
+                  {/* ── Transcripción OpenAI (grabación local de pestaña) ── */}
                   <div className="flex flex-col items-center gap-1">
                     <button
                       onClick={startCallRecording}
                       disabled={isRecordingCall || isProcessingRecording || !hasJoined || !senderId || !callData?.conversation_id}
-                      title="Selecciona la pestaña de la llamada y comparte su audio para transcribirla"
-                      aria-label="Transcribir videoconferencia"
+                      title="Graba la pestaña de Daily y transcribe con OpenAI al finalizar"
+                      aria-label="Transcribir con OpenAI"
                       className={`w-10 h-10 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isRecordingCall ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100 hover:bg-slate-200 text-blue-600 border border-slate-200/60'}`}
                     >
                       {isProcessingRecording ? <Loader2 size={18} className="animate-spin" /> : <Radio size={18} />}
                     </button>
                     <span className="text-[10px] sm:text-[11px] font-semibold text-slate-600">
-                      {isProcessingRecording ? 'Procesando' : isRecordingCall ? 'Grabando' : 'Transcribir llamada'}
+                      {isProcessingRecording ? 'Procesando' : isRecordingCall ? 'Grabando' : 'OpenAI'}
                     </span>
                   </div>
 
@@ -495,16 +521,19 @@ export default function VideoCallModal({
                 {recordingError && (
                   <p role="alert" className="mt-2 text-center text-xs text-red-600">{recordingError}</p>
                 )}
+                {callError && (
+                  <p role="alert" className="mt-1 text-center text-xs text-red-600">{callError}</p>
+                )}
                 {isRecordingCall && (
                   <p className="mt-2 text-center text-xs text-slate-500">
                     {audioSignalDetected
-                      ? 'Audio detectado. Al colgar se enviará automáticamente para transcripción.'
-                      : 'Grabando; todavía no se detecta voz. Habla o confirma que Daily comparte el audio de la pestaña.'}
+                      ? '🎙️ Audio detectado. Al colgar se enviará a OpenAI para transcripción y resumen.'
+                      : 'Grabando para OpenAI; activa "Compartir audio de la pestaña" en Daily.'}
                   </p>
                 )}
                 {!isRecordingCall && !isProcessingRecording && (
-                  <p className="mt-2 text-center text-xs text-slate-500">
-                    Pulsa “Transcribir llamada”, elige la pestaña de Daily y activa “Compartir audio de la pestaña”.
+                  <p className="mt-2 text-center text-xs text-slate-400">
+                    <span className="text-blue-600 font-semibold">OpenAI</span>: graba el audio de la pestaña y genera la transcripción al finalizar.
                   </p>
                 )}
               </div>

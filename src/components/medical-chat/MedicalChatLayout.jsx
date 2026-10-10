@@ -233,6 +233,7 @@ export default function MedicalChatLayout({
             } else if (actionUpper === "CALL_ACCEPTED" || actionUpper === "VIDEO_CALL_ACCEPTED") {
                 setCallData((prev) => ({
                     ...prev,
+                    call_id: prev?.call_id || data.call_id || null,
                     room_url: prev?.room_url || data.room_url || null,
                     room_name: prev?.room_name || data.room_name || null,
                     target_name: prev?.target_name || data.caller_name || "Contacto",
@@ -253,6 +254,83 @@ export default function MedicalChatLayout({
     );
 
     const { sendWsMessage } = useWebSocket(userId, handleWsMessage);
+
+    useEffect(() => {
+        if (!isDoctor || callStatus !== "calling" || !callData?.call_id || !userId) {
+            return undefined;
+        }
+
+        let isActive = true;
+        let timeoutId;
+        const checkCallStatus = async () => {
+            try {
+                const currentCall = await medicalChatService.getVideoCallStatus(
+                    callData.call_id,
+                    userId
+                );
+                if (!isActive) return;
+
+                setCallData((current) => ({
+                    ...current,
+                    room_name: current?.room_name || currentCall.room_name,
+                    room_url: current?.room_url || currentCall.room_url,
+                }));
+
+                if (currentCall.status === "accepted") {
+                    setCallStatus("in-call");
+                } else if (["rejected", "cancelled", "ended"].includes(currentCall.status)) {
+                    setCallStatus("idle");
+                    setCallData(null);
+                }
+            } catch (error) {
+                console.error("[Chat] Error comprobando el estado de la videollamada:", error);
+            } finally {
+                if (isActive) {
+                    timeoutId = window.setTimeout(checkCallStatus, 2000);
+                }
+            }
+        };
+
+        checkCallStatus();
+        return () => {
+            isActive = false;
+            window.clearTimeout(timeoutId);
+        };
+    }, [isDoctor, callStatus, callData?.call_id, userId]);
+
+    useEffect(() => {
+        if (isDoctor || !userId) return undefined;
+
+        let isActive = true;
+        let timeoutId;
+        const pollIncomingCall = async () => {
+            try {
+                const incomingCall = await medicalChatService.getIncomingVideoCall(userId);
+                if (isActive && incomingCall?.room_name) {
+                    setCallData((current) =>
+                        current?.room_name === incomingCall.room_name
+                            ? current
+                            : incomingCall
+                    );
+                    setCallStatus((current) =>
+                        current === "idle" ? "ringing" : current
+                    );
+                }
+            } catch (error) {
+                console.error("[Chat] Error buscando llamadas entrantes:", error);
+            } finally {
+                if (isActive) {
+                    timeoutId = window.setTimeout(pollIncomingCall, 3000);
+                }
+            }
+        };
+
+        pollIncomingCall();
+        return () => {
+            isActive = false;
+            window.clearTimeout(timeoutId);
+        };
+    }, [isDoctor, userId]);
 
     const handleTyping = useCallback(() => {
         if (!selectedConversation?.id || !userId) return;
@@ -476,6 +554,7 @@ export default function MedicalChatLayout({
                 if (result?.room_url) {
                     setCallData((prev) => ({
                         ...prev,
+                        call_id: result.call_id,
                         room_name: result.room_name,
                         room_url: result.room_url,
                     }));
@@ -491,11 +570,22 @@ export default function MedicalChatLayout({
     );
 
     // ── Acciones de Videollamada ─────────────────
-    const handleAcceptCall = useCallback(() => {
+    const handleAcceptCall = useCallback(async () => {
+        if (callData?.call_id && userId) {
+            try {
+                await medicalChatService.respondToVideoCall(callData.call_id, userId, "accepted");
+            } catch (error) {
+                console.error("[Chat] No se pudo registrar que la llamada fue contestada:", error);
+                window.alert("No se pudo confirmar la llamada con el servidor. Intenta contestar de nuevo.");
+                return;
+            }
+        }
+
         const targetUser = callData?.from_user || callData?.target_user || getOtherUserId(selectedConversation);
         sendWsMessage({
             action: "CALL_ACCEPTED",
             target_user: targetUser,
+            call_id: callData?.call_id,
             room_name: callData?.room_name,
             room_url: callData?.room_url,
         });
@@ -525,33 +615,57 @@ export default function MedicalChatLayout({
         }
     }, [callData, getOtherUserId, selectedConversation, sendWsMessage, conversations, userId, loadMessages]);
 
-    const handleRejectCall = useCallback(() => {
+    const handleRejectCall = useCallback(async () => {
+        if (callData?.call_id && userId) {
+            try {
+                await medicalChatService.respondToVideoCall(callData.call_id, userId, "rejected");
+            } catch (error) {
+                console.error("[Chat] No se pudo registrar el rechazo de la llamada:", error);
+            }
+        }
         const targetUser = callData?.from_user || callData?.target_user || getOtherUserId(selectedConversation);
         sendWsMessage({
             action: "CALL_REJECTED",
             target_user: targetUser,
+            call_id: callData?.call_id,
             room_name: callData?.room_name,
         });
         setCallStatus("idle");
         setCallData(null);
-    }, [callData, getOtherUserId, selectedConversation, sendWsMessage]);
+    }, [callData, getOtherUserId, selectedConversation, sendWsMessage, userId]);
 
-    const handleCancelCall = useCallback(() => {
+    const handleCancelCall = useCallback(async () => {
+        if (callData?.call_id && userId) {
+            try {
+                await medicalChatService.respondToVideoCall(callData.call_id, userId, "cancelled");
+            } catch (error) {
+                console.error("[Chat] No se pudo registrar la cancelación de la llamada:", error);
+            }
+        }
         const targetUser = callData?.target_user || callData?.from_user || getOtherUserId(selectedConversation);
         sendWsMessage({
             action: "CALL_CANCELLED",
             target_user: targetUser,
+            call_id: callData?.call_id,
             room_name: callData?.room_name,
         });
         setCallStatus("idle");
         setCallData(null);
-    }, [callData, getOtherUserId, selectedConversation, sendWsMessage]);
+    }, [callData, getOtherUserId, selectedConversation, sendWsMessage, userId]);
 
-    const handleEndCall = useCallback(() => {
+    const handleEndCall = useCallback(async () => {
+        if (callData?.call_id && userId) {
+            try {
+                await medicalChatService.respondToVideoCall(callData.call_id, userId, "ended");
+            } catch (error) {
+                console.error("[Chat] No se pudo registrar el fin de la llamada:", error);
+            }
+        }
         const targetUser = callData?.from_user || callData?.target_user || getOtherUserId(selectedConversation);
         sendWsMessage({
             action: "CALL_ENDED",
             target_user: targetUser,
+            call_id: callData?.call_id,
             room_name: callData?.room_name,
         });
         if (selectedConversation?.id && userId) {

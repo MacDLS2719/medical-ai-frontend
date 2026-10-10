@@ -22,6 +22,7 @@ import DoctorCreateFree from './pages/doctor/DoctorCreateFree'
 import DoctorUpgradePlan from './pages/doctor/DoctorUpgradePlan'
 import ViewPreview from './pages/doctor/ViewPreview'
 import FeePayments from './pages/doctor/FeePayments'
+import DoctorTranscription from './pages/doctor/DoctorTranscription'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -143,6 +144,11 @@ function App() {
             <Route
               path="/fee-payments"
               element={<FeePayments />}
+            />
+
+            <Route
+              path="/transcription"
+              element={<DoctorTranscription />}
             />
 
             <Route

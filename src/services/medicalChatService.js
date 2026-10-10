@@ -115,6 +115,31 @@ export const medicalChatService = {
     return response.data;
   },
 
+  async getIncomingVideoCall(receiverId) {
+    const response = await axios.get(
+      `${API_URL}/video-calls/incoming`,
+      { params: { receiver_id: receiverId } }
+    );
+    return response.data;
+  },
+
+  async respondToVideoCall(callId, userId, responseStatus) {
+    const response = await axios.post(
+      `${API_URL}/video-calls/${callId}/respond`,
+      null,
+      { params: { user_id: userId, response: responseStatus } }
+    );
+    return response.data;
+  },
+
+  async getVideoCallStatus(callId, userId) {
+    const response = await axios.get(
+      `${API_URL}/video-calls/${callId}/status`,
+      { params: { user_id: userId } }
+    );
+    return response.data;
+  },
+
   async processCallRecording(conversationId, senderId, audioBlob) {
     const formData = new FormData();
     formData.append('audio_file', audioBlob, 'video-call-recording.webm');
@@ -122,7 +147,42 @@ export const medicalChatService = {
     const response = await axios.post(
       `${API_URL}/conversations/${conversationId}/video-call/process-recording`,
       formData,
-      { params: { sender_id: senderId } }
+      {
+        params: { sender_id: senderId },
+        timeout: 300000, // 5 minutos — el audio + Cloudinary + OpenAI puede tardar
+      }
+    );
+    return response.data;
+  },
+
+  async getCallTranscriptions(skip = 0, limit = 50, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions`,
+      { params: { skip, limit, ...(userId ? { user_id: userId } : {}) } }
+    );
+    return response.data;
+  },
+
+  async getCallTranscriptionPatients(userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/patients`,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
+  async getPatientCallTranscriptions(patientId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/patients/${patientId}`,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
+  async getCallTranscription(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}`,
+      { params: userId ? { user_id: userId } : {} }
     );
     return response.data;
   }
