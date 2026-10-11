@@ -98,15 +98,6 @@ export default function NavbarPaciente() {
 
           {/* Menú de Escritorio */}
           <div className="hidden md:flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => setIsSupportOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-              aria-label="Abrir soporte MIVOR"
-            >
-              <Headphones size={18} />
-              <span>Soporte IA</span>
-            </button>
 
             {/* Notificaciones / Dropdown */}
             <div className="relative">
