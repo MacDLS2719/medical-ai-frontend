@@ -171,12 +171,71 @@ export const medicalChatService = {
     return response.data;
   },
 
+  async processDoctorTranscription(userId, audioBlob) {
+    const formData = new FormData();
+    const extension = audioBlob.type?.includes('mp4') ? 'm4a' : 'webm';
+    formData.append('audio_file', audioBlob, `doctor-recording.${extension}`);
+
+    const response = await axios.post(
+      `${API_URL}/call-transcriptions/doctor`,
+      formData,
+      {
+        params: { user_id: userId },
+        timeout: 300000,
+      }
+    );
+    return response.data;
+  },
+
+  async getDoctorTranscriptions(userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/doctor`,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
   async getPatientCallTranscriptions(patientId, userId) {
     const response = await axios.get(
       `${API_URL}/call-transcriptions/patients/${patientId}`,
       { params: userId ? { user_id: userId } : {} }
     );
     return response.data;
+  },
+
+  async approveCallTranscription(transcriptionId, userId) {
+    const response = await axios.post(
+      `${API_URL}/call-transcriptions/${transcriptionId}/approve`,
+      null,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
+  async getPatientApprovedTranscriptions(userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/patient`,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
+  async downloadCallTranscriptionReport(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}/report.pdf`,
+      {
+        params: userId ? { user_id: userId } : {},
+        responseType: 'blob',
+      }
+    );
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `informe-transcripcion-${transcriptionId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   async getCallTranscription(transcriptionId, userId) {

@@ -14,12 +14,14 @@ import {
   ChevronDown,
   Menu,
   X,
-  User
+  User,
+  Headphones,
 } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import mivorIconImg from '../assets/imgs/mivor-icon.webp'; 
+import SupportAIModal from './SupportAI/SupportAIModal';
 
 export default function NavbarDoctor() {
   const { user, logout } = useAuth();
@@ -28,6 +30,7 @@ export default function NavbarDoctor() {
   const { t, i18n } = useTranslation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   // Determinar el estado de suscripción
   const isFree = !user?.subscription || user?.subscription?.slug === 'free-plan' || user?.subscription?.price === 0;
@@ -131,6 +134,15 @@ export default function NavbarDoctor() {
         {/* 3. Acciones Derecha (Suscripción, Idioma, Notificaciones y Perfil) */}
         {user && (
           <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setIsSupportOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+              aria-label="Abrir soporte MIVOR"
+            >
+              <Headphones size={17} />
+              <span className="hidden sm:inline">Soporte IA</span>
+            </button>
             
             {/* Badge de Suscripción */}
             {isFree ? (
@@ -218,6 +230,18 @@ export default function NavbarDoctor() {
               </Link>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsSupportOpen(true);
+            }}
+            className="flex w-full items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-3.5 py-2.5 text-left text-xs font-bold text-blue-700"
+          >
+            <Headphones size={18} />
+            <span>Soporte IA</span>
+          </button>
           
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between px-3">
             <span className="text-xs text-slate-500 font-semibold">Estado de cuenta:</span>
@@ -233,6 +257,10 @@ export default function NavbarDoctor() {
           </div>
         </div>
       )}
+      <SupportAIModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </>
   );
 }

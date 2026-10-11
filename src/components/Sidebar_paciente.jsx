@@ -6,15 +6,19 @@ import {
   MessageSquareText,
   CalendarCheck,
   Search,
+  FileText,
+  Headphones,
   Menu,
   X
 } from 'lucide-react';
+import SupportAIModal from './SupportAI/SupportAIModal';
 
 export default function SidebarPaciente() {
   const { user } = useAuth();
   const { t } = useTranslation();
   // Estado para controlar si el menú está abierto en móvil
   const [isOpen, setIsOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   if (!user || user.role !== 'patient') return null;
 
@@ -105,6 +109,24 @@ export default function SidebarPaciente() {
               </NavLink>
             </li>
 
+            <li>
+              <NavLink
+                to="/patient/transcriptions"
+                onClick={() => setIsOpen(false)}
+                className={({ isActive }) =>
+                  `${linkBaseClass} ${isActive
+                    ? 'bg-blue-600 text-white shadow-md border-blue-600'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600 border-transparent'
+                  }`
+                }
+              >
+                <div className="p-1.5 rounded-lg bg-transparent">
+                  <FileText size={20} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+                </div>
+                <span>Transcripcion Mivor</span>
+              </NavLink>
+            </li>
+
             {/* CHAT INTERNO (Azul en lugar de teal) */}
             <li>
               <NavLink
@@ -125,8 +147,40 @@ export default function SidebarPaciente() {
             </li>
 
           </ul>
+
+        </div>
+
+        <div className="mt-6 pt-4 shrink-0 pb-12 md:pb-0">
+          <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <Headphones size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs font-extrabold text-slate-900">¿Necesitas ayuda?</h4>
+                <p className="text-[10px] text-slate-500 leading-tight">Soporte 24/7 disponible.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSupportOpen(true)}
+              className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer text-center"
+            >
+              Contactar soporte
+            </button>
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-[10px] font-serif italic text-slate-400 block tracking-wide">
+              Juntos por una medicina más humana y eficiente.
+            </span>
+          </div>
         </div>
       </aside>
+      <SupportAIModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </>
   );
 }

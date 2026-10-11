@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Stethoscope, Bell, Menu, X } from 'lucide-react';
+import { LogOut, Stethoscope, Bell, Menu, X, Headphones } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SupportAIModal from './SupportAI/SupportAIModal';
 
 export default function NavbarPaciente() {
   const { user, logout } = useAuth();
@@ -11,6 +12,7 @@ export default function NavbarPaciente() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [latestPubs, setLatestPubs] = useState([]);
   const [loadingPubs, setLoadingPubs] = useState(false);
   const [errorPubs, setErrorPubs] = useState(null);
@@ -96,6 +98,16 @@ export default function NavbarPaciente() {
 
           {/* Menú de Escritorio */}
           <div className="hidden md:flex items-center gap-6">
+            <button
+              type="button"
+              onClick={() => setIsSupportOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              aria-label="Abrir soporte MIVOR"
+            >
+              <Headphones size={18} />
+              <span>Soporte IA</span>
+            </button>
+
             {/* Notificaciones / Dropdown */}
             <div className="relative">
               <div onClick={handleBellClick} className="relative flex items-center justify-center p-2 rounded-full hover:bg-slate-100 transition-colors cursor-pointer text-slate-600">
@@ -160,6 +172,18 @@ export default function NavbarPaciente() {
           {/* Menú Desplegable para Versión Móvil */}
           {isMobileMenuOpen && (
             <div className="absolute top-full left-0 w-full bg-white border-b border-slate-100 shadow-xl py-4 px-6 flex flex-col gap-4 md:hidden z-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsSupportOpen(true);
+                }}
+                className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-3 text-left text-sm font-semibold text-blue-700"
+              >
+                <Headphones size={19} />
+                <span>Soporte IA</span>
+              </button>
+
               {/* Notificaciones en móvil */}
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <span className="text-sm font-medium text-slate-700">{t('navbar.latestPublications', 'Notificaciones')}</span>
@@ -223,6 +247,10 @@ export default function NavbarPaciente() {
           )}
         </>
       )}
+      <SupportAIModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+      />
     </nav>
   );
 }

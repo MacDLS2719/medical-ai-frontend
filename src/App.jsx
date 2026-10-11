@@ -26,6 +26,7 @@ import DoctorTranscription from './pages/doctor/DoctorTranscription'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
+import PatientTranscription from './pages/patient/PatientTranscription'
 import PatientHome from './pages/patient/PatientHome'
 import PatientSearchWrapper from './pages/patient/PatientSearchWrapper'
 
@@ -168,6 +169,18 @@ function App() {
             <Route
               path="/patient/appointments"
               element={<PatientAppointments />}
+            />
+            <Route
+              path="/patient/transcriptions"
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'patient' ? (
+                  <PatientTranscription />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
 
             {/* Verifier */}
