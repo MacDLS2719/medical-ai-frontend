@@ -220,9 +220,9 @@ export const medicalChatService = {
     return response.data;
   },
 
-  async downloadCallTranscriptionReport(transcriptionId, userId) {
+  async downloadClinicalReport(transcriptionId, userId) {
     const response = await axios.get(
-      `${API_URL}/call-transcriptions/${transcriptionId}/report.pdf`,
+      `${API_URL}/call-transcriptions/${transcriptionId}/clinical-report.pdf`,
       {
         params: userId ? { user_id: userId } : {},
         responseType: 'blob',
@@ -231,11 +231,33 @@ export const medicalChatService = {
     const url = URL.createObjectURL(response.data);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `informe-transcripcion-${transcriptionId}.pdf`;
+    link.download = `informe-medico-${transcriptionId}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  async downloadTranscriptPdf(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}/transcript.pdf`,
+      {
+        params: userId ? { user_id: userId } : {},
+        responseType: 'blob',
+      }
+    );
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transcripcion-${transcriptionId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  async downloadCallTranscriptionReport(transcriptionId, userId) {
+    return this.downloadClinicalReport(transcriptionId, userId);
   },
 
   async getCallTranscription(transcriptionId, userId) {

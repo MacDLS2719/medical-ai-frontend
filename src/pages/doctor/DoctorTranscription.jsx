@@ -31,6 +31,125 @@ const formatDate = (value) => {
   });
 };
 
+function parseClinicalSections(text) {
+  if (!text) return null;
+  const normalized = text.replace(/\r\n/g, '\n');
+  const lower = normalized.toLowerCase();
+
+  const markers = [
+    { key: 'motivo', label: 'MOTIVO DE CONSULTA', queries: ['motivo de consulta', 'motivo de la consulta', 'motivo:'] },
+    { key: 'exploracion', label: 'EXPLORACIÓN FÍSICA', queries: ['exploración física', 'exploracion fisica', 'examen físico', 'examen fisico'] },
+    { key: 'diagnostico', label: 'IMPRESIÓN DIAGNÓSTICA', queries: ['impresión diagnóstica', 'impresion diagnostica', 'diagnóstico', 'diagnostico'] },
+    { key: 'plan', label: 'PLAN Y TRATAMIENTO', queries: ['plan y tratamiento', 'plan de tratamiento', 'tratamiento'] },
+  ];
+
+  const found = [];
+  markers.forEach((m) => {
+    for (const q of m.queries) {
+      const idx = lower.indexOf(q);
+      if (idx !== -1) {
+        let endIdx = idx + q.length;
+        while (endIdx < normalized.length && [':', ' ', '\t', '-'].includes(normalized[endIdx])) {
+          endIdx++;
+        }
+        found.push({ ...m, pos: idx, contentStart: endIdx });
+        break;
+      }
+    }
+  });
+
+  if (found.length === 0) return null;
+
+  found.sort((a, b) => a.pos - b.pos);
+  const result = {};
+  for (let i = 0; i < found.length; i++) {
+    const current = found[i];
+    const nextPos = i + 1 < found.length ? found[i + 1].pos : normalized.length;
+    result[current.key] = normalized.slice(current.contentStart, nextPos).trim();
+  }
+  return result;
+}
+
+function ClinicalReportCard({ summaryText, status, errorMessage }) {
+  const sections = useMemo(() => parseClinicalSections(summaryText), [summaryText]);
+
+  if (!summaryText && (status === 'processing' || status === 'pending')) {
+    return (
+      <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
+        <Loader2 size={16} className="animate-spin text-amber-600" />
+        <span>El informe médico estructurado se está procesando con IA...</span>
+      </div>
+    );
+  }
+
+  if (!summaryText) {
+    return (
+      <p className="text-sm text-slate-500">
+        {errorMessage || 'No hay un informe disponible.'}
+      </p>
+    );
+  }
+
+  if (!sections) {
+    return (
+      <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+        {summaryText}
+      </p>
+    );
+  }
+
+  const items = [
+    {
+      key: 'motivo',
+      title: 'MOTIVO DE CONSULTA',
+      content: sections.motivo,
+      containerClass: 'border-blue-200/80 bg-blue-50/40',
+      badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
+    },
+    {
+      key: 'exploracion',
+      title: 'EXPLORACIÓN FÍSICA',
+      content: sections.exploracion,
+      containerClass: 'border-emerald-200/80 bg-emerald-50/40',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    },
+    {
+      key: 'diagnostico',
+      title: 'IMPRESIÓN DIAGNÓSTICA',
+      content: sections.diagnostico,
+      containerClass: 'border-violet-200/80 bg-violet-50/40',
+      badgeClass: 'bg-violet-100 text-violet-800 border-violet-200',
+    },
+    {
+      key: 'plan',
+      title: 'PLAN Y TRATAMIENTO',
+      content: sections.plan,
+      containerClass: 'border-amber-200/80 bg-amber-50/40',
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <div
+          key={item.key}
+          className={`rounded-xl border p-3.5 transition ${item.containerClass}`}
+        >
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-extrabold tracking-wide ${item.badgeClass}`}>
+              {item.title}
+            </span>
+          </div>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+            {item.content || 'No referido en esta consulta.'}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DoctorRecordingPanel({ onProcess, onSaved }) {
   const [source, setSource] = useState('microphone');
   const [isRecording, setIsRecording] = useState(false);
@@ -294,7 +413,7 @@ export default function DoctorTranscription() {
   const [loadingRecordings, setLoadingRecordings] = useState(false);
   const [loadingDoctorRecordings, setLoadingDoctorRecordings] = useState(true);
   const [approvingRecordingId, setApprovingRecordingId] = useState(null);
-  const [downloadingRecordingId, setDownloadingRecordingId] = useState(null);
+  const [downloadingAction, setDownloadingAction] = useState(null); // { id: number, type: 'report' | 'transcript' }
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -368,16 +487,29 @@ export default function DoctorTranscription() {
     }
   };
 
-  const downloadReport = async (recordingId) => {
-    setDownloadingRecordingId(recordingId);
+  const downloadClinicalReport = async (recordingId) => {
+    setDownloadingAction({ id: recordingId, type: 'report' });
     setError('');
     try {
-      await medicalChatService.downloadCallTranscriptionReport(recordingId, user?.id);
+      await medicalChatService.downloadClinicalReport(recordingId, user?.id);
     } catch (downloadError) {
-      console.error('Error al descargar el informe PDF:', downloadError);
-      setError(downloadError?.response?.data?.detail || 'No se pudo descargar el informe PDF.');
+      console.error('Error al descargar el informe médico PDF:', downloadError);
+      setError(downloadError?.response?.data?.detail || 'No se pudo descargar el informe médico PDF.');
     } finally {
-      setDownloadingRecordingId(null);
+      setDownloadingAction(null);
+    }
+  };
+
+  const downloadTranscript = async (recordingId) => {
+    setDownloadingAction({ id: recordingId, type: 'transcript' });
+    setError('');
+    try {
+      await medicalChatService.downloadTranscriptPdf(recordingId, user?.id);
+    } catch (downloadError) {
+      console.error('Error al descargar la transcripción PDF:', downloadError);
+      setError(downloadError?.response?.data?.detail || 'No se pudo descargar la transcripción PDF.');
+    } finally {
+      setDownloadingAction(null);
     }
   };
 
@@ -533,6 +665,9 @@ export default function DoctorTranscription() {
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                          Servicio: Presencial
+                        </span>
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${
                           recording.status === 'completed'
                             ? 'bg-emerald-50 text-emerald-700'
@@ -546,18 +681,41 @@ export default function DoctorTranscription() {
                               ? 'Procesando'
                               : 'Transcripción no disponible'}
                         </span>
-                        {recording.status === 'completed' && recording.summary_text && recording.transcript_text && (
-                          <button
-                            type="button"
-                            onClick={() => downloadReport(recording.id)}
-                            disabled={downloadingRecordingId === recording.id}
-                            className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50 disabled:opacity-60"
-                          >
-                            {downloadingRecordingId === recording.id
-                              ? <Loader2 size={15} className="animate-spin" />
-                              : <Download size={15} />}
-                            Descargar informe PDF
-                          </button>
+                        {recording.status === 'completed' && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {recording.summary_text && (
+                              <button
+                                type="button"
+                                onClick={() => downloadClinicalReport(recording.id)}
+                                disabled={downloadingAction?.id === recording.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 hover:border-blue-300 disabled:opacity-60"
+                                title="Descargar informe médico generado por IA en PDF"
+                              >
+                                {downloadingAction?.id === recording.id && downloadingAction?.type === 'report' ? (
+                                  <Loader2 size={14} className="animate-spin text-blue-600" />
+                                ) : (
+                                  <FileText size={14} className="text-blue-600" />
+                                )}
+                                Informe Médico (PDF)
+                              </button>
+                            )}
+                            {recording.transcript_text && (
+                              <button
+                                type="button"
+                                onClick={() => downloadTranscript(recording.id)}
+                                disabled={downloadingAction?.id === recording.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 disabled:opacity-60"
+                                title="Descargar la transcripción completa del audio en PDF"
+                              >
+                                {downloadingAction?.id === recording.id && downloadingAction?.type === 'transcript' ? (
+                                  <Loader2 size={14} className="animate-spin text-violet-600" />
+                                ) : (
+                                  <Download size={14} className="text-violet-600" />
+                                )}
+                                Transcripción (PDF)
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </header>
@@ -583,15 +741,13 @@ export default function DoctorTranscription() {
                       <section>
                         <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
                           <FileText size={17} className="text-blue-600" />
-                          Resumen de IA
+                          Informe Médico (IA)
                         </h4>
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                          {recording.summary_text
-                            || recording.error_message
-                            || (recording.status === 'processing'
-                              ? 'El resumen se está procesando.'
-                              : 'No hay un resumen disponible.')}
-                        </p>
+                        <ClinicalReportCard
+                          summaryText={recording.summary_text}
+                          status={recording.status}
+                          errorMessage={recording.error_message}
+                        />
                       </section>
                       <section className="md:col-span-2">
                         <h4 className="mb-3 text-sm font-bold text-slate-800">
@@ -695,6 +851,9 @@ export default function DoctorTranscription() {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                        Servicio: Videollamada
+                      </span>
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${
                         recording.status === 'completed'
                           ? 'bg-emerald-50 text-emerald-700'
@@ -729,18 +888,41 @@ export default function DoctorTranscription() {
                           Aprobar resumen
                         </button>
                       )}
-                      {recording.summary_text && recording.transcript_text && (
-                        <button
-                          type="button"
-                          onClick={() => downloadReport(recording.id)}
-                          disabled={downloadingRecordingId === recording.id}
-                          className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50 disabled:opacity-60"
-                        >
-                          {downloadingRecordingId === recording.id
-                            ? <Loader2 size={15} className="animate-spin" />
-                            : <Download size={15} />}
-                          Informe PDF
-                        </button>
+                      {recording.status === 'completed' && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {recording.summary_text && (
+                            <button
+                              type="button"
+                              onClick={() => downloadClinicalReport(recording.id)}
+                              disabled={downloadingAction?.id === recording.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 hover:border-blue-300 disabled:opacity-60"
+                              title="Descargar informe médico generado por IA en PDF"
+                            >
+                              {downloadingAction?.id === recording.id && downloadingAction?.type === 'report' ? (
+                                <Loader2 size={14} className="animate-spin text-blue-600" />
+                              ) : (
+                                <FileText size={14} className="text-blue-600" />
+                              )}
+                              Informe Médico (PDF)
+                            </button>
+                          )}
+                          {recording.transcript_text && (
+                            <button
+                              type="button"
+                              onClick={() => downloadTranscript(recording.id)}
+                              disabled={downloadingAction?.id === recording.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 disabled:opacity-60"
+                              title="Descargar la transcripción completa de la videollamada en PDF"
+                            >
+                              {downloadingAction?.id === recording.id && downloadingAction?.type === 'transcript' ? (
+                                <Loader2 size={14} className="animate-spin text-violet-600" />
+                              ) : (
+                                <Download size={14} className="text-violet-600" />
+                              )}
+                              Transcripción (PDF)
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </header>
@@ -778,19 +960,13 @@ export default function DoctorTranscription() {
                     <section>
                       <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
                         <FileText size={17} className="text-blue-600" />
-                        Resumen de IA
+                        Informe Médico (IA)
                       </h3>
-                      {recording.summary_text ? (
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                          {recording.summary_text}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          {recording.status === 'processing' || recording.status === 'pending'
-                            ? 'El resumen se está procesando.'
-                            : 'No hay un resumen disponible.'}
-                        </p>
-                      )}
+                      <ClinicalReportCard
+                        summaryText={recording.summary_text}
+                        status={recording.status}
+                        errorMessage={recording.error_message}
+                      />
                     </section>
 
                     <section className="md:col-span-2">
