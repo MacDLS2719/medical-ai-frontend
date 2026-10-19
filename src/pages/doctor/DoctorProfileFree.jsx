@@ -22,7 +22,6 @@ import {
   Loader2,
   AlertCircle,
   Stethoscope,
-  Hash,
   Save
 } from 'lucide-react';
 
@@ -274,11 +273,17 @@ export default function DoctorProfileFree() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field icon={<Stethoscope size={15} />} label="Especialidad" value={displayField(profile?.specialty)} />
-                  <Field icon={<Hash size={15} />} label="Nº de Colegiado" value={displayField(profile?.medical_license || profile?.professional_registration_number)} />
+                  <Field icon={<Stethoscope size={15} />} label="Especialidad" value={displayField(profile?.specialty)} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field icon={<FileText size={15} />} label="Colegio profesional" value={displayField(profile?.professional_college)} />
+                  <Field
+                    icon={<FileText size={15} />}
+                    label="Enlace de Google"
+                    value={profile?.linkgoogle && /^https?:\/\//i.test(profile.linkgoogle)
+                      ? <a href={profile.linkgoogle} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Ver información en Google</a>
+                      : displayField(profile?.linkgoogle)}
+                  />
                   <Field icon={<Calendar size={15} />} label="Años de experiencia" value={displayField(profile?.years_of_experience)} />
                 </div>
 

@@ -90,8 +90,7 @@ export default function ViewPreview() {
   // Use address if available, otherwise city/country
   const locationText = address || [city, country].filter(Boolean).join(', ') || '';
   
-  const collegiatedNumber = profile?.professional_registration_number || profile?.medical_license || '';
-  const professionalCollege = profile?.professional_college || '';
+  const linkGoogle = profile?.linkgoogle || '';
 
   return (
     <div className="min-h-screen bg-slate-50/70 font-sans text-slate-800 pb-20">
@@ -267,8 +266,7 @@ export default function ViewPreview() {
                 profile={profile}
                 bio={bio}
                 specialty={specialty}
-                professionalCollege={professionalCollege}
-                collegiatedNumber={collegiatedNumber}
+                linkGoogle={linkGoogle}
                 locationText={locationText}
                 mediaFiles={mediaFiles}
               />

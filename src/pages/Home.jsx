@@ -194,7 +194,7 @@ function Home() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                      {t('roleSelector.newDoctorDesc', 'Registra un nuevo médico con su especialidad, licencia y datos de consulta.')}
+                      {t('roleSelector.newDoctorDesc', 'Registra un nuevo médico con su especialidad y datos de consulta.')}
                     </p>
                   </div>
                 </div>

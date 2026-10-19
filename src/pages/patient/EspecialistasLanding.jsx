@@ -86,27 +86,27 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
           </button>
         </div>
 
-        {/* Opción 2: Videollamada */}
+        {/* Opción 2: Médicos y Especialistas Cercanos en Mapa */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-md relative flex flex-col justify-between">
           <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-blue-50 text-blue-600 text-sm font-extrabold flex items-center justify-center z-10">2</span>
           
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="flex-1 min-w-0 order-2 sm:order-1">
               <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug pl-11 mb-1.5">
-                I want a quick video consultation with a doctor
+                Quiero buscar médicos y especialistas cerca de mí
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 pl-11">
-                Talk to a specialist doctor by video call as soon as possible, wherever you are.
+                Encuentra especialistas médicos en tu ciudad, visualízalos en el mapa interactivo y agenda tu consulta.
               </p>
               <ul className="space-y-1.5 pl-11 sm:pl-0">
                 <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <Video size={15} className="text-blue-600 shrink-0" /> Immediate online care
+                  <MapPin size={15} className="text-blue-600 shrink-0" /> Médicos de la plataforma y especialistas verificados
                 </li>
                 <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <Clock size={15} className="text-blue-600 shrink-0" /> No travel, no waiting
+                  <Search size={15} className="text-blue-600 shrink-0" /> Filtra por especialidad, ciudad y país
                 </li>
                 <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <ShieldCheck size={15} className="text-blue-600 shrink-0" /> Verified doctors
+                  <Calendar size={15} className="text-blue-600 shrink-0" /> Disponibilidad en tiempo real y reserva directa
                 </li>
               </ul>
             </div>
@@ -115,7 +115,7 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
             <div className="w-full sm:w-44 md:w-52 h-40 shrink-0 rounded-xl overflow-hidden bg-slate-50/50 flex items-center justify-center order-1 sm:order-2 self-center">
               <img
                 src={imgVideoCall}
-                alt="Video call"
+                alt="Especialistas y mapa"
                 className="w-full h-full object-contain p-1"
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
@@ -126,7 +126,7 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
             onClick={onSelectVideo}
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-600 hover:text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
           >
-            Schedule video calls <ArrowRight className="w-3.5 h-3.5" />
+            Buscar especialistas en el mapa <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 

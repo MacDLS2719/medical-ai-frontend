@@ -8,7 +8,7 @@ import {
   Languages, 
   Stethoscope, 
   FileText, 
-  Building2, 
+  ExternalLink,
   Award, 
   Star, 
   AlignLeft, 
@@ -197,12 +197,8 @@ export default function Step3Professional({ formData, onNext, onPrev, goToStep }
                       <p className="font-semibold text-slate-800 truncate">{formData.specialty || 'Dermatología'}</p>
                     </div>
                     <div>
-                      <span className="text-slate-500 flex items-center gap-1 text-[11px]"><FileText size={12} /> Nº Colegiado</span>
-                      <p className="font-semibold text-slate-800 truncate">{formData.colegiatedNumber || 'dsa'}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 flex items-center gap-1 text-[11px]"><Building2 size={12} /> Colegio</span>
-                      <p className="font-semibold text-slate-800 truncate">{formData.professionalCollege || '511'}</p>
+                      <span className="text-slate-500 flex items-center gap-1 text-[11px]"><ExternalLink size={12} /> Enlace de Google</span>
+                      <p className="font-semibold text-slate-800 truncate">{formData.linkgoogle || 'Sin especificar'}</p>
                     </div>
                     <div>
                       <span className="text-slate-500 flex items-center gap-1 text-[11px]"><Globe size={12} /> País colegio</span>

@@ -9,19 +9,53 @@ import {
   HelpCircle, 
   ArrowLeft, 
   ArrowRight,
-  ChevronDown 
+  ChevronDown,
+  Globe
 } from 'lucide-react';
 import iaHeaderImg from '../../../assets/imgs/mivor-icon.webp';
 import DoctorLocationMap from '../../../components/common/DoctorLocationMap';
+import GoogleProfileModal from './GoogleProfileModal';
+
 
 export default function Step2Professional({ formData, updateFormData, onNext, onPrev }) {
   const [bio, setBio] = useState(formData.bio || '');
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const selectedCountryObj = ALL_COUNTRIES.find((c) => c.name === formData.country) || 
                              ALL_COUNTRIES.find((c) => c.name === 'Colombia') || 
                              ALL_COUNTRIES[0];
 
+  const handleApplyGoogleProfile = (googleData) => {
+    const updates = {
+      linkgoogle: googleData.google_maps_url || formData.linkgoogle,
+      google_profile_data: googleData,
+    };
+
+    if (googleData.business_name) {
+      updates.clinicName = googleData.business_name;
+    }
+    if (googleData.formatted_address) {
+      updates.address = googleData.formatted_address;
+    }
+    if (googleData.phone_number) {
+      updates.consultationPhone = googleData.phone_number;
+    }
+    if (googleData.website_url) {
+      updates.website = googleData.website_url;
+    }
+    if (googleData.latitude) {
+      updates.latitude = googleData.latitude;
+    }
+    if (googleData.longitude) {
+      updates.longitude = googleData.longitude;
+    }
+
+    updateFormData(updates);
+  };
+
+
   const handleChange = (e) => {
+
     const { name, value } = e.target;
     if (name === 'bio') {
       if (value.length <= 300) {
@@ -111,8 +145,8 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
             <p className="text-[10px] sm:text-[11px] text-slate-500">Cuéntanos más sobre tu práctica médica.</p>
           </div>
 
-          {/* Fila 1: Especialidad, Subespecialidad, Colegiado, Colegio */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {/* Fila 1: Especialidad, Subespecialidad y enlace de Google */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             <div>
               <label className="block text-[10px] sm:text-[11px] font-semibold text-slate-700 mb-0.5">Especialidad principal</label>
               <div className="relative">
@@ -159,31 +193,45 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
             </div>
 
             <div>
-              <label className="block text-[10px] sm:text-[11px] font-semibold text-slate-700 mb-0.5">N.º de colegiado</label>
-              <input
-                type="text"
-                name="colegiatedNumber"
-                required
-                placeholder="Número de colegiado"
-                value={formData.colegiatedNumber || ''}
-                onChange={handleChange}
-                className="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] outline-none transition-all placeholder:text-slate-400"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] sm:text-[11px] font-semibold text-slate-700 mb-0.5">Colegio profesional</label>
-              <input
-                type="text"
-                name="professionalCollege"
-                required
-                placeholder="Nombre del colegio"
-                value={formData.professionalCollege || ''}
-                onChange={handleChange}
-                className="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] outline-none transition-all placeholder:text-slate-400"
-              />
+              <div className="flex items-center justify-between mb-0.5">
+                <label className="block text-[10px] sm:text-[11px] font-semibold text-slate-700">
+                  Enlace de Google <span className="text-slate-400 font-normal">(opc)</span>
+                </label>
+                {formData.linkgoogle && formData.linkgoogle.trim().length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsGoogleModalOpen(true)}
+                    className="text-[10px] font-semibold text-[#0052FF] hover:text-blue-700 hover:underline flex items-center gap-1 transition-colors"
+                  >
+                    <Globe size={11} />
+                    <span>Ver perfil Google</span>
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  type="url"
+                  name="linkgoogle"
+                  placeholder="https://maps.app.goo.gl/... o https://google.com/maps/..."
+                  value={formData.linkgoogle || ''}
+                  onChange={handleChange}
+                  className="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] outline-none transition-all placeholder:text-slate-400"
+                />
+                {formData.linkgoogle && formData.linkgoogle.trim().length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsGoogleModalOpen(true)}
+                    title="Ver y editar información del perfil de Google"
+                    className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 text-xs font-semibold rounded-lg flex items-center gap-1 transition-all shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <Globe size={12} />
+                    <span className="hidden sm:inline">Ver perfil</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
 
           {/* Fila 2: País, Experiencia, Código Postal, Teléfono, Sitio Web */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
@@ -401,6 +449,14 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
           </div>
         </form>
       </main>
+
+      {/* Modal de Información y Edición de Perfil de Google */}
+      <GoogleProfileModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        initialUrl={formData.linkgoogle || ''}
+        onApplyProfile={handleApplyGoogleProfile}
+      />
     </div>
   );
-}
+}

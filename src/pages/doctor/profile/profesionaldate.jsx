@@ -8,10 +8,10 @@ export default function InformacionProfesional({
 }) {
   return (
     <div className="space-y-4">
-      {/* Especialidad y Colegiatura */}
+      {/* Especialidad y perfil público */}
       <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-200/80 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wider">Especialidad y Colegiatura</h3>
+          <h3 className="text-xs font-bold text-blue-950 uppercase tracking-wider">Especialidad y perfil público</h3>
           <button
             onClick={() => setIsEditing(!isEditing)}
             className="px-3 py-1.5 text-xs font-bold rounded-xl border border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-100 transition-colors"
@@ -27,16 +27,12 @@ export default function InformacionProfesional({
               <input type="text" name="specialty" value={formData.specialty} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Nº de colegiado</label>
-              <input type="text" name="colegiated_number" value={formData.colegiated_number} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
-            </div>
-            <div>
               <label className="text-[10px] font-bold text-slate-700 block mb-1">Años de experiencia</label>
               <input type="number" name="years_experience" value={formData.years_experience} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Colegio profesional</label>
-              <input type="text" name="professional_college" value={formData.professional_college} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
+              <label className="text-[10px] font-bold text-slate-700 block mb-1">Enlace de Google</label>
+              <input type="url" name="linkgoogle" value={formData.linkgoogle} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" placeholder="https://..." />
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-700 block mb-1">Subespecialidades</label>
@@ -65,16 +61,16 @@ export default function InformacionProfesional({
               <p className="text-xs font-bold text-slate-800">{formData.specialty || 'Sin especificar'}</p>
             </div>
             <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Nº de colegiado</label>
-              <p className="text-xs font-bold text-slate-800">{formData.colegiated_number || 'Sin especificar'}</p>
-            </div>
-            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
               <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Años de experiencia</label>
               <p className="text-xs font-bold text-slate-800">{formData.years_experience ? `${formData.years_experience} años` : 'Sin especificar'}</p>
             </div>
             <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Colegio profesional</label>
-              <p className="text-xs font-bold text-slate-800">{formData.professional_college || 'Sin especificar'}</p>
+              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Enlace de Google</label>
+              {formData.linkgoogle && /^https?:\/\//i.test(formData.linkgoogle) ? (
+                <a href={formData.linkgoogle} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">Ver información en Google</a>
+              ) : (
+                <p className="text-xs font-bold text-slate-800">{formData.linkgoogle || 'Sin especificar'}</p>
+              )}
             </div>
           </div>
         )}

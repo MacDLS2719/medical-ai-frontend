@@ -48,8 +48,7 @@ export default function DoctorCreate() {
 
     // Paso 2
     specialty: '',
-    colegiatedNumber: '',
-    professionalCollege: '',
+    linkgoogle: '',
     collegeCountry: '',
     experienceYears: '',
     subspecialty: '',
@@ -97,7 +96,6 @@ export default function DoctorCreate() {
       first_name: formData.firstName.trim() || 'Médico',
       last_name: formData.lastName.trim() || 'General',
       email: formData.email.trim(),
-      medical_license: formData.colegiatedNumber.trim() || `LIC-${Date.now()}`,
       specialty: formData.specialty.trim() || 'Medicina General',
       phone: formData.phone?.trim() || null,
       date_of_birth: parseBirthDate(formData.birthDate),
@@ -110,16 +108,17 @@ export default function DoctorCreate() {
       longitude: formData.longitude !== null && formData.longitude !== undefined && formData.longitude !== '' ? parseFloat(formData.longitude) : null,
       consultation_phone: formData.consultationPhone?.trim() || null,
       website: formData.website?.trim() || null,
-      professional_registration_number: formData.colegiatedNumber?.trim() || null,
-      professional_college: formData.professionalCollege?.trim() || null,
       college_country: formData.collegeCountry?.trim() || null,
+      linkgoogle: formData.linkgoogle?.trim() || null,
       years_of_experience: yearsExp,
       professional_description: formData.bio?.trim() || null,
       experience: formData.bio?.trim() || null,
       language: formData.language === 'Inglés' ? 'en' : 'es',
       password: formData.password || null,
-      subscription_plan_id: resolvedPlanId
+      subscription_plan_id: resolvedPlanId,
+      google_profile_data: formData.google_profile_data || null,
     };
+
 
     const submitUserRegistration = async (payload, apiUrl) => {
       const response = await fetch(`${apiUrl}/doctor-profile/register`, {

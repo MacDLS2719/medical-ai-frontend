@@ -8,12 +8,10 @@ import {
   Phone, 
   Globe, 
   Stethoscope, 
-  IdCard, 
   Database, 
   FileText, 
   Headphones, 
   ArrowRight,
-  Info,
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -34,7 +32,7 @@ export default function DoctorCreateFree() {
 
   const [formData, setFormData] = useState({
     fullName: '',
-    professionalRegistrationNumber: '',
+    linkgoogle: '',
     specialty: '',
     country: '',
     phoneCode: '+34',
@@ -76,7 +74,7 @@ export default function DoctorCreateFree() {
     const payload = {
       first_name: firstName,
       last_name: lastName,
-      professional_registration_number: formData.professionalRegistrationNumber.trim(),
+      linkgoogle: formData.linkgoogle.trim() || null,
       specialty: formData.specialty.trim(),
       residence_country: formData.country,
       phone: `${formData.phoneCode} ${formData.phone.trim()}`,
@@ -215,25 +213,21 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Número de colegiado */}
+              {/* Enlace de Google */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Número de colegiado</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Enlace de Google (opcional)</label>
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <IdCard size={18} />
+                    <Globe size={18} />
                   </div>
-                  <div className="relative w-full">
-                    <input
-                      type="text"
-                      name="professionalRegistrationNumber"
-                      required
-                      value={formData.professionalRegistrationNumber}
-                      onChange={handleChange}
-                      className="w-full px-3.5 py-2 pr-9 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
-                      placeholder="Ej.: 282850102"
-                    />
-                    <Info size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  </div>
+                  <input
+                    type="url"
+                    name="linkgoogle"
+                    value={formData.linkgoogle}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                    placeholder="https://..."
+                  />
                 </div>
               </div>
 

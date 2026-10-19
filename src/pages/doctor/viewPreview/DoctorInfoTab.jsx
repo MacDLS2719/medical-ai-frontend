@@ -1,7 +1,7 @@
 import React from 'react';
-import { ImageIcon, Stethoscope, Award, MapPin, Video, BookOpen } from 'lucide-react';
+import { ImageIcon, Stethoscope, ExternalLink, MapPin, Video, BookOpen } from 'lucide-react';
 
-export default function DoctorInfoTab({ profile, bio, specialty, professionalCollege, collegiatedNumber, locationText, mediaFiles }) {
+export default function DoctorInfoTab({ profile, bio, specialty, linkGoogle, locationText, mediaFiles }) {
   const educations = profile?.educations || [];
   return (
     <div className="space-y-5">
@@ -68,15 +68,16 @@ export default function DoctorInfoTab({ profile, bio, specialty, professionalCol
             </div>
           </div>
 
-          {/* Fila 1 - Columna 2: Colegio profesional */}
+          {/* Fila 1 - Columna 2: Enlace de Google */}
           <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0">
-              <Award size={16} />
+              <ExternalLink size={16} />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Colegio profesional</span>
-              <p className="text-xs font-semibold text-slate-800 truncate">{professionalCollege}</p>
-              {collegiatedNumber && <span className="text-[10px] text-slate-400 block">Nº Col: {collegiatedNumber}</span>}
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enlace de Google</span>
+              {linkGoogle && /^https?:\/\//i.test(linkGoogle) && (
+                <a href={linkGoogle} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline block truncate">Ver información en Google</a>
+              )}
             </div>
           </div>
 

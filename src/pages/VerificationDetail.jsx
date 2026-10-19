@@ -156,8 +156,7 @@ export default function DoctorVerificationDetail() {
 
   const profData = [
     { field: 'Especialidad principal', value: doctor?.specialty || 'Medicina general', status: 'Verificado', method: 'Título profesional', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:05' },
-    { field: 'Nº de colegiado', value: doctor?.medical_license || '12345678', status: 'Verificado', method: 'Consulta en colegio', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:08' },
-    { field: 'Colegio profesional', value: 'Ilustre Colegio Oficial de Médicos de Madrid', status: 'Verificado', method: 'Consulta en colegio', verifiedBy: 'Luis Fernández', date: '15 may 2024, 12:08' },
+    { field: 'Enlace de Google', value: doctor?.linkgoogle || 'Sin especificar', status: 'Pendiente', method: 'Perfil público', verifiedBy: '-', date: '-' },
     { field: 'Años de experiencia', value: '12 años', status: 'Pendiente', method: 'Revisión manual', verifiedBy: '-', date: '-' },
     { field: 'Subespecialidades', value: 'Medicina familiar, Urgencias', status: 'Pendiente', method: 'Revisión de documentos', verifiedBy: '-', date: '-' },
   ];
@@ -345,7 +344,11 @@ export default function DoctorVerificationDetail() {
                         {profData.map((row, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50">
                             <td className="px-6 py-3.5 font-medium text-slate-700">{row.field}</td>
-                            <td className="px-6 py-3.5 text-slate-600">{row.value}</td>
+                            <td className="px-6 py-3.5 text-slate-600">
+                              {row.field === 'Enlace de Google' && /^https?:\/\//i.test(row.value)
+                                ? <a href={row.value} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Ver información en Google</a>
+                                : row.value}
+                            </td>
                             <td className="px-6 py-3.5">{getStatusBadge(row.status)}</td>
                             <td className="px-6 py-3.5 text-slate-500">{row.method}</td>
                             <td className="px-6 py-3.5 text-slate-500">{row.verifiedBy}</td>
@@ -559,7 +562,7 @@ export default function DoctorVerificationDetail() {
           {(activeTab === 'notas' || activeTab === 'historial') && (
             <div className="lg:col-span-12 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm text-xs">
               <h3 className="text-base font-bold text-slate-900 mb-2">Notas e Historial del Médico</h3>
-              <p className="text-slate-500">Médico: Dr. {doctor?.first_name} {doctor?.last_name} | Licencia: {doctor?.medical_license}</p>
+              <p className="text-slate-500">Médico: Dr. {doctor?.first_name} {doctor?.last_name}</p>
               <div className="mt-4 p-4 bg-slate-50 rounded-2xl">
                 <p className="font-semibold text-slate-700">Estado actual de verificación: <span className="text-blue-600 capitalize font-bold">{doctor?.verification_status || 'pending'}</span></p>
               </div>
