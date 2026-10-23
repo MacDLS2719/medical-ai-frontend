@@ -19,14 +19,19 @@ import {
   User,
   MapPin,
   Headphones,
-  Globe
+  Globe,
+  Camera,
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
+import CameraCaptureModal from './CameraCaptureModal';
 import iaBanner from '../../../assets/imgs/mivor-icon.webp';
 import mivorIconImg from '../../../assets/imgs/mivor-icon.webp';
 
 export default function Step1Personal({ formData, updateFormData, onNext }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [cameraModalField, setCameraModalField] = useState(null);
 
   const selectedCountryObj = ALL_COUNTRIES.find((c) => c.name === formData.country) || 
                              ALL_COUNTRIES.find((c) => c.name === 'Colombia') || 
@@ -50,6 +55,29 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
   const handleFileChange = (e, field) => {
     if (e.target.files && e.target.files[0]) {
       updateFormData({ [field]: e.target.files[0] });
+    }
+  };
+
+  const handleCameraCapture = (capturedData) => {
+    if (!cameraModalField) return;
+
+    try {
+      const arr = capturedData.base64.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1] || 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const filename = `${cameraModalField === 'identityDoc' ? 'documento_identidad' : 'tarjeta_profesional'}_${Date.now()}.jpg`;
+      const file = new File([u8arr], filename, { type: mime });
+
+      updateFormData({ [cameraModalField]: file });
+    } catch (e) {
+      console.error('Error procesando captura de cámara:', e);
+    } finally {
+      setCameraModalField(null);
     }
   };
 
@@ -383,52 +411,98 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {/* Documento */}
-                  <div className="px-2.5 py-1.5 rounded-xl bg-slate-50/60 border border-slate-200/60 flex items-center justify-between gap-2">
+                  {/* Documento de identidad */}
+                  <div className="px-2.5 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200/70 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-1 rounded-lg bg-blue-100/60 text-[#0052FF] shrink-0">
-                        <FileText size={15} />
+                      <div className={`p-1.5 rounded-lg shrink-0 ${formData.identityDoc ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100/60 text-[#0052FF]'}`}>
+                        {formData.identityDoc ? <CheckCircle2 size={15} /> : <FileText size={15} />}
                       </div>
                       <div className="min-w-0">
                         <h4 className="text-[11px] font-bold text-[#0B1E48] truncate">Documento de identidad</h4>
-                        <p className="text-[8px] xl:text-[9px] text-slate-400 truncate">DNI, pasaporte u oficial</p>
+                        <p className="text-[8px] xl:text-[9px] text-slate-400 truncate max-w-[120px]">
+                          {formData.identityDoc ? (formData.identityDoc.name || 'Foto adjunta') : 'DNI, pasaporte u oficial'}
+                        </p>
                       </div>
                     </div>
 
-                    <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-[#0052FF] text-[10px] font-semibold rounded-lg hover:bg-blue-50 cursor-pointer shadow-sm transition-all shrink-0">
-                      <Upload size={10} />
-                      <span className="truncate max-w-[70px]">{formData.identityDoc ? 'Subido' : 'Subir'}</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => handleFileChange(e, 'identityDoc')}
-                      />
-                    </label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setCameraModalField('identityDoc')}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 text-[10px] font-semibold rounded-lg cursor-pointer shadow-2xs transition-all"
+                        title="Tomar foto con la cámara"
+                      >
+                        <Camera size={10} />
+                        <span>Foto</span>
+                      </button>
+                      <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-[#0052FF] text-[10px] font-semibold rounded-lg hover:bg-blue-50 cursor-pointer shadow-2xs transition-all">
+                        <Upload size={10} />
+                        <span>{formData.identityDoc ? 'Cambiar' : 'Subir'}</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={(e) => handleFileChange(e, 'identityDoc')}
+                        />
+                      </label>
+                      {formData.identityDoc && (
+                        <button
+                          type="button"
+                          onClick={() => updateFormData({ identityDoc: null })}
+                          className="p-1 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Quitar documento"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Colegiación */}
-                  <div className="px-2.5 py-1.5 rounded-xl bg-slate-50/60 border border-slate-200/60 flex items-center justify-between gap-2">
+                  {/* Certificado colegiación */}
+                  <div className="px-2.5 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200/70 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-1 rounded-lg bg-blue-100/60 text-[#0052FF] shrink-0">
-                        <Award size={15} />
+                      <div className={`p-1.5 rounded-lg shrink-0 ${formData.colegiationCert ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100/60 text-[#0052FF]'}`}>
+                        {formData.colegiationCert ? <CheckCircle2 size={15} /> : <Award size={15} />}
                       </div>
                       <div className="min-w-0">
                         <h4 className="text-[11px] font-bold text-[#0B1E48] truncate">Certificado colegiación</h4>
-                        <p className="text-[8px] xl:text-[9px] text-slate-400 truncate">Certificado colegio médico</p>
+                        <p className="text-[8px] xl:text-[9px] text-slate-400 truncate max-w-[120px]">
+                          {formData.colegiationCert ? (formData.colegiationCert.name || 'Foto adjunta') : 'Certificado colegio médico'}
+                        </p>
                       </div>
                     </div>
 
-                    <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-[#0052FF] text-[10px] font-semibold rounded-lg hover:bg-blue-50 cursor-pointer shadow-sm transition-all shrink-0">
-                      <Upload size={10} />
-                      <span className="truncate max-w-[70px]">{formData.colegiationCert ? 'Subido' : 'Subir'}</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => handleFileChange(e, 'colegiationCert')}
-                      />
-                    </label>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setCameraModalField('colegiationCert')}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 text-[10px] font-semibold rounded-lg cursor-pointer shadow-2xs transition-all"
+                        title="Tomar foto con la cámara"
+                      >
+                        <Camera size={10} />
+                        <span>Foto</span>
+                      </button>
+                      <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-[#0052FF] text-[10px] font-semibold rounded-lg hover:bg-blue-50 cursor-pointer shadow-2xs transition-all">
+                        <Upload size={10} />
+                        <span>{formData.colegiationCert ? 'Cambiar' : 'Subir'}</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={(e) => handleFileChange(e, 'colegiationCert')}
+                        />
+                      </label>
+                      {formData.colegiationCert && (
+                        <button
+                          type="button"
+                          onClick={() => updateFormData({ colegiationCert: null })}
+                          className="p-1 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Quitar certificado"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -535,6 +609,12 @@ export default function Step1Personal({ formData, updateFormData, onNext }) {
         </aside>
 
       </div>
+
+      <CameraCaptureModal
+        isOpen={!!cameraModalField}
+        onClose={() => setCameraModalField(null)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }

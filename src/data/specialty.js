@@ -1,4 +1,5 @@
 export const MEDICAL_SPECIALTIES = [
+  "Medicina General",
   "Alergología",
   "Anestesiología",
   "Cardiología",

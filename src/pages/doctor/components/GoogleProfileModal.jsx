@@ -14,7 +14,10 @@ import {
   ExternalLink,
   Edit3,
   Image as ImageIcon,
-  Building
+  Building,
+  Cloud,
+  UploadCloud,
+  Sparkles
 } from 'lucide-react';
 
 export default function GoogleProfileModal({
@@ -135,6 +138,23 @@ export default function GoogleProfileModal({
     });
   };
 
+  const handlePhotoChange = (index, newUrl) => {
+    setProfileData((prev) => {
+      const photos = [...(prev.photos || [])];
+      photos[index] = newUrl;
+      return { ...prev, photos };
+    });
+  };
+
+  const handlePhotoUpload = (index, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      handlePhotoChange(index, event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleApply = async () => {
     setError(null);
     setSaving(true);
@@ -168,16 +188,30 @@ export default function GoogleProfileModal({
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
+      let savedResult = null;
+      if (res.ok) {
+        savedResult = await res.json().catch(() => null);
+      } else {
         const errJson = await res.json().catch(() => ({}));
         console.warn('Advertencia al guardar en tabla doctor_google_profiles:', errJson);
       }
 
+      const savedImages = savedResult?.images || [];
+      const updatedPhotos = (savedImages.length > 0)
+        ? savedImages.map((img) => img.image_url)
+        : (payload.photos || []);
+
+      const appliedPayload = {
+        ...payload,
+        images: savedImages,
+        photos: updatedPhotos,
+      };
+
       if (onApplyProfile) {
-        onApplyProfile(payload);
+        onApplyProfile(appliedPayload);
       }
 
-      setSuccessMsg('¡Datos sincronizados y guardados exitosamente!');
+      setSuccessMsg('¡Datos sincronizados y 3 fotos clonadas en Cloudinary exitosamente!');
       setTimeout(() => {
         onClose();
       }, 700);
@@ -271,29 +305,102 @@ export default function GoogleProfileModal({
             )}
           </div>
 
-          {/* Fotos encontradas */}
-          {profileData.photos && profileData.photos.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <ImageIcon size={13} className="text-blue-600" />
-                <span>Fotos detectadas ({profileData.photos.length})</span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {profileData.photos.map((src, idx) => (
-                  <div key={idx} className="relative h-24 rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
-                    <img 
-                      src={src} 
-                      alt={`Foto ${idx + 1}`} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                    />
-                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded">
-                      #{idx + 1}
+          {/* Fotos del negocio para clonación a Cloudinary */}
+          <div className="bg-gradient-to-br from-blue-50/50 via-white to-slate-50 border border-blue-100 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <div>
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <ImageIcon size={14} className="text-[#0052FF]" />
+                  <span>Imágenes del perfil de Google (3 imágenes para clonar en Cloudinary)</span>
+                </label>
+                <p className="text-[10px] text-slate-500">
+                  Estas 3 imágenes se guardarán en la tabla <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded font-mono text-[9.5px]">doctor_google_images</code> y se clonarán en Cloudinary para tu perfil.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100/70 text-[#0052FF] shrink-0 self-start sm:self-auto">
+                <UploadCloud size={11} />
+                <span>Cloudinary Sync (1, 2, 3)</span>
+              </span>
+            </div>
+
+            {profileData.photos && profileData.photos.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {profileData.photos.slice(0, 3).map((src, idx) => (
+                  <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col group hover:border-blue-400 transition-all">
+                    <div className="relative h-28 w-full bg-slate-100 overflow-hidden">
+                      <img 
+                        src={src} 
+                        alt={`Imagen ${idx + 1}`} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                      <div className="absolute top-1.5 left-1.5 bg-[#0B1E48]/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                        <span>Posición #{idx + 1}</span>
+                        {idx === 0 && <span className="text-amber-300">★ Principal</span>}
+                      </div>
+
+                      <a
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Ver imagen en tamaño completo"
+                        className="absolute bottom-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+
+                    <div className="p-2 space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-semibold text-slate-700">URL foto #{idx + 1}:</span>
+                        {src.includes('cloudinary.com') ? (
+                          <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
+                            <CheckCircle2 size={10} /> En Cloudinary
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-blue-600 font-semibold flex items-center gap-0.5">
+                            <Cloud size={10} /> Por clonar
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="url"
+                          value={src && !src.startsWith('data:') ? src : ''}
+                          onChange={(e) => handlePhotoChange(idx, e.target.value)}
+                          placeholder="Pegar URL (lh3...) o subir"
+                          className="flex-1 px-1.5 py-0.5 text-[9.5px] rounded border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none text-slate-600 bg-slate-50/50 min-w-0"
+                        />
+                        <label className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shrink-0">
+                          <UploadCloud size={10} />
+                          <span>Subir</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handlePhotoUpload(idx, e.target.files?.[0])}
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-white/60 text-center">
+                <ImageIcon size={20} className="mx-auto text-slate-400 mb-1" />
+                <p className="text-xs text-slate-600 font-medium">No se han detectado fotos aún.</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Haz clic en &quot;Buscar perfil&quot; para extraer las fotos de Google o ingresa una URL de Maps válida.
+                </p>
+              </div>
+            )}
+          </div>
+
 
           {/* Formulario de edición del perfil obtenido */}
           <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">

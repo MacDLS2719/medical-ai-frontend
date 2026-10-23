@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   ArrowLeft, Search, Star, Loader2, CalendarPlus, 
   MapPin, Phone, Globe, ExternalLink, ShieldCheck, Navigation,
-  Building, X, ChevronDown, Check
+  Building, X, ChevronDown, Check, Clock, Image as ImageIcon,
+  ChevronLeft, ChevronRight, Navigation2, Info, Eye, Sparkles, Database
 } from 'lucide-react';
+
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -210,6 +212,293 @@ const WeekDayBadges = ({ availabilities = [] }) => {
 };
 
 // ----------------------------------------------------------------
+// Modal de detalle completo del médico/consultorio
+// ----------------------------------------------------------------
+const DoctorDetailModal = ({ doc, onClose, onBook }) => {
+  const [imgIdx, setImgIdx] = useState(0);
+  const images = (doc?.images || []).filter(i => i.image_url);
+  const hasImages = images.length > 0;
+
+  if (!doc) return null;
+
+  const isOur = doc.is_our_doctor;
+  const hours = doc.opening_hours;
+  const hoursRaw = hours?.raw || (typeof hours === 'string' ? hours : null);
+  const hoursParsed = hours?.periods || hours?.weekday_text || null;
+
+  const prevImg = (e) => { e.stopPropagation(); setImgIdx(i => (i - 1 + images.length) % images.length); };
+  const nextImg = (e) => { e.stopPropagation(); setImgIdx(i => (i + 1) % images.length); };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto relative"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header con badge de tipo */}
+        <div className={`px-5 pt-5 pb-3 border-b border-slate-100 flex items-start justify-between gap-3 ${
+          isOur ? 'bg-gradient-to-br from-blue-50 to-white' : 'bg-gradient-to-br from-slate-50 to-white'
+        }`}>
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-sm ${
+              isOur ? 'bg-[#0052FF] ring-2 ring-blue-200' : 'bg-slate-200'
+            }`}>
+              {isOur ? '🩺' : '🏥'}
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-black text-base text-slate-900 leading-snug">
+                {doc.business_name || `Dr. ${doc.first_name || ''} ${doc.last_name || ''}`.trim()}
+              </h2>
+              <p className="text-xs font-bold text-[#0052FF] mt-0.5">
+                {doc.specialty || doc.google_category || 'Centro de Salud'}
+              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  isOur
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                }`}>
+                  {isOur ? '✓ Médico Vitalia' : 'Centro Externo'}
+                </span>
+                {doc.is_verified && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <ShieldCheck size={9} className="inline mr-0.5" />Verificado
+                  </span>
+                )}
+                {doc.distance_km != null && (
+                  <span className="text-[10px] text-slate-500 font-semibold">
+                    📍 {doc.distance_km} km
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Galería de imágenes */}
+        {hasImages && (
+          <div className="relative w-full h-44 bg-slate-100 overflow-hidden">
+            <img
+              src={images[imgIdx].image_url}
+              alt={`Imagen ${imgIdx + 1}`}
+              className="w-full h-full object-cover"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImg}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={nextImg}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={e => { e.stopPropagation(); setImgIdx(i); }}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        i === imgIdx ? 'bg-white scale-125' : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {imgIdx + 1}/{images.length}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Contenido */}
+        <div className="px-5 py-4 space-y-4">
+
+          {/* Rating */}
+          {(doc.google_rating || doc.google_reviews_count) && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-amber-500 font-black text-sm">
+                {[1,2,3,4,5].map(star => (
+                  <Star
+                    key={star}
+                    size={14}
+                    className={star <= Math.round(doc.google_rating || 5)
+                      ? 'fill-amber-400 text-amber-400'
+                      : 'text-slate-200 fill-slate-200'
+                    }
+                  />
+                ))}
+                <span className="ml-1 text-sm">{doc.google_rating ? Number(doc.google_rating).toFixed(1) : '5.0'}</span>
+              </div>
+              {doc.google_reviews_count && (
+                <span className="text-[11px] text-slate-400 font-semibold">
+                  ({doc.google_reviews_count} opiniones)
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Info de contacto */}
+          <div className="space-y-2">
+            {doc.formatted_address && (
+              <div className="flex items-start gap-2 text-xs text-slate-700">
+                <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                <span>{doc.formatted_address}</span>
+              </div>
+            )}
+            {doc.phone_number && (
+              <div className="flex items-center gap-2 text-xs text-slate-700">
+                <Phone size={14} className="text-slate-400 shrink-0" />
+                <a href={`tel:${doc.phone_number}`} className="hover:text-[#0052FF] transition-colors font-semibold">
+                  {doc.phone_number}
+                </a>
+              </div>
+            )}
+            {doc.website_url && (
+              <div className="flex items-center gap-2 text-xs text-slate-700">
+                <Globe size={14} className="text-slate-400 shrink-0" />
+                <a
+                  href={doc.website_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[#0052FF] transition-colors font-semibold truncate"
+                >
+                  {doc.website_url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                </a>
+              </div>
+            )}
+            {doc.google_maps_url && (
+              <div className="flex items-center gap-2 text-xs text-slate-700">
+                <Navigation2 size={14} className="text-slate-400 shrink-0" />
+                <a
+                  href={doc.google_maps_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[#0052FF] transition-colors font-semibold"
+                >
+                  Ver en Google Maps
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Horarios */}
+          {(hoursRaw || hoursParsed) && (
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Clock size={13} className="text-slate-500" />
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Horario de atención</span>
+              </div>
+              {hoursParsed && Array.isArray(hoursParsed) ? (
+                <ul className="space-y-0.5">
+                  {hoursParsed.map((line, i) => (
+                    <li key={i} className="text-xs text-slate-600">{line}</li>
+                  ))}
+                </ul>
+              ) : hoursRaw ? (
+                <p className="text-xs text-slate-600 leading-relaxed">{hoursRaw}</p>
+              ) : null}
+            </div>
+          )}
+
+          {/* Disponibilidades (médicos propios) */}
+          {isOur && doc.availabilities && doc.availabilities.length > 0 && (
+            <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 block mb-1.5">
+                Días con citas disponibles
+              </span>
+              <WeekDayBadges availabilities={doc.availabilities} />
+            </div>
+          )}
+
+          {/* Categoría / Fuente */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {doc.google_category && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-full">
+                {doc.google_category}
+              </span>
+            )}
+            {doc.source && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] rounded-full">
+                Fuente: {doc.source}
+              </span>
+            )}
+            {doc.last_synced_at && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-400 text-[10px] rounded-full">
+                Actualizado: {new Date(doc.last_synced_at).toLocaleDateString('es-CO')}
+              </span>
+            )}
+          </div>
+
+          {/* Acciones */}
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            {isOur ? (
+              <button
+                type="button"
+                onClick={() => { onBook(doc); onClose(); }}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0052FF] hover:bg-blue-700 text-white text-sm font-black flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+              >
+                <CalendarPlus size={16} />
+                <span>Agendar Cita Médica</span>
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                {doc.booking_url && (
+                  <a
+                    href={doc.booking_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-2 px-3 rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 text-xs font-bold text-center flex items-center justify-center gap-1.5"
+                  >
+                    <ExternalLink size={13} />
+                    <span>Cita externa</span>
+                  </a>
+                )}
+                {doc.phone_number && (
+                  <a
+                    href={`tel:${doc.phone_number}`}
+                    className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Phone size={13} />
+                    <span>Llamar</span>
+                  </a>
+                )}
+                {doc.website_url && !doc.booking_url && (
+                  <a
+                    href={doc.website_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <Globe size={13} />
+                    <span>Sitio web</span>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------
 // Pines personalizados de Leaflet
 // ----------------------------------------------------------------
 const createInternalDoctorIcon = () => {
@@ -236,14 +525,23 @@ const createExternalDoctorIcon = () => {
   return L.divIcon({ html, className: '', iconSize: [32, 40], iconAnchor: [16, 40], popupAnchor: [0, -36] });
 };
 
-// Componente para recentrar el mapa suavemente
-function MapRecenter({ center, zoom }) {
+// Componente para recentrar el mapa suavemente y enmarcar todos los marcadores
+function MapRecenter({ center, zoom, doctors }) {
   const map = useMap();
   useEffect(() => {
-    if (center && center[0] && center[1]) {
+    const validPositions = (doctors || [])
+      .filter((d) => d.latitude && d.longitude && !isNaN(Number(d.latitude)) && !isNaN(Number(d.longitude)))
+      .map((d) => [Number(d.latitude), Number(d.longitude)]);
+
+    if (validPositions.length > 1) {
+      const bounds = L.latLngBounds(validPositions);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    } else if (validPositions.length === 1) {
+      map.setView(validPositions[0], 14, { animate: true });
+    } else if (center && center[0] && center[1]) {
       map.setView(center, zoom || 13, { animate: true });
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, doctors, map]);
   return null;
 }
 
@@ -255,8 +553,8 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
   const [specialties, setSpecialties] = useState(
     initialFilters?.specialty ? [initialFilters.specialty] : []
   );
-  const [city, setCity] = useState(initialFilters?.city || 'Cali');
-  const [country, setCountry] = useState(initialFilters?.country || 'Colombia');
+  const [city, setCity] = useState(initialFilters?.city || '');
+  const [country, setCountry] = useState(initialFilters?.country || '');
   const [filterType, setFilterType] = useState('all'); // 'all' | 'internal' | 'external'
   const [searchName, setSearchName] = useState('');
 
@@ -267,22 +565,31 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
   // Estados de carga y resultados
   const [doctors, setDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState('Buscando especialistas cercanos...');
+  const [loadingMsg, setLoadingMsg] = useState('Buscando especialistas...');
   const [error, setError] = useState('');
   const [selectedDoctorId, setSelectedDoctorId] = useState(null);
+  const [modalDoctor, setModalDoctor] = useState(null);
+
+  // Estados de control para modos: BD vs Web Mivor
+  const [noDatabaseResults, setNoDatabaseResults] = useState(false);
+  const [lastSearchMode, setLastSearchMode] = useState('database');
+  const [syncSuccessMsg, setSyncSuccessMsg] = useState('');
 
   const mapRef = useRef(null);
 
-  // Ejecutar búsqueda en el endpoint /doctor-search
+  // Ejecutar búsqueda en el endpoint /doctor-search con modo 'database' o 'external'
   const handleSearch = async (overrideParams = {}) => {
+    const searchMode = overrideParams.mode || 'database';
     setIsLoading(true);
     setError('');
-    setLoadingMsg('Buscando especialistas cercanos...');
+    setSyncSuccessMsg('');
+    setLastSearchMode(searchMode);
 
-    // Mostrar mensaje de búsqueda Google después de 3s si aún cargando
-    const googleMsgTimer = setTimeout(() => {
-      setLoadingMsg('Consultando Google y fuentes externas con IA... 🔍');
-    }, 3000);
+    if (searchMode === 'database') {
+      setLoadingMsg('Consultando especialistas en la base de datos...');
+    } else {
+      setLoadingMsg('Buscando especialistas reales en Google Maps y la web con Mivor AI... 🔍');
+    }
 
     const targetSpecialties = overrideParams.specialties !== undefined ? overrideParams.specialties : specialties;
     const targetCity = overrideParams.city !== undefined ? overrideParams.city : city;
@@ -306,6 +613,7 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
           longitude: overrideParams.longitude || null,
           radius_km: 15,
           limit: 30,
+          search_mode: searchMode,
         }),
       });
 
@@ -316,7 +624,20 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
 
       const results = data.results || [];
       setDoctors(results);
-      clearTimeout(googleMsgTimer);
+
+      if (searchMode === 'database') {
+        if (results.length === 0) {
+          setNoDatabaseResults(true);
+        } else {
+          setNoDatabaseResults(false);
+        }
+      } else {
+        // Modo external completado con éxito
+        setNoDatabaseResults(false);
+        if (results.length > 0) {
+          setSyncSuccessMsg(`¡${results.length} especialistas reales encontrados en Google y guardados en la base de datos!`);
+        }
+      }
 
       // Actualizar centro del mapa si el servidor devolvió coordenadas de la ciudad
       if (data.center_latitude && data.center_longitude) {
@@ -326,18 +647,13 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
         setMapCenter([results[0].latitude, results[0].longitude]);
       }
     } catch (err) {
-      clearTimeout(googleMsgTimer);
       setError(err.message || 'No fue posible conectar con el servicio de búsqueda.');
     } finally {
       setIsLoading(false);
-      setLoadingMsg('Buscando especialistas cercanos...');
     }
   };
 
-  // Cargar búsqueda inicial en el montaje
-  useEffect(() => {
-    handleSearch();
-  }, []);
+  // La búsqueda solo se ejecuta cuando el usuario presiona "Buscar"
 
   // Geolocalización del navegador
   const handleUseMyLocation = () => {
@@ -404,6 +720,7 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
   };
 
   return (
+    <>
     <div className="min-h-screen bg-slate-50 font-sans pb-24 px-3 sm:px-6 pt-4 overflow-y-auto">
       <div className="max-w-7xl mx-auto space-y-4">
         
@@ -485,17 +802,46 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
               />
             </div>
 
-            {/* Botón Buscar */}
-            <div className="sm:col-span-2">
+            {/* Botón Buscar en BD (Azul) / Buscar Web Mivor */}
+            <div className="sm:col-span-3 flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
               <button
                 type="button"
-                onClick={() => handleSearch()}
+                onClick={() => {
+                  setNoDatabaseResults(false);
+                  handleSearch({ mode: 'database' });
+                }}
                 disabled={isLoading}
-                className="w-full py-2 px-3 rounded-xl bg-[#0052FF] hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                  noDatabaseResults
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                    : 'bg-[#0052FF] hover:bg-blue-700 text-white cursor-pointer'
+                } flex-1`}
+                title={noDatabaseResults ? "No hay registros en la base de datos. Usa 'Buscar Web Mivor'" : "Buscar en base de datos"}
               >
-                {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                {isLoading && lastSearchMode === 'database' ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Search size={14} />
+                )}
                 <span>Buscar</span>
               </button>
+
+              {/* Botón Buscar Web Mivor */}
+              {noDatabaseResults && (
+                <button
+                  type="button"
+                  onClick={() => handleSearch({ mode: 'external' })}
+                  disabled={isLoading}
+                  className="py-2 px-3 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-[#0052FF] hover:from-violet-700 hover:to-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md animate-pulse cursor-pointer flex-1"
+                >
+                  {isLoading && lastSearchMode === 'external' ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={14} />
+                  )}
+                  <span>Buscar Web Mivor</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -562,6 +908,22 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
           </div>
         )}
 
+        {/* Mensaje de sincronización exitosa de Google / Mivor AI */}
+        {syncSuccessMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl p-3 flex items-center justify-between gap-2 shadow-2xs">
+            <span className="flex items-center gap-2 font-bold">
+              <Check size={16} className="text-emerald-600 shrink-0" />
+              <span>{syncSuccessMsg}</span>
+            </span>
+            <button
+              onClick={() => setSyncSuccessMsg('')}
+              className="text-emerald-600 hover:text-emerald-800 p-0.5 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Contenido Principal: Mapa + Listado de Médicos */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           
@@ -582,15 +944,38 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                 <div>
                   <p className="text-xs font-bold text-slate-700">{loadingMsg}</p>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Si no hay resultados locales, buscamos en Google y guardamos automáticamente
+                    {lastSearchMode === 'database'
+                      ? 'Consultando registros locales de la base de datos...'
+                      : 'Consultando Google Maps y guardando los resultados reales en la base de datos...'}
                   </p>
                 </div>
               </div>
             ) : filteredDoctors.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 border border-dashed border-slate-300 text-center space-y-2">
-                <Building className="mx-auto text-slate-400" size={28} />
-                <p className="text-xs font-bold text-slate-700">No se encontraron médicos en esta zona</p>
-                <p className="text-[11px] text-slate-500">Prueba cambiando la especialidad o ampliando la ciudad de búsqueda.</p>
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 text-center space-y-3 shadow-2xs">
+                <div className="w-12 h-12 bg-blue-50 text-[#0052FF] rounded-2xl flex items-center justify-center mx-auto shadow-2xs">
+                  <Database size={22} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">
+                    No se encontraron especialistas en la base de datos
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
+                    Aún no hay especialistas registrados en la base de datos para esta ciudad. Puedes activar la búsqueda web para encontrar especialistas reales en Google Maps e integrarlos a la plataforma.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSearch({ mode: 'external' })}
+                  disabled={isLoading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-[#0052FF] hover:from-violet-700 hover:to-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  {isLoading && lastSearchMode === 'external' ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={14} />
+                  )}
+                  <span>Buscar Web Mivor</span>
+                </button>
               </div>
             ) : (
               filteredDoctors.map((doc, idx) => {
@@ -610,14 +995,25 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                     {/* Header de la tarjeta */}
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Avatar */}
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-bold text-sm shadow-xs ${
-                          doc.is_our_doctor
-                            ? 'bg-[#0052FF] text-white ring-2 ring-blue-200'
-                            : 'bg-slate-200 text-slate-700'
-                        }`}>
-                          {doc.is_our_doctor ? '🩺' : '🏥'}
-                        </div>
+                        {/* Miniatura de imagen o Avatar */}
+                        {doc.images && doc.images[0]?.image_url ? (
+                          <img
+                            src={doc.images[0].image_url}
+                            alt={doc.business_name || 'Médico'}
+                            className="w-12 h-12 rounded-xl object-cover shrink-0 ring-1 ring-slate-200 shadow-2xs"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-bold text-base shadow-2xs ${
+                            doc.is_our_doctor
+                              ? 'bg-[#0052FF] text-white ring-2 ring-blue-200'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {doc.is_our_doctor ? '🩺' : '🏥'}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <h3 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                             {doc.business_name || `Dr. ${doc.first_name || ''} ${doc.last_name || ''}`}
@@ -663,6 +1059,11 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                       <span className="text-slate-400 text-[10px]">
                         ({doc.google_reviews_count || 30} opiniones)
                       </span>
+                      {doc.images && doc.images.length > 0 && (
+                        <span className="ml-auto text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                          <ImageIcon size={11} /> {doc.images.length} fotos
+                        </span>
+                      )}
                     </div>
 
                     {/* Días disponibles (si es médico de la plataforma) */}
@@ -676,57 +1077,81 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                     )}
 
                     {/* Botones de acción */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-2 border-t border-slate-100">
                       {doc.is_our_doctor ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBookAppointment(doc);
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-[#0052FF] hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                        >
-                          <CalendarPlus size={14} />
-                          <span>Agendar Cita Médica</span>
-                        </button>
-                      ) : (
                         <div className="w-full flex items-center gap-2">
-                          {doc.booking_url ? (
-                            <a
-                              href={doc.booking_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 py-1.5 px-2.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-[11px] font-bold text-center flex items-center justify-center gap-1"
-                            >
-                              <span>Cita externa</span>
-                              <ExternalLink size={12} />
-                            </a>
-                          ) : null}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBookAppointment(doc);
+                            }}
+                            className="flex-1 py-2 px-3 rounded-xl bg-[#0052FF] hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          >
+                            <CalendarPlus size={14} />
+                            <span>Agendar Cita</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setModalDoctor(doc); }}
+                            className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-200"
+                            title="Ver información completa"
+                          >
+                            <Eye size={13} />
+                            <span>Ver info</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-full space-y-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setModalDoctor(doc); }}
+                            className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-[#0052FF] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          >
+                            <Eye size={13} />
+                            <span>Ver información completa</span>
+                          </button>
 
-                          {doc.website_url && !doc.booking_url ? (
-                            <a
-                              href={doc.website_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-[11px] font-bold text-center flex items-center justify-center gap-1"
-                            >
-                              <Globe size={12} />
-                              <span>Sitio web</span>
-                            </a>
-                          ) : null}
+                          {(doc.booking_url || doc.website_url || doc.phone_number) && (
+                            <div className="flex items-center gap-1.5 w-full">
+                              {doc.booking_url ? (
+                                <a
+                                  href={doc.booking_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex-1 py-1.5 px-2 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-[10px] font-bold text-center flex items-center justify-center gap-1"
+                                >
+                                  <span>Cita</span>
+                                  <ExternalLink size={11} />
+                                </a>
+                              ) : null}
 
-                          {doc.phone_number ? (
-                            <a
-                              href={`tel:${doc.phone_number}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold flex items-center gap-1"
-                            >
-                              <Phone size={12} />
-                              <span>Llamar</span>
-                            </a>
-                          ) : null}
+                              {doc.website_url && !doc.booking_url ? (
+                                <a
+                                  href={doc.website_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex-1 py-1.5 px-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-[10px] font-bold text-center flex items-center justify-center gap-1"
+                                >
+                                  <Globe size={11} />
+                                  <span>Web</span>
+                                </a>
+                              ) : null}
+
+                              {doc.phone_number ? (
+                                <a
+                                  href={`tel:${doc.phone_number}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center gap-1"
+                                >
+                                  <Phone size={11} />
+                                  <span>Llamar</span>
+                                </a>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -750,7 +1175,7 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              <MapRecenter center={mapCenter} zoom={mapZoom} />
+              <MapRecenter center={mapCenter} zoom={mapZoom} doctors={filteredDoctors} />
 
               {/* Marcadores de médicos */}
               {filteredDoctors.map((doc, idx) => {
@@ -768,7 +1193,7 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                     }}
                   >
                     <Popup className="doctor-map-popup">
-                      <div className="p-1 max-w-[220px] space-y-1.5">
+                      <div className="p-1.5 max-w-[210px] space-y-1.5">
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full ${isInternal ? 'bg-blue-600' : 'bg-slate-600'}`} />
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
@@ -784,29 +1209,34 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
                         {doc.formatted_address && (
                           <p className="text-[10px] text-slate-500 truncate">{doc.formatted_address}</p>
                         )}
-                        <div className="flex items-center gap-1 text-[11px] text-amber-500 font-bold">
-                          <Star size={11} className="fill-amber-400" />
-                          <span>{doc.google_rating ? Number(doc.google_rating).toFixed(1) : '4.8'}</span>
-                        </div>
-                        {isInternal ? (
-                          <button
-                            type="button"
-                            onClick={() => handleBookAppointment(doc)}
-                            className="w-full mt-1.5 py-1 px-2 rounded-lg bg-[#0052FF] text-white text-[11px] font-bold flex items-center justify-center gap-1"
-                          >
-                            <CalendarPlus size={12} />
-                            <span>Agendar Cita</span>
-                          </button>
-                        ) : doc.booking_url ? (
-                          <a
-                            href={doc.booking_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block w-full mt-1.5 py-1 px-2 rounded-lg bg-slate-800 text-white text-[11px] font-bold text-center"
-                          >
-                            Ver citas externas
-                          </a>
-                        ) : null}
+                        {doc.google_rating && (
+                          <div className="flex items-center gap-1 text-[11px] text-amber-500 font-bold">
+                            <Star size={11} className="fill-amber-400" />
+                            <span>{Number(doc.google_rating).toFixed(1)}</span>
+                          </div>
+                        )}
+                        {/* Imágenes en miniatura */}
+                        {doc.images && doc.images.length > 0 && (
+                          <div className="flex gap-1 mt-1">
+                            {doc.images.slice(0, 2).map((img, ii) => (
+                              <img
+                                key={ii}
+                                src={img.image_url}
+                                alt=""
+                                className="w-16 h-10 object-cover rounded-md border border-slate-200"
+                                onError={e => { e.target.style.display = 'none'; }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setModalDoctor(doc)}
+                          className="w-full mt-1.5 py-1.5 px-2 rounded-lg bg-[#0052FF] text-white text-[11px] font-bold flex items-center justify-center gap-1"
+                        >
+                          <Info size={11} />
+                          <span>Ver detalle</span>
+                        </button>
                       </div>
                     </Popup>
 
@@ -837,7 +1267,16 @@ const EspecialistasVideoSearch = ({ onBack, onSelectDoctor, initialFilters, apiU
 
       </div>
     </div>
-  );
+
+    {/* Modal de detalle completo */}
+    {modalDoctor && (
+      <DoctorDetailModal
+        doc={modalDoctor}
+        onClose={() => setModalDoctor(null)}
+        onBook={handleBookAppointment}
+      />
+    )}
+  </>);
 };
 
 export default EspecialistasVideoSearch;

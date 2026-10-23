@@ -18,7 +18,8 @@ import {
   X,
   Search,
   Wallet,
-  Mic
+  Mic,
+  Globe,
 } from 'lucide-react';
 
 export default function SidebarDoctor() {
@@ -268,6 +269,23 @@ export default function SidebarDoctor() {
                 >
                   <Mic size={18} strokeWidth={2} />
                   <span>Transcripcion Mivor</span>
+                </NavLink>
+              </li>
+
+              {/* 10. Perfil de Google Business / Maps */}
+              <li>
+                <NavLink
+                  to="/perfil-google"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/80'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  <Globe size={18} strokeWidth={2} />
+                  <span>Perfil de Google</span>
                 </NavLink>
               </li>
 

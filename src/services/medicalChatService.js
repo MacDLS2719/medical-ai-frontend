@@ -266,5 +266,26 @@ export const medicalChatService = {
       { params: userId ? { user_id: userId } : {} }
     );
     return response.data;
-  }
+  },
+
+  // ── Reseñas de médicos ────────────────────────────────────────────────────
+
+  /** Crea o actualiza la reseña de un paciente sobre un médico */
+  async submitReview({ doctorId, patientId, rating, comment }) {
+    const response = await axios.post(`${API_URL}/reviews/`, {
+      doctor_id: doctorId,
+      patient_id: patientId,
+      rating,
+      comment: comment || null,
+    });
+    return response.data;
+  },
+
+  /** Obtiene la reseña (si existe) que un paciente dejó a un médico */
+  async getPatientReview(patientId, doctorId) {
+    const response = await axios.get(
+      `${API_URL}/reviews/patient/${patientId}/doctor/${doctorId}`
+    );
+    return response.data;
+  },
 };

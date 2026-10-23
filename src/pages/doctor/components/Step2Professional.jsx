@@ -10,25 +10,56 @@ import {
   ArrowLeft, 
   ArrowRight,
   ChevronDown,
-  Globe
+  Globe,
+  Image as ImageIcon,
+  Cloud,
+  Sparkles,
+  Languages,
+  Building,
+  Check
 } from 'lucide-react';
 import iaHeaderImg from '../../../assets/imgs/mivor-icon.webp';
 import DoctorLocationMap from '../../../components/common/DoctorLocationMap';
 import GoogleProfileModal from './GoogleProfileModal';
 
+const AVAILABLE_LANGUAGES = ['Español', 'Inglés', 'Francés', 'Portugués', 'Alemán', 'Italiano'];
 
 export default function Step2Professional({ formData, updateFormData, onNext, onPrev }) {
   const [bio, setBio] = useState(formData.bio || '');
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
+  const selectedLanguages = Array.isArray(formData.languages) 
+    ? formData.languages 
+    : (formData.languages ? [formData.languages] : ['Español']);
+
+  const handleToggleLanguage = (lang) => {
+    let updated;
+    if (selectedLanguages.includes(lang)) {
+      if (selectedLanguages.length > 1) {
+        updated = selectedLanguages.filter(l => l !== lang);
+      } else {
+        updated = selectedLanguages;
+      }
+    } else {
+      updated = [...selectedLanguages, lang];
+    }
+    updateFormData({ languages: updated });
+  };
+
   const selectedCountryObj = ALL_COUNTRIES.find((c) => c.name === formData.country) || 
                              ALL_COUNTRIES.find((c) => c.name === 'Colombia') || 
                              ALL_COUNTRIES[0];
 
+  const displayedGooglePhotos = formData.google_photos || 
+    formData.google_profile_data?.photos || 
+    (formData.google_profile_data?.images ? formData.google_profile_data.images.map(img => img.image_url) : []);
+
   const handleApplyGoogleProfile = (googleData) => {
+    const photos = googleData.photos || (googleData.images ? googleData.images.map((img) => img.image_url) : []);
     const updates = {
       linkgoogle: googleData.google_maps_url || formData.linkgoogle,
       google_profile_data: googleData,
+      google_photos: photos,
     };
 
     if (googleData.business_name) {
@@ -232,7 +263,6 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
             </div>
           </div>
 
-
           {/* Fila 2: País, Experiencia, Código Postal, Teléfono, Sitio Web */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
             <div>
@@ -327,6 +357,62 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
                 value={formData.website || ''}
                 onChange={handleChange}
                 className="w-full px-2.5 py-1 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] outline-none transition-all placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+
+          {/* Fila: Idiomas de atención & Compañía Aseguradora */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 pt-0.5">
+            {/* Selector de Idiomas */}
+            <div className="md:col-span-7 bg-slate-50/70 rounded-xl p-2.5 border border-slate-200/80 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                  <Languages size={13} className="text-[#0052FF]" />
+                  <span>Idiomas de atención médica</span>
+                </label>
+                <span className="text-[9px] text-slate-400 font-medium">Puedes elegir varios</span>
+              </div>
+              
+              <div className="flex flex-wrap gap-1.5">
+                {AVAILABLE_LANGUAGES.map((lang) => {
+                  const isSelected = selectedLanguages.includes(lang);
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => handleToggleLanguage(lang)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                        isSelected 
+                          ? 'bg-[#0052FF] text-white border border-[#0052FF]' 
+                          : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                      }`}
+                    >
+                      {isSelected && <Check size={11} strokeWidth={3} />}
+                      <span>{lang}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Compañía aseguradora */}
+            <div className="md:col-span-5 bg-slate-50/70 rounded-xl p-2.5 border border-slate-200/80 flex flex-col justify-between space-y-1">
+              <div>
+                <label className="block text-[10px] sm:text-[11px] font-bold text-slate-700 mb-0.5 flex items-center gap-1.5">
+                  <Building size={13} className="text-[#0052FF]" />
+                  <span>Compañía aseguradora <span className="text-slate-400 font-normal">(opcional)</span></span>
+                </label>
+                <p className="text-[9px] text-slate-400 leading-tight mb-1">
+                  Aseguradora o medicina prepagada con convenio
+                </p>
+              </div>
+              <input
+                type="text"
+                name="insuranceCompany"
+                placeholder="Ej: Sura, Colmédica, Sanitas, Axa..."
+                value={formData.insuranceCompany || formData.insurance_company || ''}
+                onChange={(e) => updateFormData({ insuranceCompany: e.target.value, insurance_company: e.target.value })}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs focus:ring-2 focus:ring-[#0052FF]/20 focus:border-[#0052FF] outline-none transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -459,4 +545,4 @@ export default function Step2Professional({ formData, updateFormData, onNext, on
       />
     </div>
   );
-}
+}

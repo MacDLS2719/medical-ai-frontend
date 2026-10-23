@@ -13,6 +13,7 @@ const SupportAIModal = ({ isOpen, onClose }) => {
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -55,7 +56,11 @@ const SupportAIModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const data = await sendSupportAIMessage(trimmedMessage);
+      const data = await sendSupportAIMessage(trimmedMessage, { conversationId });
+
+      if (data?.conversation_id) {
+        setConversationId(data.conversation_id);
+      }
 
       const assistantMessage = {
         id: `assistant-${Date.now()}`,

@@ -20,7 +20,8 @@ import {
   Users, 
   ShieldCheck, 
   HelpCircle,
-  MapPin
+  MapPin,
+  Building
 } from 'lucide-react';
 import iaHeaderImg from '../../../assets/imgs/mivor-icon.webp';
 import DoctorLocationMap from '../../../components/common/DoctorLocationMap';
@@ -212,6 +213,18 @@ export default function Step3Professional({ formData, onNext, onPrev, goToStep }
                       <span className="text-slate-500 flex items-center gap-1 text-[11px]"><Star size={12} /> Subespecialidad</span>
                       <p className="font-semibold text-slate-800 truncate">{formData.subspecialty || 'Dermatopatología'}</p>
                     </div>
+                    <div>
+                      <span className="text-slate-500 flex items-center gap-1 text-[11px]"><Languages size={12} /> Idiomas</span>
+                      <p className="font-semibold text-slate-800 truncate">
+                        {Array.isArray(formData.languages) ? formData.languages.join(', ') : (formData.languages || 'Español')}
+                      </p>
+                    </div>
+                    {formData.insuranceCompany && (
+                      <div>
+                        <span className="text-slate-500 flex items-center gap-1 text-[11px]"><Building size={12} /> Aseguradora</span>
+                        <p className="font-semibold text-slate-800 truncate">{formData.insuranceCompany}</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="text-xs pt-2 border-t border-slate-100">

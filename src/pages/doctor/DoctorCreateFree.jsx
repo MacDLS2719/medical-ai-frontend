@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -12,10 +12,16 @@ import {
   FileText, 
   Headphones, 
   ArrowRight,
-  X
+  X,
+  Camera,
+  UploadCloud,
+  Trash2,
+  CheckCircle2,
+  FileCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
+import GoogleProfileModal from './components/GoogleProfileModal';
+import CameraCaptureModal from './components/CameraCaptureModal';
 
 import doctorHeroImg from '../../assets/imgs/doctor-hero.webp';
 import mivorIconImg from '../../assets/imgs/mivor-icon.webp'; 
@@ -39,8 +45,16 @@ export default function DoctorCreateFree() {
     phone: '',
     email: '',
     password: '',
-    acceptedTerms: false
+    acceptedTerms: false,
+    google_profile_data: null,
+    google_photos: [],
   });
+
+  const [certificate, setCertificate] = useState(null);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -48,6 +62,59 @@ export default function DoctorCreateFree() {
       ...prev, 
       [name]: type === 'checkbox' ? checked : value 
     }));
+  };
+
+  const handleApplyGoogleProfile = (googleData) => {
+    const photos = googleData.photos ||
+      (googleData.images ? googleData.images.map((img) => img.image_url) : []);
+
+    setFormData(prev => ({
+      ...prev,
+      linkgoogle: googleData.google_maps_url || prev.linkgoogle,
+      google_profile_data: googleData,
+      google_photos: photos,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('El archivo seleccionado supera el límite permitido de 10 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const isImg = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const sizeInKb = (file.size / 1024).toFixed(1);
+
+      setCertificate({
+        base64: event.target.result,
+        name: file.name,
+        mimeType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'),
+        size: `${sizeInKb} KB`,
+        isImage: isImg,
+        isPdf: isPdf,
+        previewUrl: isImg ? event.target.result : null
+      });
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = (capturedData) => {
+    setCertificate(capturedData);
+    setError(null);
+  };
+
+  const handleRemoveCertificate = () => {
+    setCertificate(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -80,7 +147,12 @@ export default function DoctorCreateFree() {
       phone: `${formData.phoneCode} ${formData.phone.trim()}`,
       email: formData.email.trim(),
       password: formData.password || null,
-      language: 'es'
+      language: 'es',
+      google_profile_data: formData.google_profile_data || null,
+      google_photos: formData.google_photos?.length > 0 ? formData.google_photos : null,
+      certificate_base64: certificate?.base64 || null,
+      certificate_filename: certificate?.name || null,
+      certificate_mime_type: certificate?.mimeType || null,
     };
 
     try {
@@ -138,68 +210,67 @@ export default function DoctorCreateFree() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-200/60 flex items-center justify-center p-4 sm:p-6 md:py-10 font-sans">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden grid grid-cols-1 md:grid-cols-12 relative my-auto">
+    // 🔹 AJUSTE CONTENEDOR GENERAL: Ocupa la pantalla sin desbordar y centra verticalmente
+    <div className="h-screen w-screen bg-slate-200/60 flex items-center justify-center p-2 sm:p-4 overflow-hidden font-sans">
+      
+      {/* 🔹 AJUSTE TARJETA PRINCIPAL: Altura máxima controlada (92vh) para forzar que quepa en primera vista */}
+      <div className="w-full max-w-5xl h-full max-h-[880px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden grid grid-cols-1 md:grid-cols-12 relative">
 
         <button 
           type="button" 
           onClick={() => navigate('/')} 
-          className="absolute top-4 right-4 z-30 text-slate-400 hover:text-slate-600 transition-colors"
+          className="absolute top-4 right-4 z-30 text-slate-400 hover:text-slate-600 transition-colors bg-white/80 p-1.5 rounded-full shadow-xs"
           aria-label="Cerrar"
         >
-          <X size={22} />
+          <X size={20} />
         </button>
 
-        {/* COLUMNA IZQUIERDA: FORMULARIO */}
-        <div className="md:col-span-6 p-6 sm:p-8 flex flex-col justify-between z-10">
+        {/* ================= COLUMNA IZQUIERDA: FORMULARIO CON SCROLL PROPIO ================= */}
+        <div className="md:col-span-6 p-5 sm:p-7 flex flex-col justify-between z-10 overflow-y-auto max-h-full">
           <div>
-            {/* Logo: Icono desde imagen + Texto codificado */}
-            <div className="flex items-center gap-3 mb-6">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-4">
               <img 
                 src={mivorIconImg} 
                 alt="MIVOR Icon" 
-                className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-sm" 
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow-sm" 
               />
-              
               <div className="leading-none">
-                {/* Nombre principal en tamaño grande */}
-                <span className="font-extrabold text-3xl sm:text-4xl text-[#0B1E48] tracking-tight">
+                <span className="font-extrabold text-2xl sm:text-3xl text-[#0B1E48] tracking-tight">
                   MIVOR<span className="text-cyan-500">.ai</span>
                 </span>
-                
-                {/* Subtítulo proporcionalmente más visible */}
-                <span className="block text-[10px] sm:text-xs text-slate-400 font-bold tracking-widest uppercase mt-1">
+                <span className="block text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-1">
                   BETTER HEALTH. BRIGHTER LIVES.
                 </span>
               </div>
             </div>
 
             {/* Títulos */}
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B1E48] mb-1.5 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-extrabold text-[#0B1E48] mb-1 tracking-tight">
               Acceso para profesionales médicos
             </h1>
-            <p className="text-xs sm:text-sm font-bold text-[#1E293B] mb-1">
+            <p className="text-xs font-bold text-[#1E293B] mb-1">
               Para probar MIVOR.ai necesitamos verificar que eres médico.
             </p>
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              Completa los siguientes datos para obtener acceso a la versión de prueba y recibir ejemplos y recomendaciones adaptadas a tu especialidad.
+            <p className="text-[11px] sm:text-xs text-slate-500 mb-4 leading-relaxed">
+              Completa los datos para obtener acceso a la versión de prueba y recibir recomendaciones adaptadas a tu especialidad.
             </p>
 
             {error && (
-              <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+              <div className="mb-4 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                 {error}
               </div>
             )}
 
             {/* Campos del Formulario */}
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2.5">
               
               {/* Nombre y Apellidos */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre y apellidos</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <User size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Nombre y apellidos</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <User size={16} />
                   </div>
                   <input
                     type="text"
@@ -207,7 +278,7 @@ export default function DoctorCreateFree() {
                     required
                     value={formData.fullName}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
                     placeholder="Ej.: María López García"
                   />
                 </div>
@@ -215,35 +286,54 @@ export default function DoctorCreateFree() {
 
               {/* Enlace de Google */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Enlace de Google (opcional)</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Globe size={18} />
-                  </div>
-                  <input
-                    type="url"
-                    name="linkgoogle"
-                    value={formData.linkgoogle}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
-                    placeholder="https://..."
-                  />
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Enlace de Google <span className="text-slate-400 font-normal">(opcional)</span></label>
+                  {formData.linkgoogle && formData.linkgoogle.trim().length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsGoogleModalOpen(true)}
+                      className="text-[10px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 transition-colors"
+                    >
+                      <Globe size={11} />
+                      <span>Ver perfil Google</span>
+                    </button>
+                  )}
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Globe size={16} />
+                  </div>
+                  <div className="flex w-full gap-2">
+                    <input
+                      type="url"
+                      name="linkgoogle"
+                      value={formData.linkgoogle}
+                      onChange={handleChange}
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </div>
+                </div>
+                {formData.google_profile_data && (
+                  <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                    <span>Aplicado: <strong>{formData.google_profile_data.business_name || 'Perfil'}</strong></span>
+                  </div>
+                )}
               </div>
 
               {/* Especialidad médica */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Especialidad médica</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Stethoscope size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Especialidad médica</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Stethoscope size={16} />
                   </div>
                   <select
                     name="specialty"
                     required
                     value={formData.specialty}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all text-slate-700"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all text-slate-700"
                   >
                     <option value="" disabled>Selecciona tu especialidad</option>
                     {MEDICAL_SPECIALTIES.map(spec => (
@@ -255,17 +345,17 @@ export default function DoctorCreateFree() {
 
               {/* País donde ejerce */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">País donde ejerce</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Globe size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">País donde ejerce</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Globe size={16} />
                   </div>
                   <select
                     name="country"
                     required
                     value={formData.country}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all text-slate-700"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all text-slate-700"
                   >
                     <option value="" disabled>Selecciona tu país</option>
                     {ALL_COUNTRIES.map(c => (
@@ -277,19 +367,18 @@ export default function DoctorCreateFree() {
 
               {/* Teléfono */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Phone size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Teléfono</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Phone size={16} />
                   </div>
                   <div className="flex w-full gap-2">
                     <select
                       name="phoneCode"
                       value={formData.phoneCode}
                       onChange={handleChange}
-                      className="px-2 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs font-medium focus:bg-white focus:border-cyan-500 outline-none text-slate-700"
+                      className="px-2 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs font-medium focus:bg-white focus:border-cyan-500 outline-none text-slate-700"
                     >
-                      <option value="" disabled>Cód.</option>
                       {ALL_COUNTRIES.map(c => (
                         <option key={`code-${c.code}`} value={c.dialCode}>{c.flag} {c.dialCode}</option>
                       ))}
@@ -300,7 +389,7 @@ export default function DoctorCreateFree() {
                       required
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
                       placeholder="612 34 56 78"
                     />
                   </div>
@@ -309,10 +398,10 @@ export default function DoctorCreateFree() {
 
               {/* Email profesional */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email profesional</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Mail size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Email profesional</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Mail size={16} />
                   </div>
                   <input
                     type="email"
@@ -320,7 +409,7 @@ export default function DoctorCreateFree() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
                     placeholder="Ej.: nombre@tuclinica.com"
                   />
                 </div>
@@ -328,10 +417,10 @@ export default function DoctorCreateFree() {
 
               {/* Contraseña */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Contraseña</label>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
-                    <Lock size={18} />
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Contraseña</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
+                    <Lock size={16} />
                   </div>
                   <input
                     type="password"
@@ -339,14 +428,117 @@ export default function DoctorCreateFree() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200 text-xs sm:text-sm focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                    className="w-full px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-800"
                     placeholder="••••••••"
                   />
                 </div>
               </div>
 
+              {/* Tarjeta Profesional o Certificado Médico */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                    <FileCheck size={13} className="text-cyan-600" />
+                    <span>Tarjeta profesional o certificado</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-normal">Para verificar tu colegiatura</span>
+                </div>
+
+                {!certificate ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-2.5 hover:border-cyan-400 transition-colors">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-cyan-700 hover:border-cyan-400 text-xs font-semibold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                      >
+                        <UploadCloud size={14} className="text-cyan-600" />
+                        <span>Subir archivo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-cyan-50/80 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 text-xs font-semibold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                      >
+                        <Camera size={14} className="text-cyan-600" />
+                        <span>Tomar foto</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                      Formatos soportados: PDF, JPG, PNG o fotografía directa
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-2 flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {certificate.isImage && certificate.previewUrl ? (
+                        <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-emerald-300 bg-white shrink-0 shadow-2xs">
+                          <img
+                            src={certificate.previewUrl}
+                            alt="Certificado"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200 shadow-2xs">
+                          <FileText size={18} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-slate-800 truncate max-w-[170px] sm:max-w-[210px]">
+                            {certificate.name}
+                          </span>
+                          <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                          <span>{certificate.size}</span>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-medium">Adjunto correctamente</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraModalOpen(true)}
+                        title="Tomar otra foto"
+                        className="p-1 rounded-lg text-slate-500 hover:text-cyan-600 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Camera size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Cambiar archivo"
+                        className="p-1 rounded-lg text-slate-500 hover:text-cyan-600 hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <UploadCloud size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCertificate}
+                        title="Eliminar"
+                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+
               {/* Checkbox de Términos */}
-              <div className="pt-1 flex items-start gap-2.5">
+              <div className="pt-1 flex items-start gap-2">
                 <input
                   type="checkbox"
                   id="acceptedTerms"
@@ -354,10 +546,10 @@ export default function DoctorCreateFree() {
                   required
                   checked={formData.acceptedTerms}
                   onChange={handleChange}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
                 />
-                <label htmlFor="acceptedTerms" className="text-xs text-slate-600 leading-snug cursor-pointer select-none">
-                  He leído y acepto los <a href="#" className="underline text-cyan-600 hover:text-cyan-700">Términos de servicio</a> y la <a href="#" className="underline text-cyan-600 hover:text-cyan-700">Política de privacidad</a>.
+                <label htmlFor="acceptedTerms" className="text-[11px] text-slate-600 leading-snug cursor-pointer select-none">
+                  Acepto los <a href="#" className="underline text-cyan-600">Términos de servicio</a> y la <a href="#" className="underline text-cyan-600">Política de privacidad</a>.
                 </label>
               </div>
 
@@ -366,17 +558,17 @@ export default function DoctorCreateFree() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 px-6 rounded-2xl text-white font-bold text-xs sm:text-sm bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:opacity-95 transition-all shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70 cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl text-white font-bold text-xs bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:opacity-95 transition-all shadow-md shadow-cyan-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>Verificando...</span>
                     </>
                   ) : (
                     <>
                       <span>Verificar y probar MIVOR.ai</span>
-                      <ArrowRight size={16} />
+                      <ArrowRight size={14} />
                     </>
                   )}
                 </button>
@@ -386,106 +578,105 @@ export default function DoctorCreateFree() {
           </div>
 
           {/* Legal footer */}
-          <div className="mt-5 flex items-start gap-2 text-[10px] sm:text-[11px] text-slate-400 leading-snug">
-            <Lock size={13} className="shrink-0 mt-0.5 text-slate-400" />
-            <p>
-              Tus datos serán tratados de forma segura y utilizados únicamente para verificar tu perfil profesional y gestionar tu acceso a la versión de prueba. No se compartirán con terceros.
-            </p>
+          <div className="mt-3 flex items-start gap-1.5 text-[10px] text-slate-400 leading-snug">
+            <Lock size={12} className="shrink-0 mt-0.5" />
+            <p>Tus datos están seguros y protegidos exclusivamente para validar tu membresía profesional.</p>
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: VISIBLE EN TABLETS Y DESKTOPS (md:flex) */}
-        {/* 🔹 CAMBIO 1: justify-start en lugar de justify-between */}
-        <div className="hidden md:flex md:col-span-6 relative bg-gradient-to-b from-slate-50 via-blue-50/30 to-blue-100/50 flex-col justify-start overflow-hidden border-l border-slate-100">
+        {/* ================= COLUMNA DERECHA: CON SCROLL PROPIO (overflow-y-auto) ================= */}
+        <div className="hidden md:flex md:col-span-6 relative bg-gradient-to-b from-slate-50 via-blue-50/30 to-blue-100/50 flex-col justify-between overflow-y-auto max-h-full border-l border-slate-100">
           
-          {/* 1. IMAGEN HERO CON DEGRADADO EXCLUSIVAMENTE EN SU BORDE INFERIOR */}
-          <div className="relative w-full h-[420px] lg:h-[400px] overflow-hidden shrink-0">
-            <img 
-              src={doctorHeroImg} 
-              alt="Profesionales Médicos" 
-              className="w-full h-full object-cover object-top"
-            />
-            
-            {/* Transición de degradado suave colocada exactamente al final de la imagen */}
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent pointer-events-none" />
+          <div>
+            {/* 1. IMAGEN HERO MÁS COMPACTA PARA QUE QUEPA EN PRIMERA VISTA */}
+            <div className="relative w-full h-[220px] lg:h-[300px] overflow-hidden shrink-0">
+              <img 
+                src={doctorHeroImg} 
+                alt="Profesionales Médicos" 
+                className="w-full h-full object-cover object-top"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent pointer-events-none" />
+            </div>
+
+            {/* 2. BLOQUE DE TARJETAS DE BENEFICIOS */}
+            <div className="px-5 lg:px-6 space-y-2.5 relative z-10 mt-8">
+              
+              <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-2.5 rounded-2xl shadow-xs border border-white/80">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0B1E48]">Información fiable y verificada</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">De fuentes médicas de prestigio.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-2.5 rounded-2xl shadow-xs border border-white/80">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+                  <Database size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0B1E48]">Basada en evidencia científica</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Guías clínicas, estudios y organismos oficiales.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-2.5 rounded-2xl shadow-xs border border-white/80">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0B1E48]">Siempre con referencias originales</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Para que puedas consultar la fuente directa.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-2.5 rounded-2xl shadow-xs border border-white/80">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+                  <Headphones size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0B1E48]">Siempre a tu lado</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Soporte cuando lo necesites.</p>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {/* 2. BLOQUE DE TARJETAS DE BENEFICIOS */}
-          {/* 🔹 CAMBIO 2: Se eliminan flex-1 y justify-center para evitar que floten en el centro */}
-          <div className="px-6 lg:px-8 space-y-3 relative z-10 -mt-6 py-2">
-            
-            <div className="flex items-center gap-3.5 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm hover:shadow-md border border-white/80 transition-all duration-300">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-100/50">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-[#0B1E48]">Información fiable y verificada</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">De fuentes médicas de prestigio.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm hover:shadow-md border border-white/80 transition-all duration-300">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-100/50">
-                <Database size={22} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-[#0B1E48]">Basada en evidencia científica</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">Guías clínicas, estudios y organismos oficiales.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm hover:shadow-md border border-white/80 transition-all duration-300">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-100/50">
-                <FileText size={22} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-[#0B1E48]">Siempre con referencias originales</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">Para que puedas consultar la fuente.</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm hover:shadow-md border border-white/80 transition-all duration-300">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm border border-blue-100/50">
-                <Headphones size={22} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-[#0B1E48]">Siempre a tu lado</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">Soporte cuando lo necesites.</p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* 3. RE-LLAMADO A MARCA Y TEXTO ESTILIZADO (LOGO Y TEXTO MÁS GRANDES) */}
-          {/* 🔹 CAMBIO 3: mt-4 o mt-auto ajusta el pegado hacia el final de las tarjetas sin crear huecos gigantes */}
-          <div className="p-5 flex flex-col items-center text-center space-y-3 relative z-10 shrink-0 mt-2">
-            
-            {/* Re-llamado del Icono + Nombre MIVOR */}
-            <div className="flex items-center gap-3">
+          {/* 3. FOOTER / FRASE INSPIRACIONAL */}
+          <div className="p-4 flex flex-col items-center text-center space-y-2 relative z-10 shrink-0 mt-2">
+            <div className="flex items-center gap-2">
               <img 
                 src={mivorIconImg} 
                 alt="MIVOR Icon" 
-                className="w-18 h-18 object-contain drop-shadow-md" 
+                className="w-10 h-10 object-contain drop-shadow-sm" 
               />
-              <span className="font-extrabold text-2xl sm:text-3xl text-[#0B1E48] tracking-tight">
+              <span className="font-extrabold text-xl text-[#0B1E48] tracking-tight">
                 MIVOR<span className="text-cyan-500">.ai</span>
               </span>
             </div>
-
-            {/* Frase en cursiva estilizada */}
-            <div className="relative inline-block text-center mt-1">
-              <p className="font-serif italic text-[#0e527d] font-bold text-sm sm:text-base leading-relaxed -rotate-2 tracking-wide">
-                Juntos por una medicina <br />
-                más humana y eficiente.
-              </p>
-              <div className="w-4/5 h-[2px] bg-gradient-to-r from-transparent via-[#0e527d]/60 to-transparent mx-auto mt-1.5 rounded-full" />
-            </div>
-
+            <p className="font-serif italic text-[#0e527d] font-bold text-xs sm:text-sm leading-snug">
+              Juntos por una medicina más humana y eficiente.
+            </p>
           </div>
 
         </div>
 
       </div>
+
+      <GoogleProfileModal
+        isOpen={isGoogleModalOpen}
+        onClose={() => setIsGoogleModalOpen(false)}
+        initialUrl={formData.linkgoogle || ''}
+        onApplyProfile={handleApplyGoogleProfile}
+      />
+
+      <CameraCaptureModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }

@@ -1,4 +1,6 @@
-import { Award, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Award, Plus, Trash2, Loader2, Languages, Building, Check } from 'lucide-react';
+
+const AVAILABLE_LANGUAGES = ['Español', 'Inglés', 'Francés', 'Portugués', 'Alemán', 'Italiano'];
 
 export default function InformacionProfesional({
   profile, formData, handleChange, handleSubmit, saving,
@@ -6,6 +8,24 @@ export default function InformacionProfesional({
   eduData, handleEduChange, handleAddEducation, handleDeleteEducation,
   showEduForm, setShowEduForm
 }) {
+  const selectedLanguages = Array.isArray(formData.languages)
+    ? formData.languages
+    : (typeof formData.languages === 'string' && formData.languages.trim() ? formData.languages.split(',').map(s => s.trim()) : ['Español']);
+
+  const toggleLanguage = (lang) => {
+    let updated;
+    if (selectedLanguages.includes(lang)) {
+      if (selectedLanguages.length > 1) {
+        updated = selectedLanguages.filter(l => l !== lang);
+      } else {
+        updated = selectedLanguages;
+      }
+    } else {
+      updated = [...selectedLanguages, lang];
+    }
+    handleChange({ target: { name: 'languages', value: updated } });
+  };
+
   return (
     <div className="space-y-4">
       {/* Especialidad y perfil público */}
@@ -31,23 +51,55 @@ export default function InformacionProfesional({
               <input type="number" name="years_experience" value={formData.years_experience} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Enlace de Google</label>
-              <input type="url" name="linkgoogle" value={formData.linkgoogle} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" placeholder="https://..." />
-            </div>
-            <div>
               <label className="text-[10px] font-bold text-slate-700 block mb-1">Subespecialidades</label>
               <input type="text" name="subspecialties" value={formData.subspecialties} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" placeholder="Ej. Cardiología Pediátrica" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Idiomas</label>
-              <input type="text" name="languages" value={formData.languages} onChange={handleChange} className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" />
+              <label className="text-[10px] font-bold text-slate-700 block mb-1 flex items-center gap-1">
+                <Building size={12} className="text-blue-600" />
+                <span>Compañía aseguradora</span>
+              </label>
+              <input 
+                type="text" 
+                name="insurance_company" 
+                value={formData.insurance_company || ''} 
+                onChange={handleChange} 
+                className="w-full text-xs p-2.5 rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition-colors" 
+                placeholder="Ej. Sura, Colmédica, Sanitas, Axa..." 
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-[10px] font-bold text-slate-700 block mb-1 flex items-center gap-1">
+                <Languages size={12} className="text-blue-600" />
+                <span>Idiomas de atención (selecciona los que hablas)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {AVAILABLE_LANGUAGES.map((lang) => {
+                  const isSelected = selectedLanguages.includes(lang);
+                  return (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => toggleLanguage(lang)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+                        isSelected 
+                          ? 'bg-blue-600 text-white border border-blue-600' 
+                          : 'bg-slate-50 text-slate-600 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                      }`}
+                    >
+                      {isSelected && <Check size={11} strokeWidth={3} />}
+                      <span>{lang}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="sm:col-span-2 flex justify-end pt-2">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {saving ? 'Guardando...' : 'Guardar especialidad'}
@@ -55,7 +107,7 @@ export default function InformacionProfesional({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
               <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Especialidad principal</label>
               <p className="text-xs font-bold text-slate-800">{formData.specialty || 'Sin especificar'}</p>
@@ -65,12 +117,28 @@ export default function InformacionProfesional({
               <p className="text-xs font-bold text-slate-800">{formData.years_experience ? `${formData.years_experience} años` : 'Sin especificar'}</p>
             </div>
             <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
-              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Enlace de Google</label>
-              {formData.linkgoogle && /^https?:\/\//i.test(formData.linkgoogle) ? (
-                <a href={formData.linkgoogle} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">Ver información en Google</a>
-              ) : (
-                <p className="text-xs font-bold text-slate-800">{formData.linkgoogle || 'Sin especificar'}</p>
-              )}
+              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-0.5">Compañía aseguradora</label>
+              <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Building size={13} className="text-blue-600 shrink-0" />
+                <span>{formData.insurance_company || 'Sin especificar'}</span>
+              </p>
+            </div>
+            <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100 sm:col-span-2">
+              <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Languages size={11} className="text-blue-500" />
+                <span>Idiomas de atención</span>
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {selectedLanguages.length > 0 ? (
+                  selectedLanguages.map((lang) => (
+                    <span key={lang} className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-semibold">
+                      {lang}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-slate-500">Sin especificar</span>
+                )}
+              </div>
             </div>
           </div>
         )}

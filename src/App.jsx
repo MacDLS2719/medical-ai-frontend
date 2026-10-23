@@ -5,6 +5,7 @@ import NavbarPaciente from './components/Navbar_Paciente'
 import NavbarDoctor from './components/Navbar_Doctor'
 import SidebarPaciente from './components/Sidebar_paciente'
 import SidebarDoctor from './components/Sidebar_Doctor'
+import SidebarVerificador from './components/Sidebar_Verificador'
 import RoleSelector from './pages/RoleSelector'
 import MedicalSearch from './pages/MedicalSearch'
 import ChatAssistant from './pages/ChatAssistant'
@@ -23,6 +24,7 @@ import DoctorUpgradePlan from './pages/doctor/DoctorUpgradePlan'
 import ViewPreview from './pages/doctor/ViewPreview'
 import FeePayments from './pages/doctor/FeePayments'
 import DoctorTranscription from './pages/doctor/DoctorTranscription'
+import DoctorGoogleProfilePage from './pages/doctor/DoctorGoogleProfilePage'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -30,8 +32,9 @@ import PatientTranscription from './pages/patient/PatientTranscription'
 import PatientHome from './pages/patient/PatientHome'
 import PatientSearchWrapper from './pages/patient/PatientSearchWrapper'
 
-// Verification pages
+// Verification / Verifier pages
 import VerificationDetail from './pages/VerificationDetail'
+import VerifierSupportConversations from './pages/VerifierSupportConversations'
 
 function App() {
   const { user } = useAuth()
@@ -49,16 +52,20 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col font-sans overflow-hidden">
 
-      {/* Navbar renderizado de forma condicional */}
-      {!isDoctorCreatePage && user && (
+      {/* Navbar renderizado de forma condicional (el verificador no usa navbar superior) */}
+      {!isDoctorCreatePage && user && user.role !== 'verifier' && (
         user.role === 'doctor' ? <NavbarDoctor /> : <NavbarPaciente />
       )}
 
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Sidebar tampoco aparece en creación de médico */}
+        {/* Sidebar — doctor, paciente o verificador */}
         {!isDoctorCreatePage && user && (
-          user.role === 'doctor' ? <SidebarDoctor /> : <SidebarPaciente />
+          user.role === 'doctor'
+            ? <SidebarDoctor />
+            : user.role === 'verifier'
+              ? <SidebarVerificador />
+              : <SidebarPaciente />
         )}
 
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -157,6 +164,16 @@ function App() {
               element={<ViewPreview />}
             />
 
+            <Route
+              path="/perfil-google"
+              element={<DoctorGoogleProfilePage />}
+            />
+
+            <Route
+              path="/doctor/perfil-google"
+              element={<DoctorGoogleProfilePage />}
+            />
+
             {/* Patient */}
             <Route
               path="/patient/home"
@@ -186,7 +203,28 @@ function App() {
             {/* Verifier */}
             <Route
               path="/verification/detail"
-              element={<VerificationDetail />}
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'verifier' ? (
+                  <VerificationDetail />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/verifier/support-conversations"
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'verifier' ? (
+                  <VerifierSupportConversations />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
 
             {/* Soporte: redirige al home (el soporte es un modal en el Sidebar) */}

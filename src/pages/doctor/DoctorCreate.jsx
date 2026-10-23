@@ -61,6 +61,8 @@ export default function DoctorCreate() {
     longitude: null,
     consultationPhone: '',
     website: '',
+    languages: ['Español'],
+    insuranceCompany: '',
 
     // Paso 4 - Perfil Opcional
     profilePhoto: null,
@@ -114,6 +116,8 @@ export default function DoctorCreate() {
       professional_description: formData.bio?.trim() || null,
       experience: formData.bio?.trim() || null,
       language: formData.language === 'Inglés' ? 'en' : 'es',
+      languages: formData.languages || ['Español'],
+      insurance_company: formData.insuranceCompany?.trim() || null,
       password: formData.password || null,
       subscription_plan_id: resolvedPlanId,
       google_profile_data: formData.google_profile_data || null,

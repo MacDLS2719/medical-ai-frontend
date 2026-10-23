@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import DoctorReviewModal from "./DoctorReviewModal";
 
 export default function MedicalConversationGridCard({
     conversation,
@@ -11,6 +12,8 @@ export default function MedicalConversationGridCard({
     canStartVideoCall,
 }) {
     const isDoctor = role === "doctor";
+    const [reviewOpen, setReviewOpen] = useState(false);
+
     const contact = isDoctor ? conversation?.patient : conversation?.doctor;
 
     const contactName =
@@ -205,9 +208,36 @@ export default function MedicalConversationGridCard({
                         Videollamada
                     </button>
                 ) : (
-                    <div className="hidden border-t sm:block sm:border-l sm:border-t-0" style={{ borderColor: "#e2e8f0" }}></div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setReviewOpen(true); }}
+                        className="flex items-center justify-center gap-2 border-t py-3.5 text-sm font-semibold transition hover:bg-amber-50 sm:border-l sm:border-t-0"
+                        style={{ borderColor: "#e2e8f0", color: "#d97706" }}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            stroke="none"
+                        >
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                        Calificar
+                    </button>
                 )}
             </div>
+
+            {/* Modal de calificación — solo pacientes */}
+            {!isDoctor && (
+                <DoctorReviewModal
+                    isOpen={reviewOpen}
+                    onClose={() => setReviewOpen(false)}
+                    doctorName={contactName}
+                    doctorId={conversation?.doctor_id}
+                    patientId={currentUserId}
+                    colors={colors}
+                />
+            )}
         </div>
     );
 }

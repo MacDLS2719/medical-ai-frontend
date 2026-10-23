@@ -49,7 +49,8 @@ export default function DoctorProfile() {
     years_experience: '',
     linkgoogle: '',
     subspecialties: '',
-    languages: 'Español (nativo)',
+    languages: ['Español'],
+    insurance_company: '',
     bio: '',
     professional_description: ''
   });
@@ -92,7 +93,8 @@ export default function DoctorProfile() {
           years_experience: data.years_experience || '',
           linkgoogle: data.linkgoogle || '',
           subspecialties: data.subspecialties || '',
-          languages: data.languages || 'Español (nativo)',
+          languages: Array.isArray(data.languages) ? data.languages : (data.languages ? [data.languages] : ['Español']),
+          insurance_company: data.insurance_company || '',
           bio: data.bio || '',
           professional_description: data.professional_description || ''
         });
@@ -174,7 +176,11 @@ export default function DoctorProfile() {
           : null,
         years_of_experience: formData.years_experience 
           ? parseInt(formData.years_experience.toString().replace(/\D/g, '')) || null 
-          : null
+          : null,
+        languages: Array.isArray(formData.languages)
+          ? formData.languages
+          : (typeof formData.languages === 'string' && formData.languages.trim() ? formData.languages.split(',').map(s => s.trim()) : ['Español']),
+        insurance_company: formData.insurance_company?.trim() || null,
       };
 
       const response = await fetch(url, {
