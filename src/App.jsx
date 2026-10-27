@@ -25,6 +25,7 @@ import ViewPreview from './pages/doctor/ViewPreview'
 import FeePayments from './pages/doctor/FeePayments'
 import DoctorTranscription from './pages/doctor/DoctorTranscription'
 import DoctorGoogleProfilePage from './pages/doctor/DoctorGoogleProfilePage'
+import DoctorContabilidad from './pages/doctor/DoctorContabilidad'
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments'
@@ -35,6 +36,7 @@ import PatientSearchWrapper from './pages/patient/PatientSearchWrapper'
 // Verification / Verifier pages
 import VerificationDetail from './pages/VerificationDetail'
 import VerifierSupportConversations from './pages/VerifierSupportConversations'
+import CargarMedicos from './pages/verifier/CargarMedicos'
 
 function App() {
   const { user } = useAuth()
@@ -174,6 +176,11 @@ function App() {
               element={<DoctorGoogleProfilePage />}
             />
 
+            <Route
+              path="/doctor/contabilidad"
+              element={<DoctorContabilidad />}
+            />
+
             {/* Patient */}
             <Route
               path="/patient/home"
@@ -221,6 +228,32 @@ function App() {
                   <Navigate to="/" replace />
                 ) : user.role === 'verifier' ? (
                   <VerifierSupportConversations />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/verifier/cargar-medicos"
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'verifier' ? (
+                  <CargarMedicos />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+
+            <Route
+              path="/cargar-medicos"
+              element={
+                !user ? (
+                  <Navigate to="/" replace />
+                ) : user.role === 'verifier' ? (
+                  <CargarMedicos />
                 ) : (
                   <Navigate to="/" replace />
                 )

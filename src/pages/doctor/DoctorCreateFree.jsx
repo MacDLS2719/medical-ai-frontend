@@ -128,6 +128,13 @@ export default function DoctorCreateFree() {
       return;
     }
 
+    // 🔹 Validación obligatoria del certificado o tarjeta profesional
+    if (!certificate || !certificate.base64) {
+      setError('Por favor, adjunta o fotografía tu tarjeta profesional o certificado médico.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const nameParts = formData.fullName.trim().split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
@@ -210,10 +217,8 @@ export default function DoctorCreateFree() {
   }
 
   return (
-    // 🔹 AJUSTE CONTENEDOR GENERAL: Ocupa la pantalla sin desbordar y centra verticalmente
     <div className="h-screen w-screen bg-slate-200/60 flex items-center justify-center p-2 sm:p-4 overflow-hidden font-sans">
       
-      {/* 🔹 AJUSTE TARJETA PRINCIPAL: Altura máxima controlada (92vh) para forzar que quepa en primera vista */}
       <div className="w-full max-w-5xl h-full max-h-[880px] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden grid grid-cols-1 md:grid-cols-12 relative">
 
         <button 
@@ -225,7 +230,7 @@ export default function DoctorCreateFree() {
           <X size={20} />
         </button>
 
-        {/* ================= COLUMNA IZQUIERDA: FORMULARIO CON SCROLL PROPIO ================= */}
+        {/* ================= COLUMNA IZQUIERDA: FORMULARIO ================= */}
         <div className="md:col-span-6 p-5 sm:p-7 flex flex-col justify-between z-10 overflow-y-auto max-h-full">
           <div>
             {/* Logo */}
@@ -265,9 +270,11 @@ export default function DoctorCreateFree() {
             {/* Campos del Formulario */}
             <form onSubmit={handleSubmit} className="space-y-2.5">
               
-              {/* Nombre y Apellidos */}
+              {/* Nombre y Apellidos (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Nombre y apellidos</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  Nombre y apellidos <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <User size={16} />
@@ -284,10 +291,12 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Enlace de Google */}
+              {/* Enlace de Google (OPCIONAL) */}
               <div>
                 <div className="flex items-center justify-between mb-0.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Enlace de Google <span className="text-slate-400 font-normal">(opcional)</span></label>
+                  <label className="block text-[11px] font-bold text-slate-700">
+                    Enlace de Google <span className="text-slate-400 font-normal">(opcional)</span>
+                  </label>
                   {formData.linkgoogle && formData.linkgoogle.trim().length > 5 && (
                     <button
                       type="button"
@@ -321,9 +330,11 @@ export default function DoctorCreateFree() {
                 )}
               </div>
 
-              {/* Especialidad médica */}
+              {/* Especialidad médica (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Especialidad médica</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  Especialidad médica <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <Stethoscope size={16} />
@@ -343,9 +354,11 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* País donde ejerce */}
+              {/* País donde ejerce (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">País donde ejerce</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  País donde ejerce <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <Globe size={16} />
@@ -365,9 +378,11 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Teléfono */}
+              {/* Teléfono (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Teléfono</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  Teléfono <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <Phone size={16} />
@@ -396,9 +411,11 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Email profesional */}
+              {/* Email profesional (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Email profesional</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  Email profesional <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <Mail size={16} />
@@ -415,9 +432,11 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Contraseña */}
+              {/* Contraseña (OBLIGATORIO) */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Contraseña</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                  Contraseña <span className="text-rose-500">*</span>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-slate-100/80 text-indigo-900 flex items-center justify-center shrink-0">
                     <Lock size={16} />
@@ -434,12 +453,12 @@ export default function DoctorCreateFree() {
                 </div>
               </div>
 
-              {/* Tarjeta Profesional o Certificado Médico */}
+              {/* Tarjeta Profesional o Certificado Médico (OBLIGATORIO) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <FileCheck size={13} className="text-cyan-600" />
-                    <span>Tarjeta profesional o certificado</span>
+                    <span>Tarjeta profesional o certificado <span className="text-rose-500">*</span></span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-normal">Para verificar tu colegiatura</span>
                 </div>
@@ -537,7 +556,7 @@ export default function DoctorCreateFree() {
                 />
               </div>
 
-              {/* Checkbox de Términos */}
+              {/* Checkbox de Términos (OBLIGATORIO) */}
               <div className="pt-1 flex items-start gap-2">
                 <input
                   type="checkbox"
@@ -549,7 +568,7 @@ export default function DoctorCreateFree() {
                   className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
                 />
                 <label htmlFor="acceptedTerms" className="text-[11px] text-slate-600 leading-snug cursor-pointer select-none">
-                  Acepto los <a href="#" className="underline text-cyan-600">Términos de servicio</a> y la <a href="#" className="underline text-cyan-600">Política de privacidad</a>.
+                  Acepto los <a href="#" className="underline text-cyan-600">Términos de servicio</a> y la <a href="#" className="underline text-cyan-600">Política de privacidad</a> <span className="text-rose-500">*</span>
                 </label>
               </div>
 
@@ -584,11 +603,10 @@ export default function DoctorCreateFree() {
           </div>
         </div>
 
-        {/* ================= COLUMNA DERECHA: CON SCROLL PROPIO (overflow-y-auto) ================= */}
+        {/* ================= COLUMNA DERECHA ================= */}
         <div className="hidden md:flex md:col-span-6 relative bg-gradient-to-b from-slate-50 via-blue-50/30 to-blue-100/50 flex-col justify-between overflow-y-auto max-h-full border-l border-slate-100">
           
           <div>
-            {/* 1. IMAGEN HERO MÁS COMPACTA PARA QUE QUEPA EN PRIMERA VISTA */}
             <div className="relative w-full h-[220px] lg:h-[300px] overflow-hidden shrink-0">
               <img 
                 src={doctorHeroImg} 
@@ -598,9 +616,7 @@ export default function DoctorCreateFree() {
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent pointer-events-none" />
             </div>
 
-            {/* 2. BLOQUE DE TARJETAS DE BENEFICIOS */}
             <div className="px-5 lg:px-6 space-y-2.5 relative z-10 mt-8">
-              
               <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm p-2.5 rounded-2xl shadow-xs border border-white/80">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
                   <ShieldCheck size={18} />
@@ -640,11 +656,9 @@ export default function DoctorCreateFree() {
                   <p className="text-[10px] text-slate-500 font-medium">Soporte cuando lo necesites.</p>
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* 3. FOOTER / FRASE INSPIRACIONAL */}
           <div className="p-4 flex flex-col items-center text-center space-y-2 relative z-10 shrink-0 mt-2">
             <div className="flex items-center gap-2">
               <img 

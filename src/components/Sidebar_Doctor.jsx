@@ -20,6 +20,7 @@ import {
   Wallet,
   Mic,
   Globe,
+  ReceiptText,
 } from 'lucide-react';
 
 export default function SidebarDoctor() {
@@ -85,7 +86,7 @@ export default function SidebarDoctor() {
         justify-between
         transition-transform duration-300 ease-in-out
         h-full max-h-screen
-        p-4 pt-16 md:pt-4
+        p-4 pt-16 md:pt-4 pb-24 md:pb-20
         overflow-y-auto
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
@@ -255,6 +256,23 @@ export default function SidebarDoctor() {
                 </NavLink>
               </li>
 
+              {/* Contabilidad */}
+              <li>
+                <NavLink
+                  to="/doctor/contabilidad"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100/80'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                    }`
+                  }
+                >
+                  <ReceiptText size={18} strokeWidth={2} />
+                  <span>Contabilidad</span>
+                </NavLink>
+              </li>
+
               {/* 9. Transcripcion mivor */}
               <li>
                 <NavLink
@@ -345,7 +363,7 @@ export default function SidebarDoctor() {
         {/* =====================================================
             TARJETA INFERIOR: ¿NECESITAS AYUDA?
         ===================================================== */}
-        <div className="mt-6 pt-4 shrink-0 pb-12 md:pb-0">
+        <div className="mt-6 pt-4 shrink-0 pb-10 md:pb-8">
           <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/80 shadow-xs space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-blue-50 text-blue-600">

@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Users,
+  Building,
 } from 'lucide-react';
 
 export default function SidebarVerificador() {
@@ -112,6 +113,14 @@ export default function SidebarVerificador() {
                 <NavLink to="/verification/detail" className={navLinkClass}>
                   <Users size={18} strokeWidth={2} />
                   <span>Verificación de médicos</span>
+                </NavLink>
+              </li>
+
+              {/* Cargar Médicos Google */}
+              <li>
+                <NavLink to="/verifier/cargar-medicos" className={navLinkClass}>
+                  <Building size={18} strokeWidth={2} />
+                  <span>Cargar Médicos</span>
                 </NavLink>
               </li>
 
