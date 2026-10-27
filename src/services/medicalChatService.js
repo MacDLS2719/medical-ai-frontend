@@ -212,6 +212,32 @@ export const medicalChatService = {
     return response.data;
   },
 
+  async updateCallTranscription(transcriptionId, payload, userId) {
+    const response = await axios.put(
+      `${API_URL}/call-transcriptions/${transcriptionId}`,
+      payload,
+      { params: userId ? { user_id: userId } : {} }
+    );
+    return response.data;
+  },
+
+  async uploadDocxTranscription(transcriptionId, file, autoApprove = false, userId) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(
+      `${API_URL}/call-transcriptions/${transcriptionId}/upload-docx`,
+      formData,
+      {
+        params: {
+          auto_approve: autoApprove,
+          ...(userId ? { user_id: userId } : {}),
+        },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
+    );
+    return response.data;
+  },
+
   async getPatientApprovedTranscriptions(userId) {
     const response = await axios.get(
       `${API_URL}/call-transcriptions/patient`,
@@ -238,6 +264,24 @@ export const medicalChatService = {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
+  async downloadClinicalReportDocx(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}/clinical-report.docx`,
+      {
+        params: userId ? { user_id: userId } : {},
+        responseType: 'blob',
+      }
+    );
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `informe-medico-${transcriptionId}.docx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   async downloadTranscriptPdf(transcriptionId, userId) {
     const response = await axios.get(
       `${API_URL}/call-transcriptions/${transcriptionId}/transcript.pdf`,
@@ -250,6 +294,42 @@ export const medicalChatService = {
     const link = document.createElement('a');
     link.href = url;
     link.download = `transcripcion-${transcriptionId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  async downloadTranscriptDocx(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}/transcript.docx`,
+      {
+        params: userId ? { user_id: userId } : {},
+        responseType: 'blob',
+      }
+    );
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transcripcion-${transcriptionId}.docx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  async downloadCombinedReportDocx(transcriptionId, userId) {
+    const response = await axios.get(
+      `${API_URL}/call-transcriptions/${transcriptionId}/report.docx`,
+      {
+        params: userId ? { user_id: userId } : {},
+        responseType: 'blob',
+      }
+    );
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `informe-y-transcripcion-${transcriptionId}.docx`;
     document.body.appendChild(link);
     link.click();
     link.remove();

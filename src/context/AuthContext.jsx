@@ -19,7 +19,12 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsDoctor = (customDoctor = null) => {
-    const doctorUser = customDoctor || { id: 2, role: 'doctor', name: 'Dr. Jane Smith (Doctor)' };
+    const doctorUser = customDoctor || {
+      id: 2,
+      role: 'doctor',
+      name: 'Dr. Jane Smith (Doctor)',
+      email: 'doctor@medical-ai.com'
+    };
     setUser(doctorUser);
     localStorage.setItem('medai_user', JSON.stringify(doctorUser));
   };

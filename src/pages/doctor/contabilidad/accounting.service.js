@@ -91,6 +91,23 @@ export async function uploadAttachment(movementId, file) {
   return res.json();
 }
 
+/**
+ * Obtiene el perfil de facturación real del médico (nombre, NIF/CIF, número colegiado, dirección, email).
+ * Se usa para pre-rellenar los datos del emisor en el modal de facturas.
+ */
+export async function getDoctorInvoiceProfile() {
+  const params = new URLSearchParams();
+  const userId = getUserId();
+  if (userId) params.set('user_id', userId);
+
+  const res = await fetch(`${API_URL}/accounting/doctor-invoice-profile?${params}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) return null;
+  return res.json();
+}
+
 // ─── Constantes y utilidades ─────────────────────────────────────────────────
 
 export const SUPPORTED_CURRENCIES = [

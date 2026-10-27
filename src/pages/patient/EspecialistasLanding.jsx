@@ -41,54 +41,10 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
 
       {/* Tarjetas de Opciones (Presencial vs Video) en formato más compacto */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        
-        {/* Opción 1: Presencial */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-md relative flex flex-col justify-between">
-          <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-blue-50 text-blue-600 text-sm font-extrabold flex items-center justify-center z-10">1</span>
-          
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="flex-1 min-w-0 order-2 sm:order-1">
-              <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug pl-11 mb-1.5">
-                I want a nearby clinic or hospital where a doctor can see me in person
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 pl-11">
-                See the hospitals and clinics closest to your location on the map.
-              </p>
-              <ul className="space-y-1.5 pl-11 sm:pl-0">
-                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <MapPin size={15} className="text-blue-600 shrink-0" /> Locations near you
-                </li>
-                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <Search size={15} className="text-blue-600 shrink-0" /> No need to pick a specialty
-                </li>
-                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                  <ShieldCheck size={15} className="text-blue-600 shrink-0" /> Verified data for your area
-                </li>
-              </ul>
-            </div>
-
-            {/* Imagen ilustrativa */}
-            <div className="w-full sm:w-44 md:w-52 h-40 shrink-0 rounded-xl overflow-hidden bg-slate-50/50 flex items-center justify-center order-1 sm:order-2 self-center">
-              <img
-                src={imgEncontrar}
-                alt="In person clinic"
-                className="w-full h-full object-contain p-1"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={onSelectPresencial}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-600 hover:text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            Find hospitals and pharmacies <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
 
         {/* Opción 2: Médicos y Especialistas Cercanos en Mapa */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-md relative flex flex-col justify-between">
-          <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-blue-50 text-blue-600 text-sm font-extrabold flex items-center justify-center z-10">2</span>
+          <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-blue-50 text-blue-600 text-sm font-extrabold flex items-center justify-center z-10">1</span>
           
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
             <div className="flex-1 min-w-0 order-2 sm:order-1">
@@ -129,7 +85,50 @@ const EspecialistasLanding = ({ onBack, onSelectVideo, onSelectPresencial, onMyA
             Buscar especialistas en el mapa <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+        
+        {/* Opción 1: Presencial */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-md relative flex flex-col justify-between">
+          <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-blue-50 text-blue-600 text-sm font-extrabold flex items-center justify-center z-10">2</span>
+          
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="flex-1 min-w-0 order-2 sm:order-1">
+              <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-snug pl-11 mb-1.5">
+                I want a nearby clinic or hospital where a doctor can see me in person
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-3 pl-11">
+                See the hospitals and clinics closest to your location on the map.
+              </p>
+              <ul className="space-y-1.5 pl-11 sm:pl-0">
+                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                  <MapPin size={15} className="text-blue-600 shrink-0" /> Locations near you
+                </li>
+                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                  <Search size={15} className="text-blue-600 shrink-0" /> No need to pick a specialty
+                </li>
+                <li className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                  <ShieldCheck size={15} className="text-blue-600 shrink-0" /> Verified data for your area
+                </li>
+              </ul>
+            </div>
 
+            {/* Imagen ilustrativa */}
+            <div className="w-full sm:w-44 md:w-52 h-40 shrink-0 rounded-xl overflow-hidden bg-slate-50/50 flex items-center justify-center order-1 sm:order-2 self-center">
+              <img
+                src={imgEncontrar}
+                alt="In person clinic"
+                className="w-full h-full object-contain p-1"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={onSelectPresencial}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-600 hover:text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            Find hospitals and pharmacies <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Tarjeta de Seguridad y Confidencialidad Compacta */}

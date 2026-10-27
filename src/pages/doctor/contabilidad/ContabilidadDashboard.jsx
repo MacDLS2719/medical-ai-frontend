@@ -27,6 +27,7 @@ export default function ContabilidadDashboard({
   currency = 'EUR',
   onCurrencyChange,
   onOpenNewMovement,
+  onOpenInvoiceModal,
   onSwitchTab,
 }) {
   const [chartPeriod, setChartPeriod] = useState('6_months');
@@ -720,7 +721,7 @@ export default function ContabilidadDashboard({
             {/* Emitir factura */}
             <button
               type="button"
-              onClick={() => onOpenNewMovement?.('income')}
+              onClick={() => onOpenInvoiceModal ? onOpenInvoiceModal() : onOpenNewMovement?.('income')}
               className="p-3.5 bg-slate-50 hover:bg-blue-50/70 border border-slate-100 hover:border-blue-200 rounded-2xl flex flex-col justify-between text-left transition-all group cursor-pointer"
             >
               <div className="w-9 h-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center">

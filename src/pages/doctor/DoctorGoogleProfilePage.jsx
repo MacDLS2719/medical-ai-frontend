@@ -25,7 +25,10 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Camera,
+  Trash2,
 } from 'lucide-react';
+import CameraCaptureModal from './components/CameraCaptureModal';
 
 // Placeholder SVG inline para imgs rotas (simple, sin URLs externas)
 const BROKEN_IMG_PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f1f5f9'/%3E%3Cg fill='%23cbd5e1'%3E%3Crect x='160' y='100' width='80' height='60' rx='8'/%3E%3Ccircle cx='200' cy='130' r='18' fill='%23e2e8f0'/%3E%3Cpolygon points='160,160 200,115 240,160' fill='%23e2e8f0'/%3E%3C/g%3E%3Ctext x='200' y='200' text-anchor='middle' fill='%2394a3b8' font-family='sans-serif' font-size='13'%3ESin imagen%3C/text%3E%3C/svg%3E`;
@@ -39,6 +42,7 @@ export default function DoctorGoogleProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [cameraSlot, setCameraSlot] = useState(null);
 
   // Búsqueda: sólo se muestra si NO tiene perfil registrado o si hace clic en cambiar
   const [searchUrl, setSearchUrl] = useState('');
@@ -253,6 +257,14 @@ export default function DoctorGoogleProfilePage() {
       setSuccessMsg(`Foto #${index + 1} cargada con éxito. Se guardará y clonará a Cloudinary al hacer clic en "Guardar y sincronizar con perfil".`);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = (captured) => {
+    if (cameraSlot === null) return;
+    const imgData = captured.base64 || captured.previewUrl || '';
+    handlePhotoChange(cameraSlot, imgData);
+    setSuccessMsg(`Foto #${cameraSlot + 1} capturada con la cámara con éxito. Se guardará al hacer clic en "Guardar y sincronizar con perfil".`);
+    setCameraSlot(null);
   };
 
   const handleHourChange = (dayKey, val) => {
@@ -557,13 +569,13 @@ export default function DoctorGoogleProfilePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             {photosList.map((src, idx) => {
-              const hasReal = src && typeof src === 'string' && src.startsWith('http');
+              const hasReal = src && typeof src === 'string' && (src.startsWith('http') || src.startsWith('data:image/'));
               return (
                 <div
                   key={idx}
                   className="bg-slate-50/70 rounded-xl border border-slate-200 overflow-hidden shadow-2xs flex flex-col group hover:border-blue-400 transition-all"
                 >
-                  <div className="relative h-40 w-full bg-slate-100 overflow-hidden">
+                  <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
                     {hasReal ? (
                       <img
                         src={src}
@@ -576,10 +588,12 @@ export default function DoctorGoogleProfilePage() {
                         }}
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400">
-                        <ImageIcon size={32} strokeWidth={1.5} />
-                        <span className="text-[11px] font-medium">Sin imagen</span>
-                        <span className="text-[10px] text-slate-300">Ingresa un enlace abajo</span>
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400 p-4 text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-400">
+                          <ImageIcon size={20} strokeWidth={1.5} />
+                        </div>
+                        <span className="text-[11px] font-semibold text-slate-500">Sin imagen</span>
+                        <span className="text-[10px] text-slate-400">Pega un enlace, sube archivo o toma foto</span>
                       </div>
                     )}
 
@@ -588,20 +602,32 @@ export default function DoctorGoogleProfilePage() {
                       {idx === 0 && <span className="text-amber-300 font-extrabold">★ Principal</span>}
                     </div>
 
-                    {hasReal && (
-                      <a
-                        href={src}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Ver imagen en tamaño completo"
-                        className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <ExternalLink size={13} />
-                      </a>
-                    )}
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                      {hasReal && (
+                        <button
+                          type="button"
+                          onClick={() => handlePhotoChange(idx, '')}
+                          title="Eliminar foto"
+                          className="bg-rose-600/85 hover:bg-rose-700 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                      {hasReal && src.startsWith('http') && (
+                        <a
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Ver imagen en tamaño completo"
+                          className="bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="p-3 bg-white space-y-1.5 flex-1 flex flex-col justify-between">
+                  <div className="p-3 bg-white space-y-2 flex-1 flex flex-col justify-between">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-bold text-slate-700">Imagen #{idx + 1}:</span>
                       {hasReal && src.includes('cloudinary.com') ? (
@@ -616,18 +642,20 @@ export default function DoctorGoogleProfilePage() {
                         <span className="text-[10px] text-slate-400 font-medium">Sin foto asignada</span>
                       )}
                     </div>
+
                     <div className="space-y-1.5 mt-1">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="url"
-                          value={src && !src.startsWith('data:') ? src : ''}
-                          onChange={(e) => handlePhotoChange(idx, e.target.value)}
-                          placeholder="Pegar URL de Google Maps (lh3...)"
-                          className="flex-1 px-2 py-1 text-[11px] rounded-lg border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 bg-slate-50/50 min-w-0"
-                        />
-                        <label className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 rounded-lg text-[10.5px] font-bold flex items-center gap-1 cursor-pointer shrink-0 transition-all">
-                          <UploadCloud size={13} />
-                          <span>Subir</span>
+                      <input
+                        type="url"
+                        value={src && !src.startsWith('data:') ? src : ''}
+                        onChange={(e) => handlePhotoChange(idx, e.target.value)}
+                        placeholder="Pegar enlace web (https://...)"
+                        className="w-full px-2 py-1 text-[11px] rounded-lg border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 bg-slate-50/50"
+                      />
+
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <label className="flex-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 rounded-lg text-[10.5px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all">
+                          <UploadCloud size={12} />
+                          <span>Subir archivo</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -635,9 +663,18 @@ export default function DoctorGoogleProfilePage() {
                             onChange={(e) => handlePhotoUpload(idx, e.target.files?.[0])}
                           />
                         </label>
+
+                        <button
+                          type="button"
+                          onClick={() => setCameraSlot(idx)}
+                          className="flex-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10.5px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all"
+                        >
+                          <Camera size={12} />
+                          <span>Tomar foto</span>
+                        </button>
                       </div>
                       <p className="text-[9.5px] text-slate-400">
-                        Clic derecho en Google Maps &gt; &quot;Copiar dirección de la imagen&quot; o sube el archivo.
+                        Pega una URL, sube un archivo o usa la cámara para capturar la foto.
                       </p>
                     </div>
                   </div>
@@ -902,6 +939,13 @@ export default function DoctorGoogleProfilePage() {
         </div>
 
       </div>
+
+      {/* Modal para captura con cámara */}
+      <CameraCaptureModal
+        isOpen={cameraSlot !== null}
+        onClose={() => setCameraSlot(null)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }

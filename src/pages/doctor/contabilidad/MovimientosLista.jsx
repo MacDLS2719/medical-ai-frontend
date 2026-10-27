@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import {
   TrendingUp, TrendingDown, ArrowDownUp, RefreshCw, RotateCcw,
-  Sliders, ChevronLeft, ChevronRight, Search, Clock, CheckCircle2, XCircle
+  Sliders, ChevronLeft, ChevronRight, Search, Clock, CheckCircle2, XCircle, FileText
 } from 'lucide-react';
 import {
   TRANSACTION_TYPES,
@@ -42,7 +42,7 @@ const TYPE_COLOR = {
 
 const PAGE_SIZE = 10;
 
-export default function MovimientosLista({ movements, loading, onRefresh, currency = 'EUR' }) {
+export default function MovimientosLista({ movements, loading, onRefresh, currency = 'EUR', onGenerateInvoice }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(0);
@@ -128,6 +128,7 @@ export default function MovimientosLista({ movements, loading, onRefresh, curren
                 <th className="text-right px-4 py-3 font-semibold">Monto</th>
                 <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Estado</th>
                 <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell">Fecha</th>
+                <th className="text-right px-4 py-3 font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -180,6 +181,19 @@ export default function MovimientosLista({ movements, loading, onRefresh, curren
                     {/* Fecha */}
                     <td className="px-4 py-3.5 hidden lg:table-cell">
                       <span className="text-xs text-slate-500">{formatDatetime(m.occurred_at)}</span>
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onGenerateInvoice?.(m)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-200 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                        title="Emitir factura en PDF para este movimiento"
+                      >
+                        <FileText size={12} />
+                        <span>Facturar</span>
+                      </button>
                     </td>
                   </tr>
                 );

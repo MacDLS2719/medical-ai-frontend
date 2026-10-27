@@ -9,11 +9,13 @@ import {
   Loader2,
   Mic,
   Monitor,
+  Pencil,
   Search,
   Square,
   UserRound,
   Video,
 } from 'lucide-react';
+import TranscriptionEditModal from './components/TranscriptionEditModal';
 import { useAuth } from '../../context/AuthContext';
 import { medicalChatService } from '../../services/medicalChatService';
 
@@ -415,6 +417,8 @@ export default function DoctorTranscription() {
   const [approvingRecordingId, setApprovingRecordingId] = useState(null);
   const [downloadingAction, setDownloadingAction] = useState(null); // { id: number, type: 'report' | 'transcript' }
   const [error, setError] = useState('');
+  // Modal de edición
+  const [editingRecording, setEditingRecording] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -532,6 +536,19 @@ export default function DoctorTranscription() {
     }
   };
 
+  const handleEditSaved = (updatedRecord) => {
+    // Actualiza en la lista correcta según si tiene conversation_id (videollamada) o no (presencial)
+    if (updatedRecord.conversation_id) {
+      setRecordings((prev) =>
+        prev.map((r) => (r.id === updatedRecord.id ? { ...r, ...updatedRecord } : r))
+      );
+    } else {
+      setDoctorRecordings((prev) =>
+        prev.map((r) => (r.id === updatedRecord.id ? { ...r, ...updatedRecord } : r))
+      );
+    }
+  };
+
   const openPatientHistory = async (patient) => {
     setSelectedPatient(patient);
     setRecordings([]);
@@ -568,6 +585,7 @@ export default function DoctorTranscription() {
   }, [patients, searchQuery]);
 
   return (
+    <>
     <div className="flex-1 h-full overflow-y-auto bg-slate-50/70 p-5 md:p-8">
       <div className="mx-auto w-full max-w-7xl">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -666,7 +684,7 @@ export default function DoctorTranscription() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                          Servicio: Presencial
+                          Presencial
                         </span>
                         <span className={`rounded-full px-3 py-1 text-xs font-bold ${
                           recording.status === 'completed'
@@ -678,93 +696,62 @@ export default function DoctorTranscription() {
                           {recording.status === 'completed'
                             ? 'Completada'
                             : recording.status === 'processing' || recording.status === 'pending'
-                              ? 'Procesando'
+                              ? 'Procesando...'
                               : 'Transcripción no disponible'}
                         </span>
+                        {recording.summary_approved && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                            <CheckCircle size={13} /> Aprobado
+                          </span>
+                        )}
                         {recording.status === 'completed' && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {recording.summary_text && (
-                              <button
-                                type="button"
-                                onClick={() => downloadClinicalReport(recording.id)}
-                                disabled={downloadingAction?.id === recording.id}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 hover:border-blue-300 disabled:opacity-60"
-                                title="Descargar informe médico generado por IA en PDF"
-                              >
-                                {downloadingAction?.id === recording.id && downloadingAction?.type === 'report' ? (
-                                  <Loader2 size={14} className="animate-spin text-blue-600" />
-                                ) : (
-                                  <FileText size={14} className="text-blue-600" />
-                                )}
-                                Informe Médico (PDF)
-                              </button>
-                            )}
-                            {recording.transcript_text && (
-                              <button
-                                type="button"
-                                onClick={() => downloadTranscript(recording.id)}
-                                disabled={downloadingAction?.id === recording.id}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 disabled:opacity-60"
-                                title="Descargar la transcripción completa del audio en PDF"
-                              >
-                                {downloadingAction?.id === recording.id && downloadingAction?.type === 'transcript' ? (
-                                  <Loader2 size={14} className="animate-spin text-violet-600" />
-                                ) : (
-                                  <Download size={14} className="text-violet-600" />
-                                )}
-                                Transcripción (PDF)
-                              </button>
-                            )}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingRecording(recording)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700"
+                          >
+                            <Pencil size={13} />
+                            Editar
+                          </button>
                         )}
                       </div>
                     </header>
-                    <div className="grid gap-5 p-5 md:grid-cols-2">
-                      <section>
-                        <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                          <Headphones size={17} className="text-violet-600" />
-                          Grabación
-                        </h4>
-                        {recording.recording_url ? (
-                          <audio
-                            controls
-                            preload="none"
-                            className="w-full"
-                            src={recording.recording_url}
-                          >
-                            Tu navegador no permite reproducir este audio.
-                          </audio>
-                        ) : (
-                          <p className="text-sm text-slate-500">No hay una URL de grabación disponible.</p>
-                        )}
-                      </section>
-                      <section>
-                        <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                          <FileText size={17} className="text-blue-600" />
-                          Informe Médico (IA)
-                        </h4>
-                        <ClinicalReportCard
-                          summaryText={recording.summary_text}
-                          status={recording.status}
-                          errorMessage={recording.error_message}
-                        />
-                      </section>
-                      <section className="md:col-span-2">
-                        <h4 className="mb-3 text-sm font-bold text-slate-800">
-                          Transcripción completa
-                        </h4>
-                        {recording.transcript_text ? (
-                          <div className="max-h-80 overflow-y-auto rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                            <p className="whitespace-pre-wrap">{recording.transcript_text}</p>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-slate-500">
-                            {recording.status === 'processing' || recording.status === 'pending'
-                              ? 'La transcripción se está procesando.'
-                              : recording.error_message || 'No hay una transcripción disponible.'}
-                          </p>
-                        )}
-                      </section>
+                    <div className="p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                        {/* Audio Player */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <Headphones size={15} className="text-violet-600" />
+                            Grabación
+                          </h4>
+                          {recording.recording_url ? (
+                            <audio controls preload="none" className="w-full" src={recording.recording_url}>
+                              Tu navegador no permite reproducir este audio.
+                            </audio>
+                          ) : (
+                            <p className="text-xs text-slate-500">No hay una URL de grabación disponible.</p>
+                          )}
+                        </div>
+                        {/* Resumen compacto del informe */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <FileText size={15} className="text-blue-600" />
+                            Vista previa del informe
+                          </h4>
+                          {recording.summary_text ? (
+                            <p className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 text-xs leading-relaxed text-slate-700 line-clamp-4 whitespace-pre-wrap">
+                              {recording.summary_text.slice(0, 280)}{recording.summary_text.length > 280 ? '...' : ''}
+                            </p>
+                          ) : recording.status === 'processing' || recording.status === 'pending' ? (
+                            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                              <Loader2 size={13} className="animate-spin" />
+                              Procesando con IA...
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400">{recording.error_message || 'Sin informe disponible.'}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </article>
                 ))
@@ -843,7 +830,7 @@ export default function DoctorTranscription() {
                   <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 md:px-6">
                     <div>
                       <h2 className="font-bold text-slate-900">
-                        Videollamada {recordings.length - index}
+                        Videollamada {recordings.length - index} — {recording.patient_name || 'Paciente'}
                       </h2>
                       <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                         <Calendar size={15} />
@@ -852,7 +839,7 @@ export default function DoctorTranscription() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                        Servicio: Videollamada
+                        Videollamada
                       </span>
                       <span className={`rounded-full px-3 py-1 text-xs font-bold ${
                         recording.status === 'completed'
@@ -864,139 +851,64 @@ export default function DoctorTranscription() {
                         {recording.status === 'completed'
                           ? 'Completada'
                           : recording.status === 'processing' || recording.status === 'pending'
-                            ? 'Procesando'
+                            ? 'Procesando...'
                             : 'Transcripción no disponible'}
                       </span>
-                      {recording.summary_approved ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                          <CheckCircle size={14} /> Resumen aprobado
+                      {recording.summary_approved && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                          <CheckCircle size={13} /> Aprobado
                         </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => approveRecording(recording.id)}
-                          disabled={
-                            recording.status !== 'completed'
-                            || !recording.summary_text
-                            || approvingRecordingId === recording.id
-                          }
-                          className="inline-flex items-center gap-2 rounded-lg bg-violet-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {approvingRecordingId === recording.id
-                            ? <Loader2 size={15} className="animate-spin" />
-                            : <CheckCircle size={15} />}
-                          Aprobar resumen
-                        </button>
                       )}
                       {recording.status === 'completed' && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {recording.summary_text && (
-                            <button
-                              type="button"
-                              onClick={() => downloadClinicalReport(recording.id)}
-                              disabled={downloadingAction?.id === recording.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 hover:border-blue-300 disabled:opacity-60"
-                              title="Descargar informe médico generado por IA en PDF"
-                            >
-                              {downloadingAction?.id === recording.id && downloadingAction?.type === 'report' ? (
-                                <Loader2 size={14} className="animate-spin text-blue-600" />
-                              ) : (
-                                <FileText size={14} className="text-blue-600" />
-                              )}
-                              Informe Médico (PDF)
-                            </button>
-                          )}
-                          {recording.transcript_text && (
-                            <button
-                              type="button"
-                              onClick={() => downloadTranscript(recording.id)}
-                              disabled={downloadingAction?.id === recording.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 disabled:opacity-60"
-                              title="Descargar la transcripción completa de la videollamada en PDF"
-                            >
-                              {downloadingAction?.id === recording.id && downloadingAction?.type === 'transcript' ? (
-                                <Loader2 size={14} className="animate-spin text-violet-600" />
-                              ) : (
-                                <Download size={14} className="text-violet-600" />
-                              )}
-                              Transcripción (PDF)
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingRecording(recording)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700"
+                        >
+                          <Pencil size={13} />
+                          Editar
+                        </button>
                       )}
                     </div>
                   </header>
 
-                  <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:p-6">
-                    <section>
-                      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                        <Headphones size={17} className="text-violet-600" />
-                        Grabación
-                      </h3>
-                      {recording.recording_url ? (
-                        <>
-                          <audio
-                            controls
-                            preload="none"
-                            className="w-full"
-                            src={recording.recording_url}
-                          >
+                  <div className="p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                      {/* Audio */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-700">
+                          <Headphones size={15} className="text-violet-600" />
+                          Grabación
+                        </h3>
+                        {recording.recording_url ? (
+                          <audio controls preload="none" className="w-full" src={recording.recording_url}>
                             Tu navegador no permite reproducir este audio.
                           </audio>
-                          <a
-                            href={recording.recording_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-3 inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900"
-                          >
-                            Abrir grabación en otra pestaña
-                          </a>
-                        </>
-                      ) : (
-                        <p className="text-sm text-slate-500">No hay una URL de grabación disponible.</p>
-                      )}
-                    </section>
-
-                    <section>
-                      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                        <FileText size={17} className="text-blue-600" />
-                        Informe Médico (IA)
-                      </h3>
-                      <ClinicalReportCard
-                        summaryText={recording.summary_text}
-                        status={recording.status}
-                        errorMessage={recording.error_message}
-                      />
-                    </section>
-
-                    <section className="md:col-span-2">
-                      <h3 className="mb-3 text-sm font-bold text-slate-800">
-                        Transcripción completa
-                      </h3>
-                      {recording.transcript_text ? (
-                        <div className="max-h-80 overflow-y-auto rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                          <p className="whitespace-pre-wrap">{recording.transcript_text}</p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          {recording.status === 'processing' || recording.status === 'pending'
-                            ? 'La transcripción se está procesando.'
-                            : recording.error_message || 'No hay una transcripción disponible.'}
-                        </p>
-                      )}
-                      {recording.transcript_file_url && (
-                        <a
-                          href={recording.transcript_file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
-                        >
-                          <FileText size={16} />
-                          Abrir archivo TXT de resumen y transcripción
-                        </a>
-                      )}
-                    </section>
-                  </div>
+                        ) : (
+                          <p className="text-xs text-slate-500">No hay URL de grabación.</p>
+                        )}
+                      </div>
+                      {/* Vista previa del informe */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-700">
+                          <FileText size={15} className="text-blue-600" />
+                          Vista previa del informe
+                        </h3>
+                        {recording.summary_text ? (
+                          <p className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 text-xs leading-relaxed text-slate-700 line-clamp-4 whitespace-pre-wrap">
+                            {recording.summary_text.slice(0, 280)}{recording.summary_text.length > 280 ? '...' : ''}
+                          </p>
+                        ) : recording.status === 'processing' || recording.status === 'pending' ? (
+                          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                            <Loader2 size={13} className="animate-spin" />
+                            Procesando con IA...
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400">{recording.error_message || 'Sin informe disponible.'}</p>
+                        )}
+                      </div>
+                    </div>
+                </div>
                 </article>
               ))}
             </div>
@@ -1004,5 +916,21 @@ export default function DoctorTranscription() {
         )}
       </div>
     </div>
+
+
+    {/* Modal de Edición de Transcripción */}
+    <TranscriptionEditModal
+      isOpen={editingRecording !== null}
+      onClose={() => setEditingRecording(null)}
+      recording={editingRecording}
+      userId={user?.id}
+      patients={patients}
+      onSaved={(updated) => {
+        handleEditSaved(updated);
+        // Actualiza también el objeto seleccionado si aún está abierto
+        setEditingRecording((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+      }}
+    />
+    </>
   );
 }

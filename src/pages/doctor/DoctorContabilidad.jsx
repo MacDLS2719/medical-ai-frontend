@@ -10,12 +10,14 @@ import {
   Receipt,
   FileSpreadsheet,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 
 import ContabilidadDashboard from './contabilidad/ContabilidadDashboard';
 import MovimientosLista from './contabilidad/MovimientosLista';
 import GastosLista from './contabilidad/GastosLista';
 import NuevoMovimientoModal from './contabilidad/NuevoMovimientoModal';
+import EmitirFacturaModal from './contabilidad/EmitirFacturaModal';
 import { listMovements } from './contabilidad/accounting.service';
 
 export default function DoctorContabilidad() {
@@ -30,6 +32,8 @@ export default function DoctorContabilidad() {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDefaultType, setModalDefaultType] = useState('income');
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceModalInitialMovement, setInvoiceModalInitialMovement] = useState(null);
 
   useEffect(() => {
     // Si no hay usuario o no es doctor, redirigir
@@ -62,6 +66,11 @@ export default function DoctorContabilidad() {
   const handleOpenModal = (type = 'income') => {
     setModalDefaultType(type);
     setIsModalOpen(true);
+  };
+
+  const handleOpenInvoiceModal = (movement = null) => {
+    setInvoiceModalInitialMovement(movement);
+    setIsInvoiceModalOpen(true);
   };
 
   const handleMovementCreated = () => {
@@ -117,7 +126,7 @@ export default function DoctorContabilidad() {
           </button>
         </div>
 
-        {/* Acciones de creación */}
+        {/* Acciones de creación y emisión */}
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -127,6 +136,16 @@ export default function DoctorContabilidad() {
             title="Actualizar datos"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin text-blue-600' : ''} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenInvoiceModal()}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-2xl transition-all shadow-xs cursor-pointer active:scale-95"
+            title="Emitir y descargar factura en PDF para ingresos o gastos"
+          >
+            <FileText size={15} />
+            <span>Emitir Factura</span>
           </button>
 
           <button
@@ -173,6 +192,7 @@ export default function DoctorContabilidad() {
           currency={currency}
           onCurrencyChange={setCurrency}
           onOpenNewMovement={handleOpenModal}
+          onOpenInvoiceModal={handleOpenInvoiceModal}
           onSwitchTab={setActiveTab}
         />
       )}
@@ -181,19 +201,31 @@ export default function DoctorContabilidad() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-slate-800">Historial completo de movimientos</h2>
-            <button
-              type="button"
-              onClick={() => handleOpenModal('income')}
-              className="text-xs font-bold text-blue-600 hover:underline"
-            >
-              + Añadir movimiento
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenInvoiceModal()}
+                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+              >
+                <FileText size={13} />
+                <span>Emitir Factura</span>
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={() => handleOpenModal('income')}
+                className="text-xs font-bold text-blue-600 hover:underline"
+              >
+                + Añadir movimiento
+              </button>
+            </div>
           </div>
           <MovimientosLista
             movements={movements}
             loading={loading}
             onRefresh={loadMovements}
             currency={currency}
+            onGenerateInvoice={handleOpenInvoiceModal}
           />
         </div>
       )}
@@ -202,13 +234,24 @@ export default function DoctorContabilidad() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-slate-800">Control de gastos por categoría</h2>
-            <button
-              type="button"
-              onClick={() => handleOpenModal('expense')}
-              className="text-xs font-bold text-rose-600 hover:underline"
-            >
-              + Añadir gasto
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenInvoiceModal()}
+                className="text-xs font-bold text-rose-600 hover:underline flex items-center gap-1"
+              >
+                <FileText size={13} />
+                <span>Facturar Gasto</span>
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={() => handleOpenModal('expense')}
+                className="text-xs font-bold text-rose-600 hover:underline"
+              >
+                + Añadir gasto
+              </button>
+            </div>
           </div>
           <GastosLista movements={movements} currency={currency} />
         </div>
@@ -221,6 +264,18 @@ export default function DoctorContabilidad() {
           onCreated={handleMovementCreated}
           defaultType={modalDefaultType}
           defaultCurrency={currency}
+        />
+      )}
+
+      {/* Modal interactivo para Emitir Factura y Descargar en PDF */}
+      {isInvoiceModalOpen && (
+        <EmitirFacturaModal
+          isOpen={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          movements={movements}
+          initialMovement={invoiceModalInitialMovement}
+          currency={currency}
+          doctorUser={user}
         />
       )}
     </div>

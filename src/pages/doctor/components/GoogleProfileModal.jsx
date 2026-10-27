@@ -17,8 +17,11 @@ import {
   Building,
   Cloud,
   UploadCloud,
-  Sparkles
+  Sparkles,
+  Camera,
+  Link2
 } from 'lucide-react';
+import CameraCaptureModal from './CameraCaptureModal';
 
 export default function GoogleProfileModal({
   isOpen,
@@ -31,6 +34,7 @@ export default function GoogleProfileModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [cameraSlot, setCameraSlot] = useState(null); // which photo slot is being captured
 
   const [profileData, setProfileData] = useState({
     business_name: '',
@@ -155,6 +159,15 @@ export default function GoogleProfileModal({
     reader.readAsDataURL(file);
   };
 
+  const handleCameraCapture = (captured) => {
+    if (cameraSlot === null) return;
+    handlePhotoChange(cameraSlot, captured.base64 || captured.previewUrl || '');
+    setCameraSlot(null);
+  };
+
+  // Always expose exactly 3 photo slots (fill with empty strings if needed)
+  const photoSlots = Array.from({ length: 3 }, (_, i) => (profileData.photos || [])[i] || '');
+
   const handleApply = async () => {
     setError(null);
     setSaving(true);
@@ -226,6 +239,7 @@ export default function GoogleProfileModal({
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <div 
         className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden"
@@ -305,16 +319,16 @@ export default function GoogleProfileModal({
             )}
           </div>
 
-          {/* Fotos del negocio para clonación a Cloudinary */}
+          {/* Fotos del negocio — carga manual */}
           <div className="bg-gradient-to-br from-blue-50/50 via-white to-slate-50 border border-blue-100 rounded-xl p-3.5 space-y-2.5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
               <div>
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <ImageIcon size={14} className="text-[#0052FF]" />
-                  <span>Imágenes del perfil de Google (3 imágenes para clonar en Cloudinary)</span>
+                  <span>Imágenes del perfil (3 imágenes para clonar en Cloudinary)</span>
                 </label>
-                <p className="text-[10px] text-slate-500">
-                  Estas 3 imágenes se guardarán en la tabla <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded font-mono text-[9.5px]">doctor_google_images</code> y se clonarán en Cloudinary para tu perfil.
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Sube tus propias fotos: pega un enlace, selecciona un archivo o toma una foto con la cámara.
                 </p>
               </div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100/70 text-[#0052FF] shrink-0 self-start sm:self-auto">
@@ -323,82 +337,98 @@ export default function GoogleProfileModal({
               </span>
             </div>
 
-            {profileData.photos && profileData.photos.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {profileData.photos.slice(0, 3).map((src, idx) => (
-                  <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col group hover:border-blue-400 transition-all">
-                    <div className="relative h-28 w-full bg-slate-100 overflow-hidden">
-                      <img 
-                        src={src} 
-                        alt={`Imagen ${idx + 1}`} 
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80';
-                        }}
-                      />
-                      <div className="absolute top-1.5 left-1.5 bg-[#0B1E48]/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
-                        <span>Posición #{idx + 1}</span>
-                        {idx === 0 && <span className="text-amber-300">★ Principal</span>}
-                      </div>
-
-                      <a
-                        href={src}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Ver imagen en tamaño completo"
-                        className="absolute bottom-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <ExternalLink size={12} />
-                      </a>
-                    </div>
-
-                    <div className="p-2 space-y-1">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-semibold text-slate-700">URL foto #{idx + 1}:</span>
-                        {src.includes('cloudinary.com') ? (
-                          <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
-                            <CheckCircle2 size={10} /> En Cloudinary
-                          </span>
-                        ) : (
-                          <span className="text-[9px] text-blue-600 font-semibold flex items-center gap-0.5">
-                            <Cloud size={10} /> Por clonar
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="url"
-                          value={src && !src.startsWith('data:') ? src : ''}
-                          onChange={(e) => handlePhotoChange(idx, e.target.value)}
-                          placeholder="Pegar URL (lh3...) o subir"
-                          className="flex-1 px-1.5 py-0.5 text-[9.5px] rounded border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none text-slate-600 bg-slate-50/50 min-w-0"
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {photoSlots.map((src, idx) => (
+                <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col group hover:border-blue-400 transition-all">
+                  {/* Preview */}
+                  <div className="relative h-28 w-full bg-slate-100 overflow-hidden">
+                    {src ? (
+                      <>
+                        <img
+                          src={src}
+                          alt={`Imagen ${idx + 1}`}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                          }}
                         />
-                        <label className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 rounded text-[9px] font-bold flex items-center gap-0.5 cursor-pointer shrink-0">
-                          <UploadCloud size={10} />
-                          <span>Subir</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => handlePhotoUpload(idx, e.target.files?.[0])}
-                          />
-                        </label>
+                        <a
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Ver imagen en tamaño completo"
+                          className="absolute bottom-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-slate-300">
+                        <ImageIcon size={22} />
+                        <span className="text-[10px] font-medium text-slate-400">Sin imagen</span>
                       </div>
+                    )}
+                    <div className="absolute top-1.5 left-1.5 bg-[#0B1E48]/80 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                      <span>Foto #{idx + 1}</span>
+                      {idx === 0 && <span className="text-amber-300">★ Principal</span>}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-white/60 text-center">
-                <ImageIcon size={20} className="mx-auto text-slate-400 mb-1" />
-                <p className="text-xs text-slate-600 font-medium">No se han detectado fotos aún.</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Haz clic en &quot;Buscar perfil&quot; para extraer las fotos de Google o ingresa una URL de Maps válida.
-                </p>
-              </div>
-            )}
+
+                  {/* Controls */}
+                  <div className="p-2 space-y-1.5">
+                    {/* URL input */}
+                    <div className="flex items-center gap-1">
+                      <Link2 size={10} className="text-slate-400 shrink-0" />
+                      <input
+                        type="url"
+                        value={src && !src.startsWith('data:') ? src : ''}
+                        onChange={(e) => handlePhotoChange(idx, e.target.value)}
+                        placeholder="Pegar enlace de imagen..."
+                        className="flex-1 px-1.5 py-0.5 text-[9.5px] rounded border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none text-slate-600 bg-slate-50/50 min-w-0"
+                      />
+                    </div>
+                    {/* Upload + Camera buttons */}
+                    <div className="flex items-center gap-1">
+                      <label className="flex-1 flex items-center justify-center gap-1 py-1 bg-blue-50 hover:bg-blue-100 text-[#0052FF] border border-blue-200 rounded text-[9px] font-bold cursor-pointer transition-colors">
+                        <UploadCloud size={10} />
+                        <span>Subir archivo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handlePhotoUpload(idx, e.target.files?.[0])}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setCameraSlot(idx)}
+                        title="Tomar foto con cámara"
+                        className="flex items-center justify-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded text-[9px] font-bold cursor-pointer transition-colors"
+                      >
+                        <Camera size={10} />
+                        <span>Cámara</span>
+                      </button>
+                    </div>
+                    {/* Cloudinary status */}
+                    <div className="flex items-center justify-end">
+                      {src?.includes('cloudinary.com') ? (
+                        <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
+                          <CheckCircle2 size={10} /> En Cloudinary
+                        </span>
+                      ) : src ? (
+                        <span className="text-[9px] text-blue-600 font-semibold flex items-center gap-0.5">
+                          <Cloud size={10} /> Por clonar
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-slate-400">Sin imagen</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
 
@@ -632,5 +662,13 @@ export default function GoogleProfileModal({
         </div>
       </div>
     </div>
+
+    {/* Camera capture modal */}
+    <CameraCaptureModal
+      isOpen={cameraSlot !== null}
+      onClose={() => setCameraSlot(null)}
+      onCapture={handleCameraCapture}
+    />
+    </>
   );
 }
